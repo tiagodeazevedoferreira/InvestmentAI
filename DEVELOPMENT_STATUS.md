@@ -3,55 +3,80 @@
 Last updated: 2026-08-31
 
 ## Foundation
-- [x] Repository established
-- [x] Persistent project context
-- [x] Architecture and decision records
+- [x] Repository and persistent handoff context
+- [x] Architecture/decision records
 - [x] Environment separation contract
 - [x] Firebase repository abstraction
 - [x] FastAPI application skeleton
 - [x] PWA frontend skeleton
-- [x] CI workflow
-- [x] Firebase integration smoke-test workflow
+- [x] CI and Firebase smoke-test workflows
+- [x] OpenBB provider boundary
+- [x] Yahoo fallback provider
 
 ## Value Investing
-- [x] Fundamental domain models and metric service skeleton
+- [x] Fundamental data service boundary
+- [x] P/E, P/B, EV/EBITDA, ROE and dividend-yield primitives
 - [x] DCF/Gordon valuation primitives
-- [ ] Production-grade provider coverage and historical fundamentals
-- [ ] Fundamental scoring/ranking
+- [ ] Provider-normalized historical statements
+- [ ] ROIC with invested-capital definition and validation
+- [ ] Fundamental score/ranking and margin-of-safety engine
 
 ## Trading
-- [x] Technical indicator implementation
+- [x] EMA 9/21
+- [x] RSI 14
+- [x] Bollinger Bands
 - [x] RSI oversold/overbought strategy
 - [x] Basic backtester
-- [ ] Transaction-cost/slippage calibration
+- [x] Cost/slippage-aware market simulator
 - [ ] Walk-forward evaluation
+- [ ] Transaction-cost calibration by venue
 
 ## Portfolio/Risk
-- [x] Markowitz optimization primitives
-- [x] Sharpe maximization
-- [x] Parametric VaR 95%
-- [ ] Constraints and robust covariance methods
+- [x] Markowitz optimization
+- [x] Maximum Sharpe
+- [x] Efficient frontier
+- [x] Parametric daily VaR 95%
+- [ ] Robust covariance/shrinkage
+- [ ] Position sizing and portfolio risk limits
 
 ## AI/ML
-- [x] Feature engineering interface
-- [x] Time-series-safe dataset split primitives
-- [x] XGBoost-compatible training interface
-- [ ] Real historical training dataset
-- [ ] Out-of-sample validation and model registry
+- [x] Technical feature engineering
+- [x] Five-day directional target
+- [x] Chronological train/validation/test split
+- [x] XGBoost training interface
+- [x] Model metadata/registry artifact
+- [x] Financial evaluation metrics
+- [ ] Training workflow on real datasets
+- [ ] Out-of-sample promotion gate
 - [ ] LSTM experiment
+- [ ] RL agent experiment
+
+## RL/Simulation
+- [x] Framework-neutral RL policy boundary
+- [x] Market simulator with commission/slippage
+- [ ] Multi-asset RL environment
+- [ ] TradeMaster-inspired PPO/SAC experiments
 
 ## Execution
 - [x] Simulation-only default
-- [x] Demo/live separation in domain model
+- [x] Demo/live separation
 - [x] Risk gate skeleton
 - [ ] Paper broker adapter
 - [ ] Demo broker adapter
 - [ ] Live broker adapter
-- [ ] Promotion gate based on empirical validation
+- [ ] Empirical model promotion gate
+- [ ] Kill switch and reconciliation engine
 
-## Firebase/data
+## Firebase/data governance
 - [x] Operational repository abstraction
-- [x] Retention policy abstraction
-- [ ] Deploy/test against configured Firebase secret
+- [x] Retention-aware storage boundary
+- [ ] Execute Firebase smoke test against configured secret
 - [ ] Production security rules
-- [ ] Data-size monitoring
+- [ ] Data-size monitoring/quotas dashboard
+- [ ] Automated retention cleanup
+
+## Quality
+- [ ] Full integration test suite against provider mocks
+- [ ] End-to-end training/backtest test
+- [ ] Security/dependency scan
+- [ ] Production deployment

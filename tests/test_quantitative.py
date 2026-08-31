@@ -41,5 +41,5 @@ def test_simulator_applies_trade_costs():
 def test_financial_metrics():
     equity = pd.Series([100, 101, 99, 103, 105])
     metrics = trading_metrics(equity)
-    assert metrics["total_return"] == .05
+    assert np.isclose(metrics["total_return"], 0.05)
     assert metrics["max_drawdown"] < 0

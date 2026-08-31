@@ -26,3 +26,18 @@ Project context, status, roadmap and decisions are versioned with code and updat
 
 ## ADR-009 — Firebase size discipline
 Do not persist every raw market bar indefinitely. Apply retention, deduplication, aggregation and compact derived-state storage.
+
+## ADR-010 — OpenBB as preferred data integration layer
+OpenBB is the preferred data-access abstraction because it provides a unified Python/REST interface over multiple financial data providers. yfinance remains a fallback adapter for resilience.
+
+## ADR-011 — TradeMaster is a reference, not the core
+TradeMaster and related research are used for simulator, RL and evaluation design patterns. The InvestmentAI domain architecture remains independent to avoid dependency and lifecycle coupling.
+
+## ADR-012 — Cost-aware simulation
+All strategy validation must support commission and slippage assumptions. A backtest that ignores trading frictions is not sufficient for promotion.
+
+## ADR-013 — Model promotion gate
+Models cannot progress from research to demo/live based on prediction accuracy alone. Out-of-sample financial and risk metrics must pass explicit gates.
+
+## ADR-014 — Broker isolation
+Broker SDKs are isolated behind an adapter and order-manager boundary. Simulation, demo and live credentials/endpoints are never mixed.

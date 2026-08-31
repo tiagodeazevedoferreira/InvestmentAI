@@ -1,22 +1,22 @@
 # Roadmap
 
-## Foundation
-API, PWA, Firebase, CI, configuration, logging, tests and documentation.
+## Completed architecture/foundation
+API, PWA, Firebase integration boundary, CI, environment separation, OpenBB provider boundary, Yahoo fallback, technical analytics, valuation primitives, Markowitz/efficient frontier/VaR, cost-aware simulator, XGBoost training boundary, financial evaluation metrics, model promotion gate and broker isolation.
 
 ## Quant research
-Market-data adapters, fundamentals, technical indicators, valuation, backtesting, portfolio optimization and risk analytics.
+Expand normalized fundamental statements, ROIC methodology, scoring/ranking, walk-forward validation, robust covariance and transaction-cost calibration.
 
 ## ML
-Feature pipeline, chronological datasets, baseline models, 5-day target, calibration, walk-forward validation, model registry and drift monitoring.
+Train on real historical datasets, out-of-sample validation, calibration, model registry persistence, drift monitoring, LSTM benchmark and RL experiments.
 
 ## Trading simulation
-Signal engine, portfolio accounting, paper execution, fees, slippage, reconciliation and audit trail.
+Integrate the simulator with the signal engine, portfolio accounting, fees/slippage, reconciliation and audit trail.
 
-## Broker demo
-Implement one broker adapter supporting a sandbox/demo account. Validate order lifecycle and failure recovery.
+## Paper/Demo
+Implement one real broker sandbox adapter when a supported demo account/API is selected. Validate complete order lifecycle and failure recovery.
 
 ## Live promotion
-Only after empirical evidence across backtest, paper and demo environments. Add explicit approval controls, limits, kill switch and reconciliation.
+Only after empirical evidence across backtest, paper and demo. Require explicit model approval, risk limits, kill switch, reconciliation and separate live credentials. Live remains disabled until then.
 
 ## Evolution
-Multi-asset support, ensemble models, regime detection, robust optimization, execution quality analytics and additional providers.
+Multimodal research data, ensemble models, regime detection, robust optimization, execution-quality analytics and additional providers.

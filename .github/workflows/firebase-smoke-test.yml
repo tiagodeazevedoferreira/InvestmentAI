@@ -1,0 +1,33 @@
+name: Firebase Smoke Test
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/firebase-smoke-test.yml'
+jobs:
+  firebase:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r backend/requirements.txt
+      - name: Validate Firebase connection
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FIREBASE_DATABASE_URL: ${{ vars.FIREBASE_DATABASE_URL }}
+        run: |
+          python - <<'PY'
+          import os
+          from backend.app.services.firebase import FirebaseRepository
+          repo = FirebaseRepository(os.environ.get('FIREBASE_DATABASE_URL'), os.environ.get('FIREBASE_SERVICE_ACCOUNT'))
+          if not repo.enabled:
+              raise SystemExit('Firebase credentials/variable are not available')
+          path = 'system/diagnostics/github_actions'
+          repo.set(path, {'status': 'ok', 'source': 'github-actions'})
+          value = repo.get(path)
+          if not value or value.get('status') != 'ok':
+              raise SystemExit(f'Unexpected Firebase response: {value}')
+          print('Firebase connectivity: OK')
+          PY

@@ -12,10 +12,10 @@ def build_features(df: pd.DataFrame, horizon: int = 5) -> tuple[pd.DataFrame, pd
     x["return_1d"] = close.pct_change()
     x["return_5d"] = close.pct_change(5)
     x["volatility_20d"] = x["return_1d"].rolling(20).std()
-    x["volume_change"] = x["Volume"].pct_change() if "Volume" in x else np.nan
+    x["volume_change"] = x["Volume"].pct_change()
     x["future_return_5d"] = close.shift(-horizon) / close - 1.0
     y = (x["future_return_5d"] > 0).astype(int)
-    feature_cols = ["EMA9", "EMA21", "RSI14", "BB_MID", "BB_UPPER", "BB_LOWER", "return_1d", "return_5d", "volatility_20d", "volume_change"]
+    feature_cols = ["EMA9", "EMA21", "RSI14", "BB_MIDDLE", "BB_UPPER", "BB_LOWER", "return_1d", "return_5d", "volatility_20d", "volume_change"]
     valid = x[feature_cols + ["future_return_5d"]].replace([np.inf, -np.inf], np.nan).dropna()
     return valid[feature_cols], y.loc[valid.index]
 

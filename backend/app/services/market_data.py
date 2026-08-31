@@ -1,4 +1,6 @@
+from __future__ import annotations
 import pandas as pd
+
 
 def download_history(symbol: str, period: str = "5y") -> pd.DataFrame:
     if not symbol or not symbol.strip():
@@ -10,8 +12,14 @@ def download_history(symbol: str, period: str = "5y") -> pd.DataFrame:
             df.columns = df.columns.get_level_values(0)
         if df.empty:
             raise ValueError(f"No historical data returned for {symbol}")
+        required = {"Close"}
+        missing = required - set(df.columns)
+        if missing:
+            raise ValueError(f"Missing market columns: {sorted(missing)}")
         return df
     except ImportError as exc:
         raise RuntimeError("yfinance is not installed") from exc
+    except ValueError:
+        raise
     except Exception as exc:
         raise RuntimeError(f"Market data provider error for {symbol}: {exc}") from exc

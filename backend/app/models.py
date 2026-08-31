@@ -1,9 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Literal
-
-import pandas as pd
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 class HealthResponse(BaseModel):
     status: str
@@ -26,11 +24,20 @@ class PortfolioRequest(BaseModel):
     period: str = "2y"
     risk_free_rate: float = 0.0
 
+    @field_validator("symbols")
+    @classmethod
+    def unique_symbols(cls, v):
+        normalized = [s.strip().upper() for s in v if s.strip()]
+        if len(set(normalized)) != len(normalized):
+            raise ValueError("symbols must be unique")
+        return normalized
+
 class PortfolioResponse(BaseModel):
     weights: dict[str, float]
     expected_return: float
     volatility: float
     sharpe: float
+    frontier: list[dict] = []
 
 class VaRRequest(BaseModel):
     weights: dict[str, float]
@@ -50,22 +57,10 @@ class Signal:
     reason: str
     timestamp: datetime
 
-class FundamentalMetrics(BaseModel):
-    price: float | None = None
-    market_cap: float | None = None
-    revenue: float | None = None
-    net_income: float | None = None
-    ebitda: float | None = None
-    book_value: float | None = None
-    enterprise_value: float | None = None
-    dividends_per_share: float | None = None
-    shares_outstanding: float | None = None
-    pe: float | None = None
-    pb: float | None = None
-    ev_ebitda: float | None = None
-    roe: float | None = None
-    roic: float | None = None
-    dividend_yield: float | None = None
+class FundamentalResponse(BaseModel):
+    symbol: str
+    provider: str
+    data: dict
 
 class ValuationRequest(BaseModel):
     dividend_per_share: float = Field(gt=0)

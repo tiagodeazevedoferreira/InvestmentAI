@@ -1,6 +1,6 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Header, HTTPException, Query
 import pandas as pd
-from ..models import HealthResponse, BacktestRequest, BacktestResponse, ValuationRequest, ValuationResponse, PortfolioRequest, PortfolioResponse, VaRRequest, VaRResponse, PredictionResponse, FundamentalResponse
+from ..models import HealthResponse, BacktestRequest, BacktestResponse, ValuationRequest, ValuationResponse, PortfolioRequest, PortfolioResponse, VaRRequest, VaRResponse, PredictionResponse, FundamentalResponse, TradingViewWebhook, TradingViewWebhookResponse
 from ..settings import get_settings
 from ..services.market_data import download_history
 from ..services.providers import get_provider
@@ -11,6 +11,7 @@ from ..services.portfolio import optimize_max_sharpe, efficient_frontier, parame
 from ..services.features import build_features
 from ..services.evaluation import trading_metrics
 from ..services.fundamentals import fundamental_metrics
+from ..services.tradingview import event_fingerprint, normalize_timestamp, normalize_tradingview_payload, verify_webhook_secret
 
 router = APIRouter()
 settings = get_settings()
@@ -28,6 +29,33 @@ def market(symbol: str, period: str = "1y", provider: str = Query("yahoo")):
         return {"symbol": symbol.upper(), "close": float(row["Close"]), "ema9": float(row["EMA9"]), "ema21": float(row["EMA21"]), "rsi14": None if pd.isna(row["RSI14"]) else float(row["RSI14"]), "provider": provider}
     except (ValueError, RuntimeError) as exc:
         raise HTTPException(422, str(exc)) from exc
+
+@router.post("/integrations/tradingview/webhook", response_model=TradingViewWebhookResponse)
+def tradingview_webhook(payload: dict, x_tradingview_secret: str | None = Header(default=None)):
+    """Receive read-only TradingView/Pine validation events.
+
+    This endpoint records no orders and cannot change trading mode. A shared
+    secret is mandatory so an unconfigured deployment fails closed.
+    """
+    if not settings.tradingview_webhook_secret:
+        raise HTTPException(503, "TradingView webhook is not configured")
+    if not verify_webhook_secret(x_tradingview_secret, settings.tradingview_webhook_secret):
+        raise HTTPException(401, "Invalid TradingView webhook secret")
+    try:
+        event = normalize_tradingview_payload(payload)
+    except ValueError as exc:
+        raise HTTPException(422, "Invalid TradingView payload") from exc
+
+    received_at = normalize_timestamp(event.received_at)
+    event_id = event_fingerprint(event)
+    return {
+        "accepted": True,
+        "source": event.source,
+        "symbol": event.symbol,
+        "timeframe": event.timeframe,
+        "event_id": event_id,
+        "received_at": received_at,
+    }
 
 @router.get("/fundamentals/{symbol}", response_model=FundamentalResponse)
 def fundamentals(symbol: str, provider: str = Query("openbb")):

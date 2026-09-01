@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 from backend.app.services.openbb_market_data import B3_SYMBOLS, OpenBBMarketDataProvider
 from backend.app.services.walk_forward import purged_walk_forward
@@ -27,7 +28,13 @@ def main() -> None:
                 "macro_f1": result.baseline_macro_f1,
             },
         })
+
+    output = Path("walk_forward_report.json")
+    output.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     print(json.dumps(payload, indent=2))
+    from scripts.summarize_walk_forward import summarize
+    print("\nWALK-FORWARD STABILITY SUMMARY")
+    print(json.dumps(summarize(payload), indent=2))
 
 
 if __name__ == "__main__":

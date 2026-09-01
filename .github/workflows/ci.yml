@@ -17,10 +17,33 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/backend
         run: pytest -q
-      - name: Run walk-forward stability analysis
+      - name: Run walk-forward analysis
         env:
           PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/backend
         run: python scripts/run_walk_forward.py > walk_forward_output.txt
+      - name: Generate walk-forward stability summary
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/backend
+        run: |
+          python scripts/summarize_walk_forward.py walk_forward_report.json > walk_forward_stability.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          data = json.loads(Path("walk_forward_stability.json").read_text(encoding="utf-8"))
+          print("=== WALK-FORWARD STABILITY SUMMARY ===")
+          for symbol, metrics in data.items():
+              print(
+                  f"{symbol}: folds={metrics['folds']} | "
+                  f"BA model={metrics['model_balanced_accuracy_mean']:.4f} | "
+                  f"BA baseline={metrics['baseline_balanced_accuracy_mean']:.4f} | "
+                  f"BA delta={metrics['mean_balanced_accuracy_delta']:.4f} | "
+                  f"F1 model={metrics['model_macro_f1_mean']:.4f} | "
+                  f"F1 baseline={metrics['baseline_macro_f1_mean']:.4f} | "
+                  f"win rate BA={metrics['fold_win_rate_balanced_accuracy']:.2%} | "
+                  f"win rate F1={metrics['fold_win_rate_macro_f1']:.2%}"
+              )
+          PY
       - name: Upload walk-forward report
         uses: actions/upload-artifact@v4
         with:
@@ -28,3 +51,4 @@ jobs:
           path: |
             walk_forward_report.json
             walk_forward_output.txt
+            walk_forward_stability.json

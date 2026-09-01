@@ -44,6 +44,17 @@ jobs:
                   f"win rate F1={metrics['fold_win_rate_macro_f1']:.2%}"
               )
           PY
+      - name: Run causal ML trading backtest
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/backend
+        run: python scripts/run_ml_trading_backtest.py > ml_trading_backtest_output.txt
+      - name: Upload trading backtest report
+        uses: actions/upload-artifact@v4
+        with:
+          name: ml-trading-backtest-report
+          path: |
+            ml_trading_backtest_output.txt
+            artifacts/ml-trading-backtest-report.json
       - name: Upload walk-forward report
         uses: actions/upload-artifact@v4
         with:

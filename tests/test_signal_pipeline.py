@@ -31,7 +31,9 @@ def test_tradingview_and_independent_bullish_signal_pass_fusion():
 
 def test_conflicting_sources_are_fused_instead_of_tradingview_overriding():
     result = fuse_with_tradingview(tv_event(), [signal(Direction.SHORT, 1.0, "model")], min_sources=2)
-    assert result.fused.direction is Direction.SHORT
+    # Equal-confidence opposing evidence cancels to NEUTRAL. This is safer than
+    # allowing either source to override the other.
+    assert result.fused.direction is Direction.NEUTRAL
     assert result.allowed is False
     assert "confidence threshold not met" in result.risk_reasons or "fused confidence below threshold" in result.risk_reasons
 

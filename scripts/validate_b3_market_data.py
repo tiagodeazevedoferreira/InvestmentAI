@@ -24,11 +24,13 @@ def main() -> int:
         try:
             df = provider.historical(symbol, start=START, end=END, interval="1d")
             report = validate_market_data(symbol, df, interval="1d")
-            reports.append(report.__dict__)
-            print(json.dumps(report.__dict__, ensure_ascii=False, sort_keys=True))
+            payload = {**report.__dict__, "valid": report.valid}
+            reports.append(payload)
+            print(json.dumps(payload, ensure_ascii=False, sort_keys=True))
         except Exception as exc:
-            reports.append({"symbol": symbol, "error": str(exc), "valid": False})
-            print(json.dumps(reports[-1], ensure_ascii=False, sort_keys=True))
+            payload = {"symbol": symbol, "error": str(exc), "valid": False}
+            reports.append(payload)
+            print(json.dumps(payload, ensure_ascii=False, sort_keys=True))
 
     output = ROOT / "artifacts"
     output.mkdir(exist_ok=True)

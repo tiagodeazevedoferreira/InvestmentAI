@@ -29,9 +29,11 @@ Last updated: 2026-09-01
 - [x] RSI oversold/overbought strategy
 - [x] Basic backtester
 - [x] Cost/slippage-aware market simulator
-- [ ] Market replay
-- [ ] Walk-forward evaluation
+- [x] Market replay
+- [x] Walk-forward evaluation
 - [ ] Transaction-cost calibration by venue
+- [x] Causal ML trading backtest
+- [ ] ML robustness audit
 
 ## Portfolio/Risk
 - [x] Markowitz optimization
@@ -49,7 +51,8 @@ Last updated: 2026-09-01
 - [x] Model metadata/registry artifact
 - [x] Financial evaluation metrics
 - [ ] Training workflow on real datasets
-- [ ] Out-of-sample promotion gate
+- [x] Out-of-sample ML evaluation
+- [ ] Empirical financial promotion gate
 - [ ] LSTM experiment
 - [ ] RL agent experiment
 
@@ -100,10 +103,15 @@ Last updated: 2026-09-01
 - [x] TradingView reconciliation/fusion tests
 - [x] OpenBB B3 adapter unit tests
 - [x] OpenBB B3 live smoke-test workflow
+- [x] ML trading backtest tests
+- [x] ML robustness audit helper tests
 - [ ] Full integration test suite against provider mocks
 - [ ] End-to-end training/backtest test
 - [ ] Security/dependency scan
 - [ ] Production deployment
+
+## Current ML validation gate
+The causal ML trading backtest is complete. The ML model remains research-only until robustness testing demonstrates stability across assets, probability thresholds, transaction-cost assumptions and market regimes. Live execution remains disabled.
 
 ## Promotion boundary
 Phases 1-9 remain non-live. Phase 10/live is intentionally disabled and requires explicit authorization after empirical validation.

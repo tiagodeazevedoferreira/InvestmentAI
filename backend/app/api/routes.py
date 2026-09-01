@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Header, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query
 import pandas as pd
-from ..models import HealthResponse, BacktestRequest, BacktestResponse, ValuationRequest, ValuationResponse, PortfolioRequest, PortfolioResponse, VaRRequest, VaRResponse, PredictionResponse, FundamentalResponse, TradingViewWebhook, TradingViewWebhookResponse
+from ..models import HealthResponse, BacktestRequest, BacktestResponse, ValuationRequest, ValuationResponse, PortfolioRequest, PortfolioResponse, VaRRequest, VaRResponse, PredictionResponse, FundamentalResponse, TradingViewWebhookResponse
 from ..settings import get_settings
 from ..services.market_data import download_history
 from ..services.providers import get_provider
@@ -30,17 +30,19 @@ def market(symbol: str, period: str = "1y", provider: str = Query("yahoo")):
     except (ValueError, RuntimeError) as exc:
         raise HTTPException(422, str(exc)) from exc
 
-@router.post("/integrations/tradingview/webhook", response_model=TradingViewWebhookResponse)
-def tradingview_webhook(payload: dict, x_tradingview_secret: str | None = Header(default=None)):
+@router.post("/integrations/tradingview/webhook/{webhook_token}", response_model=TradingViewWebhookResponse)
+def tradingview_webhook(webhook_token: str, payload: dict):
     """Receive read-only TradingView/Pine validation events.
 
-    This endpoint records no orders and cannot change trading mode. A shared
-    secret is mandatory so an unconfigured deployment fails closed.
+    TradingView webhooks are outbound POSTs and do not provide a facility for
+    custom authentication headers. The route therefore uses a high-entropy
+    secret path token. This endpoint records no orders and cannot change the
+    trading mode.
     """
     if not settings.tradingview_webhook_secret:
         raise HTTPException(503, "TradingView webhook is not configured")
-    if not verify_webhook_secret(x_tradingview_secret, settings.tradingview_webhook_secret):
-        raise HTTPException(401, "Invalid TradingView webhook secret")
+    if not verify_webhook_secret(webhook_token, settings.tradingview_webhook_secret):
+        raise HTTPException(401, "Invalid TradingView webhook token")
     try:
         event = normalize_tradingview_payload(payload)
     except ValueError as exc:

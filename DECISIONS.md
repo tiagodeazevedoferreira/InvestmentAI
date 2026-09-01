@@ -51,5 +51,8 @@ TradingView webhook requests are authenticated with a high-entropy route token s
 ## ADR-017 — Canonical technical contract
 The InvestmentAI TradingView validator uses EMA 9/21, RSI 14 with 30/70 levels, Bollinger 20 with multiplier 2.0, and a 20-period volume moving average. The Pine implementation is versioned in the repository rather than depending on a community script.
 
-## ADR-018 — OpenBB/B3 validation before adapter implementation
+## ADR-018 — OpenBB/B3 provider validation before adapter implementation
 The next data-integration decision is provider selection for Brazilian equities. We will first validate current OpenBB-supported B3 coverage, provider licensing/entitlements, API-key requirements, historical depth, real-time/delayed characteristics, rate limits and symbol coverage. No provider-specific adapter will be promoted until these criteria are documented and tested.
+
+## ADR-019 — OpenBB yfinance for first B3 proof of concept
+The current OpenBB provider catalog does not expose a dedicated B3 provider. For the first B3 research/backtesting path, use the OpenBB `yfinance` extension with Yahoo `.SA` symbols. This choice requires no provider API credential and keeps the InvestmentAI domain vendor-neutral. It is not considered exchange-grade production data; an authoritative/licensed B3 source must be evaluated before live trading.

@@ -46,8 +46,10 @@ def _run_backtest(frame: pd.DataFrame, signals: pd.Series, *, commission: float,
 
 def yearly_metrics(equity: pd.Series) -> dict:
     year_end = equity.groupby(equity.index.year).last()
-    starts = equity.groupby(equity.index.year).first()
-    annual = year_end / starts - 1.0
+    # A calendar-year return must compare each year-end with the preceding
+    # observed year-end. The first year is the baseline and has no annual
+    # return because there is no prior year-end in the evaluation series.
+    annual = year_end.pct_change().dropna()
     values = {str(year): float(value) for year, value in annual.items()}
     abs_total = sum(abs(value) for value in values.values())
     best = max(values.values()) if values else 0.0

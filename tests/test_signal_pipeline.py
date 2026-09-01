@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from backend.app.models import TradingViewWebhook
 from backend.app.services.external_intelligence import Direction, ExternalSignal
 from backend.app.services.signal_pipeline import fuse_with_tradingview
@@ -6,7 +8,7 @@ from backend.app.services.signal_pipeline import fuse_with_tradingview
 def tv_event():
     return TradingViewWebhook.model_validate({
         "source": "tradingview", "symbol": "VALE3", "exchange": "BMFBOVESPA",
-        "timeframe": "D", "bar_time": "2026-09-01T00:00:00Z", "close": 100,
+        "timeframe": "D", "bar_time": datetime.now(timezone.utc), "close": 100,
         "ema_fast": 101, "ema_slow": 99, "rsi14": 55, "bb_upper": 105,
         "bb_basis": 100, "bb_lower": 95, "volume": 1000000,
         "ema_state": "bullish", "rsi_state": "neutral", "bb_state": "inside",

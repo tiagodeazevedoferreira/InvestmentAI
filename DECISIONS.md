@@ -41,3 +41,12 @@ Models cannot progress from research to demo/live based on prediction accuracy a
 
 ## ADR-014 — Broker isolation
 Broker SDKs are isolated behind an adapter and order-manager boundary. Simulation, demo and live credentials/endpoints are never mixed.
+
+## ADR-015 — TradingView is validation-only
+TradingView/Pine is an independent technical-validation source. It must never bypass the InvestmentAI signal engine, independent risk gate, position sizing or broker adapter. TradingView webhook events are read-only inputs until independently validated.
+
+## ADR-016 — TradingView webhook authentication
+TradingView webhook requests are authenticated with a high-entropy route token stored in `TRADINGVIEW_WEBHOOK_SECRET`. Custom HTTP authentication headers are not assumed because the TradingView webhook workflow does not provide arbitrary header configuration. The endpoint fails closed when the secret is absent and rejects invalid tokens.
+
+## ADR-017 — Canonical technical contract
+The InvestmentAI TradingView validator uses EMA 9/21, RSI 14 with 30/70 levels, Bollinger 20 with multiplier 2.0, and a 20-period volume moving average. The Pine implementation is versioned in the repository rather than depending on a community script.

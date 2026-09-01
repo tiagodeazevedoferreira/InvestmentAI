@@ -77,3 +77,38 @@ class PredictionResponse(BaseModel):
     probability_up: float | None
     model: str
     status: str
+
+class TradingViewWebhook(BaseModel):
+    """Normalized payload emitted by the InvestmentAI Pine validator."""
+
+    source: Literal["tradingview"] = "tradingview"
+    symbol: str = Field(min_length=1, max_length=32)
+    exchange: str = Field(min_length=1, max_length=64)
+    timeframe: str = Field(min_length=1, max_length=16)
+    bar_time: datetime
+    close: float
+    ema_fast: float
+    ema_slow: float
+    rsi14: float = Field(ge=0, le=100)
+    bb_upper: float
+    bb_basis: float
+    bb_lower: float
+    volume: float = Field(ge=0)
+    ema_state: Literal["bullish", "bearish", "neutral"] | None = None
+    rsi_state: Literal["oversold", "neutral", "overbought"] | None = None
+    bb_state: Literal["below_lower", "inside", "above_upper"] | None = None
+    bar_confirmed: bool = True
+    received_at: datetime | None = None
+
+    @field_validator("symbol", "exchange", "timeframe")
+    @classmethod
+    def normalize_labels(cls, value: str) -> str:
+        return value.strip().upper()
+
+class TradingViewWebhookResponse(BaseModel):
+    accepted: bool
+    source: str
+    symbol: str
+    timeframe: str
+    event_id: str
+    received_at: datetime

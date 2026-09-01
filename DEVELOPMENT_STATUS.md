@@ -57,8 +57,10 @@ Last updated: 2026-09-01
 - [x] Provider-neutral signal contract
 - [x] Signal fusion engine
 - [x] Independent-evidence risk gate
+- [x] TradingView Pine technical-validator and webhook contract
 - [ ] Real Trading Central credentials/entitlement validation
 - [ ] Real Doto signal observation/export/approved bridge
+- [ ] TradingView alert/webhook activation on an eligible plan
 - [ ] Provider calibration against historical outcomes
 
 ## Execution
@@ -88,6 +90,7 @@ Last updated: 2026-09-01
 
 ## Quality
 - [x] External-intelligence unit tests
+- [x] TradingView webhook normalization/authentication tests
 - [ ] Full integration test suite against provider mocks
 - [ ] End-to-end training/backtest test
 - [ ] Security/dependency scan

@@ -45,12 +45,10 @@ def _run_backtest(frame: pd.DataFrame, signals: pd.Series, *, commission: float,
 
 
 def yearly_metrics(equity: pd.Series) -> dict:
-    annual = equity.resample("YE").last().pct_change()
-    if len(annual):
-        first = equity.iloc[0]
-        annual.iloc[0] = annual.iloc[0] if pd.notna(annual.iloc[0]) else float(equity.iloc[0] / first - 1)
-    annual = annual.dropna()
-    values = {str(index.year): float(value) for index, value in annual.items()}
+    year_end = equity.groupby(equity.index.year).last()
+    starts = equity.groupby(equity.index.year).first()
+    annual = year_end / starts - 1.0
+    values = {str(year): float(value) for year, value in annual.items()}
     abs_total = sum(abs(value) for value in values.values())
     best = max(values.values()) if values else 0.0
     worst = min(values.values()) if values else 0.0

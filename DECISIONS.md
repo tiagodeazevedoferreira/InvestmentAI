@@ -10,7 +10,7 @@ FastAPI provides typed Python APIs and automatic OpenAPI/Swagger documentation w
 The frontend is static and deployable from GitHub Pages. No private credential may be bundled into the frontend.
 
 ## ADR-004 — XGBoost before LSTM
-The first ML baseline uses tabular technical features and XGBoost-compatible interfaces. LSTM is an experiment after a leakage-safe baseline exists.
+The first ML baseline uses tabular Python features and XGBoost-compatible interfaces. LSTM is an experiment after a leakage-safe baseline exists.
 
 ## ADR-005 — Simulation/Paper/Demo before Live
 The execution lifecycle is strictly staged. Live trading is opt-in and blocked by default.
@@ -22,7 +22,7 @@ Model confidence is never a substitute for portfolio/order risk controls.
 Market data and broker integrations are adapters. Domain code must not depend directly on one vendor.
 
 ## ADR-008 — Persistent handoff documentation
-Project context, status, roadmap and decisions are versioned with code and updated with material changes.
+Project context, status and decisions are versioned with code and updated with material changes.
 
 ## ADR-009 — Firebase size discipline
 Do not persist every raw market bar indefinitely. Apply retention, deduplication, aggregation and compact derived-state storage.
@@ -50,3 +50,6 @@ TradingView webhook requests are authenticated with a high-entropy route token s
 
 ## ADR-017 — Canonical technical contract
 The InvestmentAI TradingView validator uses EMA 9/21, RSI 14 with 30/70 levels, Bollinger 20 with multiplier 2.0, and a 20-period volume moving average. The Pine implementation is versioned in the repository rather than depending on a community script.
+
+## ADR-018 — OpenBB/B3 validation before adapter implementation
+The next data-integration decision is provider selection for Brazilian equities. We will first validate current OpenBB-supported B3 coverage, provider licensing/entitlements, API-key requirements, historical depth, real-time/delayed characteristics, rate limits and symbol coverage. No provider-specific adapter will be promoted until these criteria are documented and tested.

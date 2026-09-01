@@ -41,13 +41,13 @@ OpenBB/provider adapters supply market and fundamental data. Large historical da
 ## TradingView integration
 TradingView is an independent technical-evidence source. The repository contains a versioned Pine validator plus webhook normalization/authentication, reconciliation, SignalFusion/RiskGate integration and decision observability. TradingView does not have execution authority.
 
-## Current next step — OpenBB/B3 provider validation
-Before implementing another provider adapter, research the current OpenBB ecosystem for Brazilian equities/B3 coverage. Identify concrete providers available through OpenBB, required API keys/entitlements, free vs paid access, historical depth, real-time/delayed characteristics, rate limits and symbol/exchange coverage. Only after this validation should the selected provider adapter be implemented.
+## OpenBB/B3 provider status
+The current OpenBB catalog does not expose a dedicated B3 provider. For the first B3 proof of concept, InvestmentAI selects the OpenBB `yfinance` provider extension, using Yahoo's `.SA` symbol convention for PETR4, VALE3 and ITUB4. This selection is for research/backtesting and is not treated as authoritative exchange-grade production data.
 
-The immediate objective is to obtain reliable historical and market data for Brazilian equities such as PETR4, VALE3 and ITUB4 for replay/backtesting and later real-time paper trading.
+The repository now contains an OpenBB market-data adapter, symbol normalization and a quality gate requiring OHLCV fields, non-empty data, unique chronological timestamps and no null required values. A CI smoke workflow validates PETR4, VALE3 and ITUB4 through the complete OpenBB/yfinance path.
 
 ## Handoff rule
-A new conversation should read this file plus `DEVELOPMENT_STATUS.md`, `DECISIONS.md`, `ARCHITECTURE.md` and `ROADMAP.md`, then inspect current source/workflows before changing anything.
+A new conversation should read this file plus `DEVELOPMENT_STATUS.md`, `DECISIONS.md`, `ARCHITECTURE.md`, `ROADMAP.md` and `docs/OPENBB_B3_PROVIDER.md`, then inspect current source/workflows before changing anything.
 
 ## Current target
-Complete data-provider validation, market replay/backtesting and end-to-end paper/shadow validation before any live capability is considered.
+Complete market replay/backtesting and provider calibration using validated historical data, then end-to-end paper/shadow validation before any live capability is considered.

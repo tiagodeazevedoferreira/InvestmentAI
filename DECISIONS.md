@@ -59,3 +59,6 @@ The current OpenBB provider catalog does not expose a dedicated B3 provider. For
 
 ## ADR-020 — Robustness before financial promotion
 The causal ML trading strategy must pass robustness checks before progressing from research toward paper/shadow execution. The audit must test probability-threshold sensitivity, transaction-cost sensitivity, performance by calendar regime, and return concentration. No single favorable backtest or prediction-accuracy result is sufficient. The result of the audit determines whether the model proceeds to stress testing/paper validation or returns to model/feature improvement. Live execution remains blocked.
+
+## ADR-021 — Diagnose before optimizing the ML model
+When robustness differs materially across assets, the next change must first quantify probability calibration, class balance, prediction bias, temporal degradation and feature distributions on the same out-of-sample walk-forward windows. Threshold selection or model changes must not be used to mask an asset-specific failure. The diagnosis is research-only and cannot authorize paper/live execution.

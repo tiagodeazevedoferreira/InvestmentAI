@@ -1,6 +1,6 @@
 # Development Status
 
-Last updated: 2026-08-31
+Last updated: 2026-09-01
 
 ## Foundation
 - [x] Repository and persistent handoff context
@@ -51,21 +51,32 @@ Last updated: 2026-08-31
 - [ ] LSTM experiment
 - [ ] RL agent experiment
 
-## RL/Simulation
-- [x] Framework-neutral RL policy boundary
-- [x] Market simulator with commission/slippage
-- [ ] Multi-asset RL environment
-- [ ] TradeMaster-inspired PPO/SAC experiments
+## External Intelligence
+- [x] Doto AI Market Insights normalization boundary
+- [x] Trading Central read-only API boundary
+- [x] Provider-neutral signal contract
+- [x] Signal fusion engine
+- [x] Independent-evidence risk gate
+- [ ] Real Trading Central credentials/entitlement validation
+- [ ] Real Doto signal observation/export/approved bridge
+- [ ] Provider calibration against historical outcomes
 
 ## Execution
 - [x] Simulation-only default
 - [x] Demo/live separation
 - [x] Risk gate skeleton
-- [ ] Paper broker adapter
-- [ ] Demo broker adapter
+- [x] Deterministic paper broker
+- [ ] Paper-to-Firebase persistence/reconciliation
+- [ ] Doto/MT5 demo broker adapter
 - [ ] Live broker adapter
 - [ ] Empirical model promotion gate
 - [ ] Kill switch and reconciliation engine
+
+## Paper/Shadow
+- [x] Paper execution primitive
+- [ ] End-to-end signal -> paper -> portfolio accounting
+- [ ] Shadow decision ledger
+- [ ] Outcome attribution/calibration report
 
 ## Firebase/data governance
 - [x] Operational repository abstraction
@@ -76,7 +87,11 @@ Last updated: 2026-08-31
 - [ ] Automated retention cleanup
 
 ## Quality
+- [x] External-intelligence unit tests
 - [ ] Full integration test suite against provider mocks
 - [ ] End-to-end training/backtest test
 - [ ] Security/dependency scan
 - [ ] Production deployment
+
+## Promotion boundary
+Phases 1-9 remain non-live. Phase 10/live is intentionally disabled and requires explicit authorization after empirical validation.

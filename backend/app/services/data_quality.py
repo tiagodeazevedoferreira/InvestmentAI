@@ -67,7 +67,7 @@ def validate_market_data(symbol: str, df: pd.DataFrame, *, interval: str = "1d")
 
     values = df.loc[:, REQUIRED_OHLCV].apply(pd.to_numeric, errors="coerce")
     nulls = int(values.isna().sum().sum())
-    finite = values.applymap(lambda x: math.isfinite(float(x)) if pd.notna(x) else False)
+    finite = values.map(lambda x: math.isfinite(float(x)) if pd.notna(x) else False)
     nonfinite = int((~finite & values.notna()).sum().sum())
 
     invalid_ohlc = (

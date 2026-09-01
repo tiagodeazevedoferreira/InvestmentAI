@@ -12,7 +12,7 @@ Build a production-oriented investment research, simulation and automated-tradin
 1. Data quality and provenance before modeling.
 2. No look-ahead bias or leakage in backtests/training.
 3. Provider abstraction; OpenBB is the preferred integration layer, with Yahoo/yfinance fallback.
-4. Firebase Realtime Database is operational/state storage, not unlimited raw market history.
+4. Firebase RTDB is operational/state storage, not unlimited raw market history.
 5. Simulation → Paper → Demo → Live is mandatory.
 6. Live trading is disabled by architecture until explicit promotion gates pass.
 7. Risk controls are independent from prediction models.
@@ -38,8 +38,16 @@ Build a production-oriented investment research, simulation and automated-tradin
 ## Data/storage strategy
 OpenBB/provider adapters supply market and fundamental data. Large historical datasets/model artifacts should not be copied wholesale into Firebase. Firebase should retain bounded operational state, signals, predictions, positions, orders, executions, configuration and audit metadata.
 
+## TradingView integration
+TradingView is an independent technical-evidence source. The repository contains a versioned Pine validator plus webhook normalization/authentication, reconciliation, SignalFusion/RiskGate integration and decision observability. TradingView does not have execution authority.
+
+## Current next step — OpenBB/B3 provider validation
+Before implementing another provider adapter, research the current OpenBB ecosystem for Brazilian equities/B3 coverage. Identify concrete providers available through OpenBB, required API keys/entitlements, free vs paid access, historical depth, real-time/delayed characteristics, rate limits and symbol/exchange coverage. Only after this validation should the selected provider adapter be implemented.
+
+The immediate objective is to obtain reliable historical and market data for Brazilian equities such as PETR4, VALE3 and ITUB4 for replay/backtesting and later real-time paper trading.
+
 ## Handoff rule
 A new conversation should read this file plus `DEVELOPMENT_STATUS.md`, `DECISIONS.md`, `ARCHITECTURE.md` and `ROADMAP.md`, then inspect current source/workflows before changing anything.
 
 ## Current target
-Complete CI/integration validation and continue hardening the end-to-end research → model → simulator → paper/demo pipeline before any live capability is considered.
+Complete data-provider validation, market replay/backtesting and end-to-end paper/shadow validation before any live capability is considered.

@@ -48,6 +48,10 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/backend
         run: python scripts/run_ml_trading_backtest.py > ml_trading_backtest_output.txt
+      - name: Run ML robustness audit
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/backend
+        run: python scripts/run_ml_robustness_audit.py > ml_robustness_audit_output.txt
       - name: Upload trading backtest report
         uses: actions/upload-artifact@v4
         with:
@@ -55,6 +59,13 @@ jobs:
           path: |
             ml_trading_backtest_output.txt
             artifacts/ml-trading-backtest-report.json
+      - name: Upload ML robustness audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: ml-robustness-audit-report
+          path: |
+            ml_robustness_audit_output.txt
+            artifacts/ml-robustness-audit.json
       - name: Upload walk-forward report
         uses: actions/upload-artifact@v4
         with:

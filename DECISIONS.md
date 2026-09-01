@@ -56,3 +56,6 @@ The next data-integration decision is provider selection for Brazilian equities.
 
 ## ADR-019 — OpenBB yfinance for first B3 proof of concept
 The current OpenBB provider catalog does not expose a dedicated B3 provider. For the first B3 research/backtesting path, use the OpenBB `yfinance` extension with Yahoo `.SA` symbols. This choice requires no provider API credential and keeps the InvestmentAI domain vendor-neutral. It is not considered exchange-grade production data; an authoritative/licensed B3 source must be evaluated before live trading.
+
+## ADR-020 — Robustness before financial promotion
+The causal ML trading strategy must pass robustness checks before progressing from research toward paper/shadow execution. The audit must test probability-threshold sensitivity, transaction-cost sensitivity, performance by calendar regime, and return concentration. No single favorable backtest or prediction-accuracy result is sufficient. The result of the audit determines whether the model proceeds to stress testing/paper validation or returns to model/feature improvement. Live execution remains blocked.

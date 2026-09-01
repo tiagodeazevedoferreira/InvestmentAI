@@ -12,6 +12,7 @@ Last updated: 2026-09-01
 - [x] CI and Firebase smoke-test workflows
 - [x] OpenBB provider boundary
 - [x] Yahoo fallback provider
+- [x] OpenBB/yfinance B3 proof-of-concept adapter
 
 ## Value Investing
 - [x] Fundamental data service boundary
@@ -65,7 +66,7 @@ Last updated: 2026-09-01
 - [ ] Real Trading Central credentials/entitlement validation
 - [ ] Real Doto signal observation/export/approved bridge
 - [ ] TradingView alert/webhook activation on an eligible plan
-- [ ] OpenBB/B3 provider capability validation
+- [x] OpenBB/B3 provider capability validation
 - [ ] Provider calibration against historical outcomes
 
 ## Execution
@@ -97,6 +98,8 @@ Last updated: 2026-09-01
 - [x] External-intelligence unit tests
 - [x] TradingView webhook normalization/authentication tests
 - [x] TradingView reconciliation/fusion tests
+- [x] OpenBB B3 adapter unit tests
+- [x] OpenBB B3 live smoke-test workflow
 - [ ] Full integration test suite against provider mocks
 - [ ] End-to-end training/backtest test
 - [ ] Security/dependency scan

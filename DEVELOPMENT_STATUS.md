@@ -33,7 +33,8 @@ Last updated: 2026-09-01
 - [x] Walk-forward evaluation
 - [ ] Transaction-cost calibration by venue
 - [x] Causal ML trading backtest
-- [ ] ML robustness audit
+- [x] ML robustness audit
+- [ ] ML cross-asset model diagnosis and improvement
 
 ## Portfolio/Risk
 - [x] Markowitz optimization
@@ -105,13 +106,14 @@ Last updated: 2026-09-01
 - [x] OpenBB B3 live smoke-test workflow
 - [x] ML trading backtest tests
 - [x] ML robustness audit helper tests
+- [x] ML model diagnosis helper tests
 - [ ] Full integration test suite against provider mocks
 - [ ] End-to-end training/backtest test
 - [ ] Security/dependency scan
 - [ ] Production deployment
 
 ## Current ML validation gate
-The causal ML trading backtest is complete. The ML model remains research-only until robustness testing demonstrates stability across assets, probability thresholds, transaction-cost assumptions and market regimes. Live execution remains disabled.
+The causal ML trading backtest and robustness audit are complete. The robustness gate is not yet passed because performance is not stable across all evaluated assets and assumptions. The model remains research-only while the cross-asset diagnosis and improvement phase is executed. Live execution remains disabled.
 
 ## Promotion boundary
 Phases 1-9 remain non-live. Phase 10/live is intentionally disabled and requires explicit authorization after empirical validation.

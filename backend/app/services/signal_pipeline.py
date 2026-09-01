@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
+from .decision_observability import DecisionEvidence, DecisionRecord, build_decision_record
 from .external_intelligence import ExternalSignal, FusedSignal, RiskGate, SignalFusion
 from .tradingview_reconciliation import reconcile
 from ..models import TradingViewWebhook
@@ -13,6 +14,7 @@ class PipelineDecision:
     fused: FusedSignal
     allowed: bool
     risk_reasons: tuple[str, ...]
+    audit: DecisionRecord
 
 
 def fuse_with_tradingview(
@@ -24,11 +26,6 @@ def fuse_with_tradingview(
     min_sources: int = 2,
     environment: str = "paper",
 ) -> PipelineDecision:
-    """Add TradingView as independent evidence and run the existing gates.
-
-    This function produces a decision only. It has no broker dependency and
-    cannot place, modify, or cancel an order.
-    """
     reconciliation = reconcile(tradingview_event)
     timestamp = tradingview_event.bar_time
     if timestamp.tzinfo is None:
@@ -51,4 +48,18 @@ def fuse_with_tradingview(
         min_confidence=min_confidence,
         min_sources=min_sources,
     ).evaluate(fused, signal_age_seconds=age, environment=environment)
-    return PipelineDecision(fused=fused, allowed=allowed, risk_reasons=reasons)
+    evidence = tuple(
+        DecisionEvidence(s.source, s.direction.value, s.confidence, s.raw_reference)
+        for s in signals
+    )
+    audit = build_decision_record(
+        decision_id=reconciliation.event_id,
+        symbol=tradingview_event.symbol,
+        fused=fused,
+        allowed=allowed,
+        environment=environment,
+        risk_reasons=reasons,
+        evidence=evidence,
+        timestamp=datetime.now(timezone.utc),
+    )
+    return PipelineDecision(fused=fused, allowed=allowed, risk_reasons=reasons, audit=audit)

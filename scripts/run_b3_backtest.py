@@ -15,16 +15,33 @@ START = "2021-01-01"
 END = "2026-09-01"
 
 
-def ema_cross_signal(frame: pd.DataFrame):
+def _ema(previous: float | None, price: float, span: int) -> float:
+    alpha = 2.0 / (span + 1.0)
+    return price if previous is None else alpha * price + (1.0 - alpha) * previous
+
+
+def ema_cross_signal(frame: pd.DataFrame) -> pd.Series:
+    """Return EMA 9/21 crossover signals using only data available at each bar."""
     close = frame["close"].astype(float)
-    ema9 = close.ewm(span=9, adjust=False).mean()
-    ema21 = close.ewm(span=21, adjust=False).mean()
-    previous_fast = ema9.shift(1)
-    previous_slow = ema21.shift(1)
-    signals = pd.Series(0, index=frame.index, dtype=int)
-    signals[(ema9 > ema21) & (previous_fast <= previous_slow)] = 1
-    signals[(ema9 < ema21) & (previous_fast >= previous_slow)] = -1
-    return signals
+    fast: float | None = None
+    slow: float | None = None
+    previous_fast: float | None = None
+    previous_slow: float | None = None
+    signals: list[int] = []
+
+    for price in close:
+        fast = _ema(fast, float(price), 9)
+        slow = _ema(slow, float(price), 21)
+        signal = 0
+        if previous_fast is not None and previous_slow is not None:
+            if fast > slow and previous_fast <= previous_slow:
+                signal = 1
+            elif fast < slow and previous_fast >= previous_slow:
+                signal = -1
+        signals.append(signal)
+        previous_fast, previous_slow = fast, slow
+
+    return pd.Series(signals, index=frame.index, dtype=int)
 
 
 def run_symbol(provider: OpenBBMarketDataProvider, symbol: str) -> dict:
@@ -50,7 +67,7 @@ def run_symbol(provider: OpenBBMarketDataProvider, symbol: str) -> dict:
     return {
         "symbol": symbol,
         "rows": quality.rows,
-        "start": quality.symbol and frame.index[0].isoformat(),
+        "start": frame.index[0].isoformat(),
         "end": frame.index[-1].isoformat(),
         "strategy": {
             **strategy_metrics,

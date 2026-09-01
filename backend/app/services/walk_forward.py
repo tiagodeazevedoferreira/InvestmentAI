@@ -37,7 +37,17 @@ class WalkForwardResult:
 
 
 def _baseline_predictions(X: pd.DataFrame) -> np.ndarray:
-    return (X["EMA9"] > X["EMA21"]).astype(int).to_numpy()
+    """EMA crossover baseline using the scale-invariant feature representation.
+
+    The previous implementation compared raw EMA price levels.  The feature
+    stability intervention intentionally removes those raw levels, so the
+    equivalent crossover is ema9_gap > ema21_gap.
+    """
+    required = {"ema9_gap", "ema21_gap"}
+    missing = required.difference(X.columns)
+    if missing:
+        raise ValueError(f"baseline features missing: {sorted(missing)}")
+    return (X["ema9_gap"] > X["ema21_gap"]).astype(int).to_numpy()
 
 
 def purged_walk_forward(

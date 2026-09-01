@@ -17,3 +17,14 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/backend
         run: pytest -q
+      - name: Run walk-forward stability analysis
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/backend
+        run: python scripts/run_walk_forward.py > walk_forward_output.txt
+      - name: Upload walk-forward report
+        uses: actions/upload-artifact@v4
+        with:
+          name: walk-forward-stability-report
+          path: |
+            walk_forward_report.json
+            walk_forward_output.txt

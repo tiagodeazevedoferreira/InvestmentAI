@@ -1,6 +1,10 @@
 from datetime import datetime, timezone
 
-from app.services.tradingview import event_fingerprint, normalize_tradingview_payload, verify_webhook_secret
+from backend.app.services.tradingview import (
+    event_fingerprint,
+    normalize_tradingview_payload,
+    verify_webhook_secret,
+)
 
 
 PAYLOAD = {

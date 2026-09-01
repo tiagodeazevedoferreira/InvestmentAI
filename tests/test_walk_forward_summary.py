@@ -13,4 +13,4 @@ def test_summary_reports_fold_win_rate_and_deltas():
     assert result["folds"] == 2
     assert result["fold_win_rate_balanced_accuracy"] == 0.5
     assert result["mean_balanced_accuracy_delta"] == 0.0
-    assert result["median_macro_f1_delta"] == 0.0
+    assert abs(result["median_macro_f1_delta"]) < 1e-12

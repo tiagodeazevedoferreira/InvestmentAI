@@ -68,8 +68,12 @@ def yearly_metrics(equity: pd.Series) -> dict:
 def run_symbol(provider: OpenBBMarketDataProvider, symbol: str) -> dict:
     frame, quality = provider.historical_with_quality(symbol, start=START, end=END, interval="1d")
     prediction_run = purged_walk_forward_predictions(frame.rename(columns=str.title))
-    eval_frame = frame.loc[prediction_run.predictions.index[0]:].copy()
-    probabilities = prediction_run.probabilities.reindex(eval_frame.index)
+    # The walk-forward model only produces predictions for its test windows.
+    # Keep the backtest frame aligned to those observed prediction timestamps;
+    # reindexing the full market history would introduce NaN probabilities for
+    # rows outside the walk-forward test windows.
+    eval_frame = frame.loc[prediction_run.probabilities.index].copy()
+    probabilities = prediction_run.probabilities.copy()
 
     threshold_results = []
     for threshold in THRESHOLDS:

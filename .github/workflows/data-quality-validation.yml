@@ -1,0 +1,47 @@
+name: B3 data quality validation
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'backend/app/services/data_quality.py'
+      - 'backend/app/services/openbb_market_data.py'
+      - 'backend/requirements.txt'
+      - 'scripts/validate_b3_market_data.py'
+      - 'tests/test_data_quality.py'
+      - '.github/workflows/data-quality-validation.yml'
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r backend/requirements.txt
+      - name: Unit tests
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+        run: pytest -q tests/test_data_quality.py tests/test_openbb_market_data.py
+
+  historical-b3:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r backend/requirements.txt
+      - name: Validate PETR4, VALE3 and ITUB4 historical OHLCV
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+        run: python scripts/validate_b3_market_data.py
+      - name: Upload quality report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: b3-market-data-quality
+          path: artifacts/b3_market_data_quality.json

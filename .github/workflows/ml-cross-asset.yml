@@ -1,0 +1,29 @@
+name: Cross-Asset ML Experiment
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  cross-asset-ml:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r backend/requirements.txt
+      - name: Run cross-asset unit tests
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/backend
+        run: pytest -q tests/test_ml_cross_asset.py
+      - name: Run causal cross-asset experiment
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/backend
+        run: python scripts/run_ml_cross_asset_experiment.py
+      - name: Upload cross-asset report
+        uses: actions/upload-artifact@v4
+        with:
+          name: ml-cross-asset-experiment
+          path: artifacts/ml-cross-asset-experiment.json

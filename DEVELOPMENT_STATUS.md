@@ -1,6 +1,6 @@
 # Development Status
 
-Last updated: 2026-09-01
+Last updated: 2026-09-02
 
 ## Foundation
 - [x] Repository and persistent handoff context
@@ -107,13 +107,14 @@ Last updated: 2026-09-01
 - [x] ML trading backtest tests
 - [x] ML robustness audit helper tests
 - [x] ML model diagnosis helper tests
+- [x] Causal pooled cross-asset ML experiment tests
 - [ ] Full integration test suite against provider mocks
 - [ ] End-to-end training/backtest test
 - [ ] Security/dependency scan
 - [ ] Production deployment
 
 ## Current ML validation gate
-The causal ML trading backtest and robustness audit are complete. The robustness gate is not yet passed because performance is not stable across all evaluated assets and assumptions. The model remains research-only while the cross-asset diagnosis and improvement phase is executed. Live execution remains disabled.
+The causal ML trading backtest, robustness audit and model diagnosis are complete. The robustness gate is not yet passed because performance is not stable across all evaluated assets and assumptions. A causal pooled cross-asset model experiment is now implemented to test whether normalized technical features transfer across PETR4, VALE3 and ITUB4 without changing execution policy. The experiment remains research-only until its out-of-sample evidence is reviewed.
 
 ## Promotion boundary
 Phases 1-9 remain non-live. Phase 10/live is intentionally disabled and requires explicit authorization after empirical validation.

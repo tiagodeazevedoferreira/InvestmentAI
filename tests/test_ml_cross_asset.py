@@ -1,0 +1,66 @@
+import numpy as np
+import pandas as pd
+
+from app.services import ml_cross_asset
+from app.services.features import build_features
+
+
+def _frame(rows: int = 100) -> pd.DataFrame:
+    index = pd.date_range("2020-01-01", periods=rows, freq="D")
+    base = np.linspace(100.0, 140.0, rows)
+    close = base + 3.0 * np.sin(np.arange(rows) / 3.0)
+    return pd.DataFrame(
+        {
+            "Open": close,
+            "High": close + 1.0,
+            "Low": close - 1.0,
+            "Close": close,
+            "Volume": np.linspace(1_000_000, 1_100_000, rows),
+        },
+        index=index,
+    )
+
+
+def test_cross_asset_predictions_are_produced_for_each_symbol() -> None:
+    result = ml_cross_asset.purged_cross_asset_walk_forward_predictions(
+        {"AAA": _frame(), "BBB": _frame()},
+        horizon=3,
+        train_size=20,
+        test_size=10,
+        step=10,
+    )
+
+    assert set(result.by_symbol) == {"AAA", "BBB"}
+    for run in result.by_symbol.values():
+        assert run.test_rows == len(run.predictions) == len(run.probabilities)
+        assert run.folds > 0
+        assert np.isfinite(run.probabilities.to_numpy()).all()
+
+
+def test_training_window_is_causal_and_purged_for_target_fold(monkeypatch) -> None:
+    captured: list[pd.Index] = []
+
+    class FakeModel:
+        def fit(self, X, y):
+            captured.append(X.index.copy())
+            return self
+
+        def predict(self, X):
+            return np.zeros(len(X), dtype=int)
+
+        def predict_proba(self, X):
+            return np.column_stack([np.full(len(X), 0.4), np.full(len(X), 0.6)])
+
+    monkeypatch.setattr(ml_cross_asset, "_model", lambda: FakeModel())
+    ml_cross_asset.purged_cross_asset_walk_forward_predictions(
+        {"AAA": _frame(), "BBB": _frame()},
+        horizon=3,
+        train_size=20,
+        test_size=10,
+        step=10,
+    )
+
+    X, _ = build_features(_frame(), horizon=3)
+    assert captured
+    assert max(captured[0]) == X.index[19]
+    assert len(captured[0]) == 40

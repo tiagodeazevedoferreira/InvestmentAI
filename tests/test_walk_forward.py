@@ -23,6 +23,7 @@ def test_walk_forward_is_chronological_and_purged():
     for fold in result.folds:
         assert pd.Timestamp(fold.train_end) < pd.Timestamp(fold.test_start)
         assert fold.test_rows == 100
+        assert sum(metric.test_rows for metric in fold.regime_metrics) == fold.test_rows
 
 
 def test_model_and_baseline_metrics_are_bounded():
@@ -52,6 +53,26 @@ def test_calibration_is_evaluated_out_of_sample():
     assert all(fold.calibrated_brier >= 0.0 for fold in result.folds)
     assert all(fold.calibrated_log_loss >= 0.0 for fold in result.folds)
     assert all(fold.calibrated_ece >= 0.0 for fold in result.folds)
+
+
+def test_regime_selection_uses_prior_folds_only():
+    result = purged_walk_forward(market_frame(), "TEST", train_size=500, test_size=100, step=100)
+    first_sources = {metric.selected_source for metric in result.folds[0].regime_metrics}
+    assert first_sources == {"raw"}
+    for fold in result.folds[1:]:
+        for metric in fold.regime_metrics:
+            assert metric.selected_source in {"raw", "calibrated"}
+            for value in (
+                metric.raw_brier,
+                metric.calibrated_brier,
+                metric.selected_brier,
+                metric.raw_ece,
+                metric.calibrated_ece,
+                metric.selected_ece,
+            ):
+                assert np.isfinite(value)
+                assert value >= 0.0
+                assert value <= 1.0
 
 
 def test_invalid_window_is_rejected():

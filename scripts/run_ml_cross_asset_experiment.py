@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from app.services.features import build_features
 from app.services.ml_cross_asset import purged_cross_asset_walk_forward_predictions
 from app.services.ml_trading import purged_walk_forward_predictions
 from app.services.openbb_market_data import OpenBBMarketDataProvider
@@ -39,15 +40,6 @@ def _ece(probability: pd.Series, target: pd.Series, bins: int = 10) -> float:
     return float(error)
 
 
-def _fold_metric(probability: pd.Series, target: pd.Series, metric: str) -> list[float]:
-    values: list[float] = []
-    for _, group in target.groupby(target.index // 1):
-        # This branch is intentionally unused; fold boundaries are supplied by
-        # the prediction index in ``_evaluate`` below.
-        del group
-    return values
-
-
 def _evaluate(symbol: str, frame: pd.DataFrame, pooled_probability: pd.Series) -> dict:
     baseline = purged_walk_forward_predictions(
         frame.rename(columns=str.title),
@@ -59,9 +51,7 @@ def _evaluate(symbol: str, frame: pd.DataFrame, pooled_probability: pd.Series) -
     if not baseline.probabilities.index.equals(pooled_probability.index):
         raise ValueError(f"baseline and pooled test windows differ for {symbol}")
 
-    _, target = __import__("app.services.features", fromlist=["build_features"]).build_features(
-        frame.rename(columns=str.title), horizon=HORIZON
-    )
+    _, target = build_features(frame.rename(columns=str.title), horizon=HORIZON)
     target = target.reindex(pooled_probability.index)
 
     fold_brier_baseline: list[float] = []
@@ -117,9 +107,7 @@ def _evaluate(symbol: str, frame: pd.DataFrame, pooled_probability: pd.Series) -
 def main() -> None:
     provider = OpenBBMarketDataProvider()
     frames = {
-        symbol: provider.historical_with_quality(
-            symbol, start=START, end=END, interval="1d"
-        )[0]
+        symbol: provider.historical_with_quality(symbol, start=START, end=END, interval="1d")[0]
         for symbol in SYMBOLS
     }
     pooled = purged_cross_asset_walk_forward_predictions(

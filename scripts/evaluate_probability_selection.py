@@ -9,16 +9,29 @@ REPORT = Path("walk_forward_report.json")
 OUTPUT = Path("probability_selection_statistics.json")
 
 
+def _symbol_results(payload: object) -> list[dict[str, object]]:
+    if isinstance(payload, list):
+        return [item for item in payload if isinstance(item, dict)]
+    if isinstance(payload, dict):
+        symbols = payload.get("results", payload)
+        if isinstance(symbols, dict):
+            return [
+                {"symbol": symbol, **result}
+                for symbol, result in symbols.items()
+                if isinstance(result, dict)
+            ]
+    raise ValueError("walk-forward report must contain a list of symbol results or a symbol-keyed results object")
+
+
 def main() -> None:
     payload = json.loads(REPORT.read_text(encoding="utf-8"))
-    symbols = payload.get("results", payload)
-    if not isinstance(symbols, dict):
-        raise ValueError("walk-forward report must contain a symbol-keyed results object")
+    results = _symbol_results(payload)
 
     output: dict[str, list[dict[str, object]]] = {}
-    for symbol, result in symbols.items():
+    for result in results:
+        symbol = str(result.get("symbol", ""))
         folds = result.get("folds", [])
-        if len(folds) < 2:
+        if not symbol or not isinstance(folds, list) or len(folds) < 2:
             continue
 
         raw_brier = [float(f["raw_brier"]) for f in folds]
@@ -26,9 +39,8 @@ def main() -> None:
         raw_ece = [float(f["raw_ece"]) for f in folds]
         calibrated_ece = [float(f["calibrated_ece"]) for f in folds]
 
-        # Selected metrics are evaluated at regime level. To keep the paired
-        # comparison at fold granularity, reconstruct each fold's selected
-        # metric as the row-weighted combination of its regime metrics.
+        # Selected metrics are stored per regime. Reconstruct each fold's
+        # selected metric as the row-weighted combination of its regimes.
         selected_brier: list[float] = []
         selected_ece: list[float] = []
         for fold in folds:

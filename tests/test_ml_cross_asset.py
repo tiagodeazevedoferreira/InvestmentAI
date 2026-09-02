@@ -8,12 +8,13 @@ from app.services.features import build_features
 def _frame(rows: int = 100) -> pd.DataFrame:
     index = pd.date_range("2020-01-01", periods=rows, freq="D")
     base = np.linspace(100.0, 140.0, rows)
+    close = base + 3.0 * np.sin(np.arange(rows) / 3.0)
     return pd.DataFrame(
         {
-            "Open": base,
-            "High": base + 1.0,
-            "Low": base - 1.0,
-            "Close": base + np.sin(np.arange(rows) / 3.0),
+            "Open": close,
+            "High": close + 1.0,
+            "Low": close - 1.0,
+            "Close": close,
             "Volume": np.linspace(1_000_000, 1_100_000, rows),
         },
         index=index,

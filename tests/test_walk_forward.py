@@ -75,20 +75,33 @@ def test_regime_selection_uses_prior_folds_only():
                 assert value <= 1.0
 
 
-def test_selected_aggregate_is_row_weighted_across_oos_folds():
+def test_probability_aggregates_are_row_weighted_across_oos_folds():
     result = purged_walk_forward(market_frame(), "TEST", train_size=500, test_size=100, step=100)
-    expected_brier = sum(
+    total_rows = sum(fold.test_rows for fold in result.folds)
+
+    for field, aggregate in (
+        ("raw_brier", result.raw_brier),
+        ("calibrated_brier", result.calibrated_brier),
+        ("raw_log_loss", result.raw_log_loss),
+        ("calibrated_log_loss", result.calibrated_log_loss),
+        ("raw_ece", result.raw_ece),
+        ("calibrated_ece", result.calibrated_ece),
+    ):
+        expected = sum(getattr(fold, field) * fold.test_rows for fold in result.folds) / total_rows
+        assert aggregate == pytest.approx(expected)
+
+    expected_selected_brier = sum(
         metric.selected_brier * metric.test_rows
         for fold in result.folds
         for metric in fold.regime_metrics
-    ) / sum(metric.test_rows for fold in result.folds for metric in fold.regime_metrics)
-    expected_ece = sum(
+    ) / total_rows
+    expected_selected_ece = sum(
         metric.selected_ece * metric.test_rows
         for fold in result.folds
         for metric in fold.regime_metrics
-    ) / sum(metric.test_rows for fold in result.folds for metric in fold.regime_metrics)
-    assert result.selected_brier == pytest.approx(expected_brier)
-    assert result.selected_ece == pytest.approx(expected_ece)
+    ) / total_rows
+    assert result.selected_brier == pytest.approx(expected_selected_brier)
+    assert result.selected_ece == pytest.approx(expected_selected_ece)
 
 
 def test_invalid_window_is_rejected():

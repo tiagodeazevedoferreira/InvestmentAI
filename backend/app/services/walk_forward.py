@@ -15,6 +15,19 @@ from .features import build_features
 
 
 @dataclass(frozen=True)
+class RegimeMetrics:
+    regime: str
+    test_rows: int
+    raw_brier: float
+    calibrated_brier: float
+    selected_brier: float
+    raw_ece: float
+    calibrated_ece: float
+    selected_ece: float
+    selected_source: str
+
+
+@dataclass(frozen=True)
 class WalkForwardFold:
     fold: int
     train_start: str
@@ -31,6 +44,7 @@ class WalkForwardFold:
     calibrated_log_loss: float
     raw_ece: float
     calibrated_ece: float
+    regime_metrics: tuple[RegimeMetrics, ...]
     test_rows: int
 
 
@@ -96,6 +110,57 @@ def _calibrated_model(train_rows: int) -> CalibratedClassifierCV:
     )
 
 
+def _volatility_regime(X_train: pd.DataFrame, X_test: pd.DataFrame) -> pd.Series:
+    """Classify test rows using a threshold learned only from the training window."""
+    threshold = float(X_train["volatility_20d"].median())
+    return pd.Series(
+        np.where(X_test["volatility_20d"].to_numpy() <= threshold, "low_vol", "high_vol"),
+        index=X_test.index,
+        name="regime",
+    )
+
+
+def _selected_source(history: dict[str, dict[str, list[float]]], regime: str) -> str:
+    """Select raw/calibrated using only previously completed test folds."""
+    prior = history.get(regime)
+    if not prior or not prior["raw_brier"] or not prior["calibrated_brier"]:
+        return "raw"
+    raw = float(np.mean(prior["raw_brier"]))
+    calibrated = float(np.mean(prior["calibrated_brier"]))
+    return "calibrated" if calibrated < raw else "raw"
+
+
+def _regime_metrics(
+    y_test: pd.Series,
+    raw_probability: np.ndarray,
+    calibrated_probability: np.ndarray,
+    regimes: pd.Series,
+    history: dict[str, dict[str, list[float]]],
+) -> tuple[RegimeMetrics, ...]:
+    metrics: list[RegimeMetrics] = []
+    for regime in ("low_vol", "high_vol"):
+        mask = regimes.to_numpy() == regime
+        if not np.any(mask):
+            continue
+        y = y_test.to_numpy()[mask]
+        raw = raw_probability[mask]
+        calibrated = calibrated_probability[mask]
+        source = _selected_source(history, regime)
+        selected = calibrated if source == "calibrated" else raw
+        metrics.append(RegimeMetrics(
+            regime=regime,
+            test_rows=int(np.sum(mask)),
+            raw_brier=float(brier_score_loss(y, raw)),
+            calibrated_brier=float(brier_score_loss(y, calibrated)),
+            selected_brier=float(brier_score_loss(y, selected)),
+            raw_ece=_expected_calibration_error(y, raw),
+            calibrated_ece=_expected_calibration_error(y, calibrated),
+            selected_ece=_expected_calibration_error(y, selected),
+            selected_source=source,
+        ))
+    return tuple(metrics)
+
+
 def purged_walk_forward(
     df: pd.DataFrame,
     symbol: str,
@@ -113,6 +178,7 @@ def purged_walk_forward(
         raise ValueError("insufficient observations for walk-forward validation")
 
     folds: list[WalkForwardFold] = []
+    history: dict[str, dict[str, list[float]]] = {}
     start = 0
     fold = 1
     while start + train_size + horizon + test_size <= len(X):
@@ -141,6 +207,10 @@ def purged_walk_forward(
         calibrated_probability = calibrated.predict_proba(X_test)[:, 1]
 
         baseline = _baseline_predictions(X_test)
+        regimes = _volatility_regime(X_train, X_test)
+        fold_regime_metrics = _regime_metrics(
+            y_test, raw_probability, calibrated_probability, regimes, history
+        )
 
         folds.append(WalkForwardFold(
             fold=fold,
@@ -158,8 +228,15 @@ def purged_walk_forward(
             calibrated_log_loss=float(log_loss(y_test, calibrated_probability, labels=[0, 1])),
             raw_ece=_expected_calibration_error(y_test.to_numpy(), raw_probability),
             calibrated_ece=_expected_calibration_error(y_test.to_numpy(), calibrated_probability),
+            regime_metrics=fold_regime_metrics,
             test_rows=len(X_test),
         ))
+
+        for metric in fold_regime_metrics:
+            bucket = history.setdefault(metric.regime, {"raw_brier": [], "calibrated_brier": []})
+            bucket["raw_brier"].append(metric.raw_brier)
+            bucket["calibrated_brier"].append(metric.calibrated_brier)
+
         start += step
         fold += 1
 

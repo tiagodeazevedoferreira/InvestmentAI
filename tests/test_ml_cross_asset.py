@@ -5,9 +5,9 @@ from app.services import ml_cross_asset
 from app.services.features import build_features
 
 
-def _frame(rows: int = 80) -> pd.DataFrame:
+def _frame(rows: int = 100) -> pd.DataFrame:
     index = pd.date_range("2020-01-01", periods=rows, freq="D")
-    base = np.linspace(100.0, 130.0, rows)
+    base = np.linspace(100.0, 140.0, rows)
     return pd.DataFrame(
         {
             "Open": base,
@@ -61,5 +61,5 @@ def test_training_window_is_causal_and_purged_for_target_fold(monkeypatch) -> No
 
     X, _ = build_features(_frame(), horizon=3)
     assert captured
-    assert max(captured[0]) == X.index[19]
+    assert max(captured[0]) == X.index[24]
     assert len(captured[0]) == 40

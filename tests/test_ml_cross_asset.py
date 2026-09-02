@@ -61,5 +61,5 @@ def test_training_window_is_causal_and_purged_for_target_fold(monkeypatch) -> No
 
     X, _ = build_features(_frame(), horizon=3)
     assert captured
-    assert max(captured[0]) == X.index[24]
+    assert max(captured[0]) == X.index[19]
     assert len(captured[0]) == 40

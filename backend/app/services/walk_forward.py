@@ -163,6 +163,15 @@ def _regime_metrics(
     return tuple(metrics)
 
 
+def _aggregate_fold_metric(folds: tuple[WalkForwardFold, ...], field: str) -> float:
+    """Aggregate a fold-level metric using test-row weights across OOS folds."""
+    total_rows = sum(fold.test_rows for fold in folds)
+    if total_rows == 0:
+        raise ValueError("cannot aggregate fold metrics without test rows")
+    weighted_sum = sum(float(getattr(fold, field)) * fold.test_rows for fold in folds)
+    return float(weighted_sum / total_rows)
+
+
 def _aggregate_regime_metric(folds: tuple[WalkForwardFold, ...], field: str) -> float:
     """Aggregate regime-selected metrics by test-row weight across OOS folds."""
     weighted_sum = 0.0
@@ -266,12 +275,12 @@ def purged_walk_forward(
         model_macro_f1=float(np.mean([f.model_macro_f1 for f in fold_tuple])),
         baseline_balanced_accuracy=float(np.mean([f.baseline_balanced_accuracy for f in fold_tuple])),
         baseline_macro_f1=float(np.mean([f.baseline_macro_f1 for f in fold_tuple])),
-        raw_brier=float(np.mean([f.raw_brier for f in fold_tuple])),
-        calibrated_brier=float(np.mean([f.calibrated_brier for f in fold_tuple])),
+        raw_brier=_aggregate_fold_metric(fold_tuple, "raw_brier"),
+        calibrated_brier=_aggregate_fold_metric(fold_tuple, "calibrated_brier"),
         selected_brier=_aggregate_regime_metric(fold_tuple, "selected_brier"),
-        raw_log_loss=float(np.mean([f.raw_log_loss for f in fold_tuple])),
-        calibrated_log_loss=float(np.mean([f.calibrated_log_loss for f in fold_tuple])),
-        raw_ece=float(np.mean([f.raw_ece for f in fold_tuple])),
-        calibrated_ece=float(np.mean([f.calibrated_ece for f in fold_tuple])),
+        raw_log_loss=_aggregate_fold_metric(fold_tuple, "raw_log_loss"),
+        calibrated_log_loss=_aggregate_fold_metric(fold_tuple, "calibrated_log_loss"),
+        raw_ece=_aggregate_fold_metric(fold_tuple, "raw_ece"),
+        calibrated_ece=_aggregate_fold_metric(fold_tuple, "calibrated_ece"),
         selected_ece=_aggregate_regime_metric(fold_tuple, "selected_ece"),
     )

@@ -62,3 +62,6 @@ The causal ML trading strategy must pass robustness checks before progressing fr
 
 ## ADR-021 — Diagnose before optimizing the ML model
 When robustness differs materially across assets, the next change must first quantify probability calibration, class balance, prediction bias, temporal degradation and feature distributions on the same out-of-sample walk-forward windows. Threshold selection or model changes must not be used to mask an asset-specific failure. The diagnosis is research-only and cannot authorize paper/live execution.
+
+## ADR-022 — Shared cross-asset model as a controlled experiment
+After diagnosis, a candidate improvement may pool the same leakage-safe, scale-invariant technical features across assets into one shared supervised model. Each target asset keeps the existing walk-forward test windows; training uses only observations from all assets that precede the target fold's purge boundary. The experiment must compare pooled and asset-specific probabilities on identical OOS timestamps with paired statistics. It does not alter trading thresholds, execution policy, broker authorization or the live gate.

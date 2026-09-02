@@ -17,8 +17,12 @@ jobs:
       - name: Run tests
         env:
           PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/backend
-        run: pytest -q tests/test_walk_forward.py
+        run: pytest -q tests/test_walk_forward.py tests/test_probability_evaluation.py
       - name: Run B3 walk-forward
         env:
           PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/backend
         run: python scripts/run_walk_forward.py
+      - name: Run probability selection statistical evaluation
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/backend
+        run: python scripts/evaluate_probability_selection.py

@@ -58,10 +58,12 @@ class WalkForwardResult:
     baseline_macro_f1: float
     raw_brier: float
     calibrated_brier: float
+    selected_brier: float
     raw_log_loss: float
     calibrated_log_loss: float
     raw_ece: float
     calibrated_ece: float
+    selected_ece: float
 
 
 def _baseline_predictions(X: pd.DataFrame) -> np.ndarray:
@@ -161,6 +163,19 @@ def _regime_metrics(
     return tuple(metrics)
 
 
+def _aggregate_regime_metric(folds: tuple[WalkForwardFold, ...], field: str) -> float:
+    """Aggregate regime-selected metrics by test-row weight across OOS folds."""
+    weighted_sum = 0.0
+    total_rows = 0
+    for fold in folds:
+        for metric in fold.regime_metrics:
+            weighted_sum += float(getattr(metric, field)) * metric.test_rows
+            total_rows += metric.test_rows
+    if total_rows == 0:
+        raise ValueError("cannot aggregate regime metrics without test rows")
+    return float(weighted_sum / total_rows)
+
+
 def purged_walk_forward(
     df: pd.DataFrame,
     symbol: str,
@@ -243,17 +258,20 @@ def purged_walk_forward(
     if not folds:
         raise ValueError("no valid walk-forward folds were produced")
 
+    fold_tuple = tuple(folds)
     return WalkForwardResult(
         symbol=symbol,
-        folds=tuple(folds),
-        model_balanced_accuracy=float(np.mean([f.model_balanced_accuracy for f in folds])),
-        model_macro_f1=float(np.mean([f.model_macro_f1 for f in folds])),
-        baseline_balanced_accuracy=float(np.mean([f.baseline_balanced_accuracy for f in folds])),
-        baseline_macro_f1=float(np.mean([f.baseline_macro_f1 for f in folds])),
-        raw_brier=float(np.mean([f.raw_brier for f in folds])),
-        calibrated_brier=float(np.mean([f.calibrated_brier for f in folds])),
-        raw_log_loss=float(np.mean([f.raw_log_loss for f in folds])),
-        calibrated_log_loss=float(np.mean([f.calibrated_log_loss for f in folds])),
-        raw_ece=float(np.mean([f.raw_ece for f in folds])),
-        calibrated_ece=float(np.mean([f.calibrated_ece for f in folds])),
+        folds=fold_tuple,
+        model_balanced_accuracy=float(np.mean([f.model_balanced_accuracy for f in fold_tuple])),
+        model_macro_f1=float(np.mean([f.model_macro_f1 for f in fold_tuple])),
+        baseline_balanced_accuracy=float(np.mean([f.baseline_balanced_accuracy for f in fold_tuple])),
+        baseline_macro_f1=float(np.mean([f.baseline_macro_f1 for f in fold_tuple])),
+        raw_brier=float(np.mean([f.raw_brier for f in fold_tuple])),
+        calibrated_brier=float(np.mean([f.calibrated_brier for f in fold_tuple])),
+        selected_brier=_aggregate_regime_metric(fold_tuple, "selected_brier"),
+        raw_log_loss=float(np.mean([f.raw_log_loss for f in fold_tuple])),
+        calibrated_log_loss=float(np.mean([f.calibrated_log_loss for f in fold_tuple])),
+        raw_ece=float(np.mean([f.raw_ece for f in fold_tuple])),
+        calibrated_ece=float(np.mean([f.calibrated_ece for f in fold_tuple])),
+        selected_ece=_aggregate_regime_metric(fold_tuple, "selected_ece"),
     )

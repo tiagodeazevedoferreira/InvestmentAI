@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 
 from app.services import ml_cross_asset
+from app.services.features import build_features
 
 
 def _frame(rows: int = 80) -> pd.DataFrame:
@@ -58,9 +59,8 @@ def test_training_window_is_causal_for_target_fold(monkeypatch) -> None:
         step=10,
     )
 
+    X, _ = build_features(_frame(), horizon=3)
+    first_purge_boundary = X.index[20]
     assert captured
-    # The first fold tests after train_size + horizon observations. Training
-    # contains only observations strictly before that test boundary.
-    first_cutoff = pd.date_range("2020-01-01", periods=20 + 3 + 1, freq="D")[-1]
-    assert max(captured[0]) < first_cutoff
+    assert max(captured[0]) < first_purge_boundary
     assert len(captured[0]) == 40

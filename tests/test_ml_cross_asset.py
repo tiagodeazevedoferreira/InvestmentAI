@@ -36,7 +36,7 @@ def test_cross_asset_predictions_are_produced_for_each_symbol() -> None:
         assert np.isfinite(run.probabilities.to_numpy()).all()
 
 
-def test_training_window_is_causal_for_target_fold(monkeypatch) -> None:
+def test_training_window_is_causal_and_purged_for_target_fold(monkeypatch) -> None:
     captured: list[pd.Index] = []
 
     class FakeModel:
@@ -60,7 +60,6 @@ def test_training_window_is_causal_for_target_fold(monkeypatch) -> None:
     )
 
     X, _ = build_features(_frame(), horizon=3)
-    first_purge_boundary = X.index[20]
     assert captured
-    assert max(captured[0]) < first_purge_boundary
+    assert max(captured[0]) == X.index[19]
     assert len(captured[0]) == 40

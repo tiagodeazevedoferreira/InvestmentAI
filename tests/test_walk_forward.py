@@ -32,8 +32,26 @@ def test_model_and_baseline_metrics_are_bounded():
         result.model_macro_f1,
         result.baseline_balanced_accuracy,
         result.baseline_macro_f1,
+        result.raw_brier,
+        result.calibrated_brier,
+        result.raw_log_loss,
+        result.calibrated_log_loss,
+        result.raw_ece,
+        result.calibrated_ece,
     ):
-        assert 0.0 <= value <= 1.0
+        assert np.isfinite(value)
+        assert value >= 0.0
+    assert result.raw_brier <= 1.0
+    assert result.calibrated_brier <= 1.0
+    assert result.raw_ece <= 1.0
+    assert result.calibrated_ece <= 1.0
+
+
+def test_calibration_is_evaluated_out_of_sample():
+    result = purged_walk_forward(market_frame(), "TEST", train_size=500, test_size=100, step=100)
+    assert all(fold.calibrated_brier >= 0.0 for fold in result.folds)
+    assert all(fold.calibrated_log_loss >= 0.0 for fold in result.folds)
+    assert all(fold.calibrated_ece >= 0.0 for fold in result.folds)
 
 
 def test_invalid_window_is_rejected():

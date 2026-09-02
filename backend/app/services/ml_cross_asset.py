@@ -45,8 +45,9 @@ def purged_cross_asset_walk_forward_predictions(
 
     For each asset, test windows follow the single-asset walk-forward schedule.
     Each fold trains one shared model using the latest ``train_size`` observations
-    from every asset that are strictly before the target fold's test start. The
-    target asset therefore has the same purge gap as the existing baseline.
+    from every asset that are strictly before the target fold's purge boundary.
+    The target asset therefore has the same train/purge/test geometry as the
+    existing single-asset baseline.
 
     Features and future targets are built independently per asset, so rolling
     indicators and labels never cross asset boundaries. The shared model receives
@@ -78,13 +79,13 @@ def purged_cross_asset_walk_forward_predictions(
             train_end = start + train_size
             test_start = train_end + horizon
             test_end = test_start + test_size
-            cutoff = target_X.index[test_start]
+            purge_boundary = target_X.index[train_end]
             test_X = target_X.iloc[test_start:test_end]
 
             train_parts_X: list[pd.DataFrame] = []
             train_parts_y: list[pd.Series] = []
             for asset_X, asset_y in prepared.values():
-                eligible = asset_X.index < cutoff
+                eligible = asset_X.index < purge_boundary
                 asset_X_before_cutoff = asset_X.loc[eligible]
                 if len(asset_X_before_cutoff) < train_size:
                     continue

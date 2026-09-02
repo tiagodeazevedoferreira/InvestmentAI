@@ -9,7 +9,7 @@ from app.services.features import build_features
 from app.services.ml_cross_asset import purged_cross_asset_walk_forward_predictions
 from app.services.ml_trading import purged_walk_forward_predictions
 from app.services.openbb_market_data import OpenBBMarketDataProvider
-from backend.app.services.probability_evaluation import paired_fold_summary
+from app.services.probability_evaluation import paired_fold_summary
 
 SYMBOLS = ("PETR4", "VALE3", "ITUB4")
 START = "2021-01-01"

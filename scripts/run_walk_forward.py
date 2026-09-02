@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import asdict
 from pathlib import Path
 
 from backend.app.services.openbb_market_data import B3_SYMBOLS, OpenBBMarketDataProvider
@@ -18,7 +19,7 @@ def main() -> None:
     for result in results:
         payload.append({
             "symbol": result.symbol,
-            "folds": [f.__dict__ for f in result.folds],
+            "folds": [asdict(fold) for fold in result.folds],
             "model": {
                 "balanced_accuracy": result.model_balanced_accuracy,
                 "macro_f1": result.model_macro_f1,
@@ -26,6 +27,14 @@ def main() -> None:
             "baseline_ema_9_21": {
                 "balanced_accuracy": result.baseline_balanced_accuracy,
                 "macro_f1": result.baseline_macro_f1,
+            },
+            "probability_quality": {
+                "raw_brier": result.raw_brier,
+                "calibrated_brier": result.calibrated_brier,
+                "raw_log_loss": result.raw_log_loss,
+                "calibrated_log_loss": result.calibrated_log_loss,
+                "raw_ece": result.raw_ece,
+                "calibrated_ece": result.calibrated_ece,
             },
         })
 

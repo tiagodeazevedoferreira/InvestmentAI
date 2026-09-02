@@ -31,10 +31,16 @@ def main() -> None:
             "probability_quality": {
                 "raw_brier": result.raw_brier,
                 "calibrated_brier": result.calibrated_brier,
+                "selected_brier": result.selected_brier,
                 "raw_log_loss": result.raw_log_loss,
                 "calibrated_log_loss": result.calibrated_log_loss,
                 "raw_ece": result.raw_ece,
                 "calibrated_ece": result.calibrated_ece,
+                "selected_ece": result.selected_ece,
+                "selected_brier_delta_vs_raw": result.selected_brier - result.raw_brier,
+                "selected_brier_delta_vs_calibrated": result.selected_brier - result.calibrated_brier,
+                "selected_ece_delta_vs_raw": result.selected_ece - result.raw_ece,
+                "selected_ece_delta_vs_calibrated": result.selected_ece - result.calibrated_ece,
             },
         })
 

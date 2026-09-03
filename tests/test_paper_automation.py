@@ -47,12 +47,20 @@ def test_hold_never_creates_order():
 
 def test_client_order_id_prevents_duplicate_paper_fill():
     account = PaperAccount(initial_cash=100_000, fee_bps=0, slippage_bps=0)
-    market = bars(list(range(60, 29, -1)))
-    first = evaluate_paper_signal(account, "PETR4", market, max_order_notional=10_000, client_order_id="paper-signal-1")
-    second = evaluate_paper_signal(account, "PETR4", market, max_order_notional=10_000, client_order_id="paper-signal-1")
-    assert first["executed"] is True
-    assert second["executed"] is True
-    assert first["order"]["order_id"] == second["order"]["order_id"]
-    assert account.positions["PETR4"].quantity == 166
+    first = account.submit_order("PETR4", "BUY", 100, 30, client_order_id="paper-signal-1")
+    second = account.submit_order("PETR4", "BUY", 100, 30, client_order_id="paper-signal-1")
+    assert first["order_id"] == second["order_id"]
+    assert account.positions["PETR4"].quantity == 100
     assert len(account.orders) == 1
     assert len(account.executions) == 1
+
+
+def test_buy_sizing_does_not_accumulate_above_target_allocation():
+    account = PaperAccount(initial_cash=100_000, fee_bps=0, slippage_bps=0)
+    market = bars(list(range(60, 29, -1)))
+    first = evaluate_paper_signal(account, "PETR4", market, max_order_notional=10_000, target_allocation=0.05)
+    second = evaluate_paper_signal(account, "PETR4", market, max_order_notional=10_000, target_allocation=0.05)
+    assert first["executed"] is True
+    assert second["executed"] is False
+    assert second["decision"]["risk_allowed"] is False
+    assert account.positions["PETR4"].quantity == 166

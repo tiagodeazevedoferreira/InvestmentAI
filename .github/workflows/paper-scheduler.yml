@@ -43,8 +43,17 @@ jobs:
           if [ "$SHADOW" = 'true' ]; then ARGS="$ARGS --shadow"; fi
           if [ "$FORCE" = 'true' ]; then ARGS="$ARGS --force"; fi
           python scripts/run_paper_scheduler.py $ARGS | tee paper_scheduler_output.json
+      - name: Persist paper outcome observations
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/backend
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FIREBASE_DATABASE_URL: ${{ vars.FIREBASE_DATABASE_URL }}
+        run: |
+          python scripts/attribute_paper_outcomes.py | tee paper_outcome_output.json
       - name: Upload scheduler report
         uses: actions/upload-artifact@v4
         with:
           name: paper-scheduler-report
-          path: paper_scheduler_output.json
+          path: |
+            paper_scheduler_output.json
+            paper_outcome_output.json

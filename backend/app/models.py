@@ -80,7 +80,6 @@ class PredictionResponse(BaseModel):
 
 class TradingViewWebhook(BaseModel):
     """Normalized payload emitted by the InvestmentAI Pine validator."""
-
     source: Literal["tradingview"] = "tradingview"
     symbol: str = Field(min_length=1, max_length=32)
     exchange: str = Field(min_length=1, max_length=64)
@@ -112,3 +111,48 @@ class TradingViewWebhookResponse(BaseModel):
     timeframe: str
     event_id: str
     received_at: datetime
+
+class PaperOrderRequest(BaseModel):
+    symbol: str = Field(min_length=1, max_length=32)
+    side: Literal["BUY", "SELL"]
+    quantity: int = Field(gt=0, le=100000)
+    reference_price: float = Field(gt=0)
+    order_type: Literal["MARKET", "LIMIT"] = "MARKET"
+    limit_price: float | None = Field(default=None, gt=0)
+    reason: str | None = Field(default=None, max_length=500)
+
+    @field_validator("symbol")
+    @classmethod
+    def normalize_symbol(cls, value: str) -> str:
+        return value.strip().upper()
+
+class PaperMarkRequest(BaseModel):
+    prices: dict[str, float]
+
+    @field_validator("prices")
+    @classmethod
+    def validate_prices(cls, value: dict[str, float]) -> dict[str, float]:
+        if not value:
+            raise ValueError("prices cannot be empty")
+        normalized = {}
+        for key, price in value.items():
+            if price <= 0:
+                raise ValueError(f"price must be positive for {key}")
+            normalized[key.strip().upper()] = price
+        return normalized
+
+class PaperResetRequest(BaseModel):
+    initial_cash: float = Field(default=100_000, gt=0)
+
+class PaperAccountResponse(BaseModel):
+    environment: str
+    initial_cash: float
+    cash: float
+    market_value: float
+    equity: float
+    realized_pnl: float
+    unrealized_pnl: float
+    positions: dict[str, dict]
+    open_orders: list[dict]
+    orders_count: int
+    executions_count: int

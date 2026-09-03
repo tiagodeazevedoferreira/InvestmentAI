@@ -21,6 +21,11 @@ class Settings(BaseSettings):
     model_approved: bool = False
     risk_gate_enabled: bool = True
     tradingview_webhook_secret: str | None = None
+    paper_initial_cash: float = 100_000.0
+    paper_fee_bps: float = 5.0
+    paper_slippage_bps: float = 5.0
+    paper_account_path: str = "paper/account"
+    paper_max_order_notional: float = 10_000.0
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 @lru_cache

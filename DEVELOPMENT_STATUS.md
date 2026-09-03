@@ -85,7 +85,7 @@ Last updated: 2026-09-03
 - [x] Paper account persistence boundary in Firebase with bounded recent history
 - [x] Paper execution API and lifecycle tests
 - [x] Signal → risk gate → position sizing → paper order automation primitive
-- [ ] Paper-to-TradingView reconciliation automation
+- [x] Paper-to-TradingView reconciliation primitive
 - [x] Provider-backed paper scheduler/orchestrator
 - [ ] Doto/MT5 demo broker adapter
 - [ ] Live broker adapter
@@ -103,6 +103,8 @@ Last updated: 2026-09-03
 - [x] Outcome attribution primitives for forward-return observation and hit-rate summaries
 - [x] Persisted paper outcomes with resumable horizons
 - [x] Descriptive calibration statistics with confidence intervals and explicit cost assumptions
+- [x] Causal volatility regime classification
+- [x] Paper/TradingView evidence reconciliation
 
 ## Firebase/data governance
 - [x] Operational repository abstraction
@@ -128,6 +130,7 @@ Last updated: 2026-09-03
 - [x] Paper scheduler/ledger unit tests
 - [x] Paper outcome attribution unit tests
 - [x] Paper calibration unit tests
+- [x] Causal regime/reconciliation unit tests
 - [ ] Full integration test suite against provider mocks
 - [ ] End-to-end training/backtest test
 - [ ] Security/dependency scan
@@ -137,7 +140,7 @@ Last updated: 2026-09-03
 The causal ML trading backtest, robustness audit and model diagnosis are complete. The robustness gate is not yet passed because performance is not stable across all evaluated assets and assumptions. A causal pooled cross-asset model experiment is implemented to test whether normalized technical features transfer across PETR4, VALE3 and ITUB4 without changing execution policy. The experiment remains research-only until its out-of-sample evidence is reviewed.
 
 ## Current execution gate
-The internal paper execution path is deterministic and broker-independent. Provider-backed scheduling obtains B3 history through the OpenBB/yfinance boundary, evaluates the existing RSI paper policy, persists a deterministic decision key, and skips duplicates. Completed decisions now receive persisted 1/5/20-bar forward outcomes. The calibration layer reports directional hit rate, confidence intervals and return statistics under an explicit transaction-cost assumption. These measurements are descriptive only; no signal, risk, sizing or execution policy is promoted from them. This remains PAPER only and does not contact TradingView, a broker or a live venue.
+The internal paper execution path is deterministic and broker-independent. Provider-backed scheduling obtains B3 history through the OpenBB/yfinance boundary, evaluates the existing RSI paper policy, persists a deterministic decision key, and skips duplicates. Completed decisions now receive persisted 1/5/20-bar forward outcomes. The calibration layer reports directional hit rate, confidence intervals and return statistics under an explicit transaction-cost assumption, and the runner can partition results by a causal trailing-volatility regime. Paper decisions can also be reconciled against TradingView validator evidence using an explicit timestamp tolerance. These measurements and reconciliations are descriptive only; no signal, risk, sizing or execution policy is promoted from them. This remains PAPER only and does not contact a broker or live venue.
 
 ## Promotion boundary
 Phases 1-9 remain non-live. Phase 10/live is intentionally disabled and requires explicit authorization after empirical validation.

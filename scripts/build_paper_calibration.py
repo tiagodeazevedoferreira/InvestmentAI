@@ -4,9 +4,11 @@ import argparse
 import json
 import sys
 
+from backend.app.services.market_data import download_history
 from backend.app.services.paper_calibration import build_calibration_report
 from backend.app.services.paper_ledger import PaperDecisionLedger
 from backend.app.services.paper_outcomes import OutcomeObservation
+from backend.app.services.paper_regime import classify_regime
 from backend.app.services.paper_store import PaperAccountStore
 
 
@@ -35,15 +37,28 @@ def observations_from_records(records):
     return observations
 
 
+def regime_by_signal(records, frame, window: int):
+    labels = {}
+    for record in records:
+        signal_id = str(record.get("signal_id", ""))
+        if not signal_id:
+            continue
+        result = classify_regime(frame, decision_timestamp=record.get("bar_timestamp"), window=window)
+        labels[signal_id] = result.label
+    return labels
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Build descriptive calibration report from persisted paper outcomes")
     parser.add_argument("--symbols", default="PETR4,VALE3,ITUB4")
     parser.add_argument("--limit", type=int, default=200)
     parser.add_argument("--transaction-cost-bps", type=float, default=0.0)
+    parser.add_argument("--market-period", default="5y")
+    parser.add_argument("--regime-window", type=int, default=20)
     parser.add_argument("--output", default="paper_calibration_report.json")
     args = parser.parse_args()
-    if args.limit <= 0 or args.transaction_cost_bps < 0:
-        print("limit must be positive and transaction cost must be non-negative", file=sys.stderr)
+    if args.limit <= 0 or args.transaction_cost_bps < 0 or args.regime_window < 2:
+        print("invalid calibration parameters", file=sys.stderr)
         return 2
 
     store = PaperAccountStore()
@@ -53,14 +68,35 @@ def main() -> int:
     ledger = PaperDecisionLedger(firebase=store.firebase)
     observations = []
     coverage = {}
+    regime_labels = {}
     for symbol in [item.strip().upper() for item in args.symbols.split(",") if item.strip()]:
         records = ledger.list_records(symbol=symbol, limit=args.limit)
         symbol_observations = observations_from_records(records)
         observations.extend(symbol_observations)
-        coverage[symbol] = {"records": len(records), "completed_outcomes": len(symbol_observations)}
+        try:
+            frame = download_history(f"{symbol}.SA", period=args.market_period)
+            regime_labels.update(regime_by_signal(records, frame, args.regime_window))
+            regime_status = "classified"
+        except (RuntimeError, ValueError) as exc:
+            regime_status = f"unavailable: {exc}"
+        coverage[symbol] = {
+            "records": len(records),
+            "completed_outcomes": len(symbol_observations),
+            "regime_status": regime_status,
+        }
 
-    report = build_calibration_report(observations, transaction_cost_bps=args.transaction_cost_bps)
+    report = build_calibration_report(
+        observations,
+        transaction_cost_bps=args.transaction_cost_bps,
+        regime_by_signal=regime_labels,
+    )
     report["coverage"] = coverage
+    report["regime"] = {
+        "method": "causal_trailing_log_return_volatility_v1",
+        "window": args.regime_window,
+        "thresholds": {"low": 0.015, "high": 0.030},
+        "lookahead_safe": True,
+    }
     with open(args.output, "w", encoding="utf-8") as handle:
         json.dump(report, handle, ensure_ascii=False, indent=2)
     print(json.dumps(report, ensure_ascii=False, indent=2))

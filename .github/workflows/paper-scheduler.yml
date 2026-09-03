@@ -1,0 +1,50 @@
+name: Paper Scheduler
+
+on:
+  schedule:
+    - cron: '30 20 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      shadow:
+        description: 'Evaluate and ledger decisions without executing paper orders'
+        required: false
+        default: false
+        type: boolean
+      force:
+        description: 'Bypass the post-close B3 session guard for manual validation'
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: investmentai-paper-scheduler
+  cancel-in-progress: false
+
+jobs:
+  paper:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r backend/requirements.txt
+      - name: Run provider-backed paper scheduler
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/backend
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FIREBASE_DATABASE_URL: ${{ vars.FIREBASE_DATABASE_URL }}
+          PAPER_AUTOMATION_ENABLED: 'true'
+        run: |
+          SHADOW='${{ inputs.shadow || false }}'
+          FORCE='${{ inputs.force || false }}'
+          ARGS=''
+          if [ "$SHADOW" = 'true' ]; then ARGS="$ARGS --shadow"; fi
+          if [ "$FORCE" = 'true' ]; then ARGS="$ARGS --force"; fi
+          python scripts/run_paper_scheduler.py $ARGS | tee paper_scheduler_output.json
+      - name: Upload scheduler report
+        uses: actions/upload-artifact@v4
+        with:
+          name: paper-scheduler-report
+          path: paper_scheduler_output.json

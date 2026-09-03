@@ -11,11 +11,13 @@ class PaperDecisionLedger:
     """Bounded Firebase ledger for deterministic, resumable paper decisions."""
 
     def __init__(self, firebase: FirebaseRepository | None = None, path: str = "paper/decision_ledger"):
-        settings = get_settings()
-        self.firebase = firebase or FirebaseRepository(
-            settings.firebase_database_url,
-            settings.firebase_service_account,
-        )
+        if firebase is None:
+            settings = get_settings()
+            firebase = FirebaseRepository(
+                settings.firebase_database_url,
+                settings.firebase_service_account,
+            )
+        self.firebase = firebase
         self.path = path.strip("/")
 
     def _key(self, signal_id: str) -> str:

@@ -85,8 +85,6 @@ class PaperAccount:
         order_id = str(uuid4())
         now = datetime.now(timezone.utc).isoformat()
 
-        # Market orders fill immediately. Limit orders only fill when the supplied
-        # reference price crosses the requested limit; otherwise they remain open.
         if order_type == "LIMIT":
             executable = reference_price <= limit_price if side == "BUY" else reference_price >= limit_price
             if not executable:
@@ -212,6 +210,8 @@ class PaperAccount:
         return {
             "environment": "paper",
             "initial_cash": round(self.initial_cash, 8),
+            "fee_bps": self.fee_bps,
+            "slippage_bps": self.slippage_bps,
             "cash": round(float(self.cash), 8),
             "market_value": self.market_value,
             "equity": self.equity,

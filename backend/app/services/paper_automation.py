@@ -29,6 +29,7 @@ def evaluate_paper_signal(
     max_order_notional: float = 10_000.0,
     target_allocation: float = 0.05,
     execute: bool = True,
+    client_order_id: str | None = None,
 ) -> dict[str, Any]:
     """Run a deterministic technical signal through risk, sizing and paper execution.
 
@@ -91,6 +92,7 @@ def evaluate_paper_signal(
                 quantity=quantity,
                 reference_price=price,
                 reason=reason,
+                client_order_id=client_order_id,
             )
         except (ValueError, PaperExecutionError) as exc:
             result["error"] = str(exc)

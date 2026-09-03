@@ -105,6 +105,7 @@ Last updated: 2026-09-03
 
 ## Firebase/data governance
 - [x] Operational repository abstraction
+- [x] Retention-aware storage boundary
 - [ ] Execute Firebase smoke test against configured secret
 - [ ] Production security rules
 - [ ] Data-size monitoring/quotas dashboard

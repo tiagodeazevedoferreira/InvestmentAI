@@ -1,4 +1,4 @@
-from .settings import get_settings, TradingMode
+from ..settings import get_settings, TradingMode
 from .firebase import FirebaseRepository
 
 settings = get_settings()

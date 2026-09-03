@@ -48,8 +48,15 @@ def _rsi(close: pd.Series, window: int = 14) -> pd.Series:
     delta = close.diff()
     gain = delta.clip(lower=0).rolling(window).mean()
     loss = (-delta.clip(upper=0)).rolling(window).mean()
-    rs = gain / loss.replace(0, pd.NA)
-    return 100 - (100 / (1 + rs))
+    rs = gain / loss
+    rsi = 100 - (100 / (1 + rs))
+    # Strictly rising/falling windows have zero losses/gains and should map to
+    # the natural RSI extremes instead of becoming NA.
+    rsi = rsi.mask((loss == 0) & (gain > 0), 100.0)
+    rsi = rsi.mask((gain == 0) & (loss > 0), 0.0)
+    # Flat windows have no directional evidence and are neutral.
+    rsi = rsi.mask((loss == 0) & (gain == 0), 50.0)
+    return rsi
 
 
 def decide(df: pd.DataFrame, symbol: str, target_weight: float = 0.10) -> AutoDecision:

@@ -18,6 +18,11 @@ class FakeFirebase:
     def set(self, path, value):
         self.data[path] = value
 
+    def list_children(self, path, *, limit=200):
+        prefix = path.rstrip("/") + "/"
+        values = [value for key, value in self.data.items() if key.startswith(prefix)]
+        return values[:limit]
+
 
 def test_yahoo_symbol_normalization():
     assert yahoo_symbol("PETR4") == "PETR4.SA"
@@ -45,16 +50,22 @@ def test_b3_scheduler_guard_rejects_weekend():
 def test_ledger_claim_is_idempotent():
     firebase = FakeFirebase()
     ledger = PaperDecisionLedger(firebase=firebase)
-    kwargs = {
-        "symbol": "PETR4",
-        "bar_timestamp": "2026-09-03T20:00:00+00:00",
-        "action": "BUY",
-    }
+    kwargs = {"symbol": "PETR4", "bar_timestamp": "2026-09-03T20:00:00+00:00", "action": "BUY"}
     first, record = ledger.claim("abc123", **kwargs)
     second, existing = ledger.claim("abc123", **kwargs)
     assert first is True
     assert second is False
     assert existing == record
+
+
+def test_ledger_lists_and_filters_recent_records():
+    firebase = FakeFirebase()
+    ledger = PaperDecisionLedger(firebase=firebase)
+    ledger.claim("petr", symbol="PETR4", bar_timestamp="2026-09-03T20:00:00+00:00", action="BUY")
+    ledger.claim("vale", symbol="VALE3", bar_timestamp="2026-09-04T20:00:00+00:00", action="HOLD")
+    records = ledger.list_records(symbol="PETR4", limit=1)
+    assert len(records) == 1
+    assert records[0]["signal_id"] == "petr"
 
 
 def test_bar_timestamp_source_is_datetime_index():

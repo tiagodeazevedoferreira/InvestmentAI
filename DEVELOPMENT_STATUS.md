@@ -1,6 +1,6 @@
 # Development Status
 
-Last updated: 2026-09-02
+Last updated: 2026-09-03
 
 ## Foundation
 - [x] Repository and persistent handoff context
@@ -78,7 +78,12 @@ Last updated: 2026-09-02
 - [x] Demo/live separation
 - [x] Risk gate skeleton
 - [x] Deterministic paper broker
-- [ ] Paper-to-Firebase persistence/reconciliation
+- [x] Paper execution engine with market/limit orders
+- [x] Fees and slippage accounting
+- [x] Paper portfolio mark-to-market and P&L accounting
+- [x] Paper account persistence boundary in Firebase with bounded recent history
+- [x] Paper execution API and lifecycle tests
+- [ ] Paper-to-TradingView reconciliation automation
 - [ ] Doto/MT5 demo broker adapter
 - [ ] Live broker adapter
 - [ ] Empirical model promotion gate
@@ -86,7 +91,9 @@ Last updated: 2026-09-02
 
 ## Paper/Shadow
 - [x] Paper execution primitive
-- [ ] End-to-end signal -> paper -> portfolio accounting
+- [x] End-to-end paper order -> fill -> portfolio accounting
+- [x] Bounded paper account state persistence
+- [ ] Signal -> risk gate -> paper automation
 - [ ] Shadow decision ledger
 - [ ] Outcome attribution/calibration report
 
@@ -108,13 +115,18 @@ Last updated: 2026-09-02
 - [x] ML robustness audit helper tests
 - [x] ML model diagnosis helper tests
 - [x] Causal pooled cross-asset ML experiment tests
+- [x] Paper execution accounting tests
+- [x] Paper API lifecycle tests
 - [ ] Full integration test suite against provider mocks
 - [ ] End-to-end training/backtest test
 - [ ] Security/dependency scan
 - [ ] Production deployment
 
 ## Current ML validation gate
-The causal ML trading backtest, robustness audit and model diagnosis are complete. The robustness gate is not yet passed because performance is not stable across all evaluated assets and assumptions. A causal pooled cross-asset model experiment is now implemented to test whether normalized technical features transfer across PETR4, VALE3 and ITUB4 without changing execution policy. The experiment remains research-only until its out-of-sample evidence is reviewed.
+The causal ML trading backtest, robustness audit and model diagnosis are complete. The robustness gate is not yet passed because performance is not stable across all evaluated assets and assumptions. A causal pooled cross-asset model experiment is implemented to test whether normalized technical features transfer across PETR4, VALE3 and ITUB4 without changing execution policy. The experiment remains research-only until its out-of-sample evidence is reviewed.
+
+## Current execution gate
+The internal paper execution path is now implemented as a deterministic, broker-independent engine. It supports market and limit orders, immediate fills, crossed-limit fills on market marks, configurable fees/slippage, cash/position validation, realized/unrealized P&L, mark-to-market and bounded Firebase persistence. The API is exposed under `/api/paper/*`. This remains PAPER only and does not contact TradingView, a broker or any live venue.
 
 ## Promotion boundary
 Phases 1-9 remain non-live. Phase 10/live is intentionally disabled and requires explicit authorization after empirical validation.

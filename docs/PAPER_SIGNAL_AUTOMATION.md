@@ -32,10 +32,18 @@ Each decision receives a deterministic id from symbol + bar timestamp + action. 
 
 Manual dispatch supports `shadow` mode and an explicit `force` guard bypass for validation. Scheduled execution requires Firebase so the paper account and ledger survive separate GitHub Actions runners.
 
+## Outcome attribution
+
+`backend/app/services/paper_outcomes.py` provides a provider-independent attribution primitive. Given a completed decision and the corresponding OHLCV history, it evaluates forward returns at configurable horizons, defaulting to 1, 5 and 20 bars. BUY and SELL decisions use a signed return convention so a positive value means the decision direction was favorable; HOLD observations retain the market return but are not classified as hits.
+
+If a horizon has not completed yet, the observation is explicitly returned without an outcome price, return or hit classification. This prevents incomplete paper observations from being counted as failures or successes. `summarize_outcomes()` aggregates completed observations by action and horizon into observation count, hit rate, mean signed return and median signed return.
+
+These primitives are intentionally separate from model promotion. A future calibration report must use completed, timestamp-aligned paper observations and should report sample size and incomplete horizons before any empirical promotion decision is considered.
+
 ## Safety
 
 This automation remains strictly PAPER. It has no live broker authority and cannot promote the application to `live`. Model predictions are not yet allowed to override the deterministic risk gate.
 
 ## Next step
 
-Observe real scheduled runs and add outcome attribution/calibration, paper-to-TradingView reconciliation, kill switch/reconciliation and integration coverage. Only after those controls are stable should a broker demo adapter be introduced.
+Persist and retrieve attributed outcomes from the Firebase decision ledger, generate a calibration report across PETR4/VALE3/ITUB4, add paper-to-TradingView reconciliation automation, and then implement kill-switch/reconciliation controls. Only after those controls and empirical evidence are stable should a broker demo adapter be introduced.

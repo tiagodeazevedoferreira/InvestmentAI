@@ -31,16 +31,45 @@ class PaperDecisionLedger:
         value = self.firebase.get(self._key(signal_id))
         return value if isinstance(value, dict) else None
 
-    def claim(self, signal_id: str, *, symbol: str, bar_timestamp: str, action: str) -> tuple[bool, dict[str, Any]]:
-        """Create a pending decision, or return the existing record.
+    def list_records(self, *, symbol: str | None = None, limit: int = 200) -> list[dict[str, Any]]:
+        if limit <= 0:
+            raise ValueError("limit must be positive")
+        if not self.firebase.enabled:
+            raise RuntimeError("Firebase is required for paper ledger access")
+        values = self.firebase.list_children(self.path, limit=limit)
+        records = [value for value in values if isinstance(value, dict)]
+        if symbol:
+            normalized = symbol.strip().upper().removesuffix(".SA")
+            records = [item for item in records if str(item.get("symbol", "")).upper().removesuffix(".SA") == normalized]
+        records.sort(key=lambda item: str(item.get("bar_timestamp", "")), reverse=True)
+        return records[:limit]
 
-        GitHub Actions concurrency prevents concurrent scheduler runs. A pending
-        record is intentionally resumable if a run fails before completion.
-        """
+    def save_outcomes(self, signal_id: str, observations: list[Any]) -> dict[str, Any]:
+        current = self.get(signal_id)
+        if current is None:
+            raise KeyError(f"unknown signal_id: {signal_id}")
+        outcomes = {
+            str(item.horizon_bars): {
+                "horizon_bars": int(item.horizon_bars),
+                "outcome_timestamp": item.outcome_timestamp,
+                "outcome_price": item.outcome_price,
+                "forward_return": item.forward_return,
+                "signed_return": item.signed_return,
+                "hit": item.hit,
+            }
+            for item in observations
+        }
+        current = dict(current)
+        current["outcomes"] = outcomes
+        current["outcomes_updated_at"] = datetime.now(timezone.utc).isoformat()
+        self.firebase.set(self._key(signal_id), current)
+        return current
+
+    def claim(self, signal_id: str, *, symbol: str, bar_timestamp: str, action: str) -> tuple[bool, dict[str, Any]]:
+        """Create a pending decision, or return the existing record."""
         existing = self.get(signal_id)
         if existing is not None:
             return False, existing
-
         record = {
             "signal_id": signal_id,
             "symbol": symbol.upper(),

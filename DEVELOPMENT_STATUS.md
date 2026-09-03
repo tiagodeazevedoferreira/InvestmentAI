@@ -87,7 +87,7 @@ Last updated: 2026-09-03
 - [x] Signal → risk gate → position sizing → paper order automation primitive
 - [x] Paper-to-TradingView reconciliation primitive
 - [x] Provider-backed paper scheduler/orchestrator
-- [ ] Doto/MT5 demo broker adapter
+- [x] Doto/MT5 demo broker adapter contract (demo-only; end-to-end validation pending)
 - [ ] Live broker adapter
 - [x] Empirical promotion gate evaluator (human-review only)
 - [x] Kill switch and reconciliation engine (broker-neutral, read-only)
@@ -134,6 +134,7 @@ Last updated: 2026-09-03
 - [x] Causal regime/reconciliation unit tests
 - [x] Empirical promotion gate unit tests
 - [x] Operational safety unit tests
+- [x] MT5 demo adapter contract tests
 - [ ] Full integration test suite against provider mocks
 - [ ] End-to-end training/backtest test
 - [ ] Security/dependency scan
@@ -143,7 +144,7 @@ Last updated: 2026-09-03
 The causal ML trading backtest, robustness audit and model diagnosis are complete. The robustness gate is not yet passed because performance is not stable across all evaluated assets and assumptions. A causal pooled cross-asset model experiment is implemented to test whether normalized technical features transfer across PETR4, VALE3 and ITUB4 without changing execution policy. The experiment remains research-only until its out-of-sample evidence is reviewed.
 
 ## Current execution gate
-The internal paper execution path is deterministic and broker-independent. Provider-backed scheduling obtains B3 history through the OpenBB/yfinance boundary, evaluates the existing RSI paper policy, persists a deterministic decision key, and skips duplicates. Completed decisions now receive persisted 1/5/20-bar forward outcomes. The calibration layer reports directional hit rate, confidence intervals and return statistics under an explicit transaction-cost assumption, and the runner can partition results by a causal trailing-volatility regime. Paper decisions can also be reconciled against TradingView validator evidence using an explicit timestamp tolerance. The empirical gate now evaluates predefined evidence criteria, but a passing result only permits human review and can never authorize promotion automatically. Operational kill-switch and broker-neutral reconciliation primitives are now hardened, but are not yet connected to a broker because no broker adapter exists. This remains PAPER only and does not contact a broker or live venue.
+The internal paper execution path is deterministic and broker-independent. Provider-backed scheduling obtains B3 history through the OpenBB/yfinance boundary, evaluates the existing RSI paper policy, persists a deterministic decision key, and skips duplicates. Completed decisions now receive persisted 1/5/20-bar forward outcomes. The calibration layer reports directional hit rate, confidence intervals and return statistics under an explicit transaction-cost assumption, and the runner can partition results by a causal trailing-volatility regime. Paper decisions can also be reconciled against TradingView validator evidence using an explicit timestamp tolerance. The empirical gate now evaluates predefined evidence criteria, but a passing result only permits human review and can never authorize promotion automatically. Operational kill-switch and broker-neutral reconciliation primitives are hardened. A Doto/MT5 demo-only adapter contract now exists with account/position/order/execution normalization and order-check-before-send semantics; end-to-end demo reconciliation remains pending. This remains PAPER/DEMO only and does not contact a live venue.
 
 ## Promotion boundary
 Phases 1-9 remain non-live. Phase 10/live is intentionally disabled and requires explicit authorization after empirical validation and operational readiness, including kill-switch and reconciliation hardening.

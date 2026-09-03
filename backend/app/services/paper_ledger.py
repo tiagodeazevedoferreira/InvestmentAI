@@ -50,13 +50,17 @@ class PaperDecisionLedger:
         symbol: str,
         bar_timestamp: str,
         action: str,
-        price: float,
+        price: float | None = None,
     ) -> tuple[bool, dict[str, Any]]:
-        """Create a pending decision, or return the existing record."""
+        """Create a pending decision, or return the existing record.
+
+        ``price`` is optional for backward compatibility with existing scheduler
+        callers. New integrations should persist the reference price explicitly.
+        """
         existing = self.get(signal_id)
         if existing is not None:
             return False, existing
-        if price <= 0:
+        if price is not None and price <= 0:
             raise ValueError("price must be positive")
 
         record = {
@@ -64,13 +68,14 @@ class PaperDecisionLedger:
             "symbol": symbol.upper(),
             "bar_timestamp": bar_timestamp,
             "action": action,
-            "price": float(price),
             "status": "pending",
             "created_at": datetime.now(timezone.utc).isoformat(),
             "executed": False,
             "order": None,
             "outcomes": [],
         }
+        if price is not None:
+            record["price"] = float(price)
         self.firebase.set(self._key(signal_id), record)
         return True, record
 
@@ -86,6 +91,10 @@ class PaperDecisionLedger:
         if current is None:
             raise KeyError(f"unknown signal_id: {signal_id}")
         current = dict(current)
+        if current.get("price") is None and isinstance(order, dict):
+            reference_price = order.get("reference_price")
+            if reference_price is not None and float(reference_price) > 0:
+                current["price"] = float(reference_price)
         current["executed"] = bool(executed)
         current["order"] = order
         current["status"] = "completed" if error is None else "pending"

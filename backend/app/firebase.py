@@ -1,6 +1,6 @@
 import json
-import os
 from typing import Any
+
 
 class FirebaseRepository:
     def __init__(self, database_url: str | None, service_account_json: str | None):
@@ -35,3 +35,21 @@ class FirebaseRepository:
         if not self._db:
             raise RuntimeError("Firebase is not configured")
         return self._db.reference(path.strip("/")).get()
+
+    def list_children(self, path: str, *, limit: int = 200) -> dict[str, Any]:
+        """Return at most ``limit`` children ordered by created_at.
+
+        The bounded query prevents historical paper automation reads from
+        growing without limit as the ledger accumulates.
+        """
+        if not self._db:
+            raise RuntimeError("Firebase is not configured")
+        if limit <= 0:
+            raise ValueError("limit must be positive")
+        value = (
+            self._db.reference(path.strip("/"))
+            .order_by_child("created_at")
+            .limit_to_last(limit)
+            .get()
+        )
+        return value if isinstance(value, dict) else {}

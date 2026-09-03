@@ -39,15 +39,18 @@ Build a production-oriented investment research, simulation and automated-tradin
 OpenBB/provider adapters supply market and fundamental data. Large historical datasets/model artifacts should not be copied wholesale into Firebase. Firebase should retain bounded operational state, signals, predictions, positions, orders, executions, configuration and audit metadata.
 
 ## TradingView integration
-TradingView is an independent technical-evidence source. The repository contains a versioned Pine validator plus webhook normalization/authentication, reconciliation, SignalFusion/RiskGate integration and decision observability. TradingView does not have execution authority.
+TradingView is an independent technical-evidence source and manual paper-trading validation venue. The repository contains a versioned Pine validator plus webhook normalization/authentication, reconciliation, SignalFusion/RiskGate integration and decision observability. TradingView does not have execution authority in InvestmentAI.
 
 ## OpenBB/B3 provider status
 The current OpenBB catalog does not expose a dedicated B3 provider. For the first B3 proof of concept, InvestmentAI selects the OpenBB `yfinance` provider extension, using Yahoo's `.SA` symbol convention for PETR4, VALE3 and ITUB4. This selection is for research/backtesting and is not treated as authoritative exchange-grade production data.
 
 The repository now contains an OpenBB market-data adapter, symbol normalization and a quality gate requiring OHLCV fields, non-empty data, unique chronological timestamps and no null required values. A CI smoke workflow validates PETR4, VALE3 and ITUB4 through the complete OpenBB/yfinance path.
 
+## Paper execution
+The internal paper engine is deterministic and broker-independent. It supports market and limit orders, crossed-limit fills on market marks, configurable fee/slippage, cash and position validation, weighted-average cost, realized/unrealized P&L, mark-to-market and bounded Firebase persistence. API endpoints are under `/api/paper/*`. It never contacts TradingView or a live venue. The default system mode remains `simulation`; paper execution is an explicit controlled capability.
+
+## Current execution target
+Complete the signal → risk gate → position sizing → paper order → fill → portfolio → Firebase → reconciliation loop. Then add shadow decision/outcome attribution and calibrate model/signal evidence before considering a broker demo adapter. No live execution should be enabled as part of these steps.
+
 ## Handoff rule
 A new conversation should read this file plus `DEVELOPMENT_STATUS.md`, `DECISIONS.md`, `ARCHITECTURE.md`, `ROADMAP.md` and `docs/OPENBB_B3_PROVIDER.md`, then inspect current source/workflows before changing anything.
-
-## Current target
-Complete market replay/backtesting and provider calibration using validated historical data, then end-to-end paper/shadow validation before any live capability is considered.

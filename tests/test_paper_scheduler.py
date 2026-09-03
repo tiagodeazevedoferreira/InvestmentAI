@@ -3,6 +3,7 @@ from datetime import datetime
 import pandas as pd
 
 from backend.app.services.paper_ledger import PaperDecisionLedger
+from backend.app.services.paper_outcomes import OutcomeObservation
 from backend.app.services.paper_scheduler import b3_session_allowed, signal_id, yahoo_symbol
 
 
@@ -17,6 +18,15 @@ class FakeFirebase:
 
     def set(self, path, value):
         self.data[path] = value
+
+    def list_children(self, path, *, limit=200):
+        prefix = f"{path.strip('/')}/"
+        values = {
+            key.removeprefix(prefix): value
+            for key, value in self.data.items()
+            if key.startswith(prefix) and "/" not in key[len(prefix):]
+        }
+        return dict(list(values.items())[-limit:])
 
 
 def test_yahoo_symbol_normalization():
@@ -55,6 +65,45 @@ def test_ledger_claim_is_idempotent():
     assert first is True
     assert second is False
     assert existing == record
+
+
+def test_ledger_lists_records_by_symbol_with_bound():
+    firebase = FakeFirebase()
+    ledger = PaperDecisionLedger(firebase=firebase)
+    for index, symbol in enumerate(("PETR4", "VALE3", "PETR4")):
+        ledger.claim(
+            f"signal-{index}",
+            symbol=symbol,
+            bar_timestamp=f"2026-09-0{index + 1}T20:00:00+00:00",
+            action="HOLD",
+        )
+    records = ledger.list_records(symbol="PETR4", limit=1)
+    assert len(records) == 1
+    assert records[0]["symbol"] == "PETR4"
+
+
+def test_complete_recovers_reference_price_from_order():
+    firebase = FakeFirebase()
+    ledger = PaperDecisionLedger(firebase=firebase)
+    ledger.claim("signal", symbol="PETR4", bar_timestamp="2026-09-03T20:00:00+00:00", action="BUY")
+    result = ledger.complete(
+        "signal",
+        executed=True,
+        order={"reference_price": 37.5, "quantity": 10},
+    )
+    assert result["price"] == 37.5
+
+
+def test_save_outcomes_preserves_pending_horizons():
+    firebase = FakeFirebase()
+    ledger = PaperDecisionLedger(firebase=firebase)
+    ledger.claim("signal", symbol="PETR4", bar_timestamp="2026-09-03T20:00:00+00:00", action="BUY", price=10.0)
+    pending = OutcomeObservation("signal", "PETR4", "BUY", "2026-09-03T20:00:00+00:00", 10.0, 20, None, None, None, None, None)
+    complete = OutcomeObservation("signal", "PETR4", "BUY", "2026-09-03T20:00:00+00:00", 10.0, 1, "2026-09-04T20:00:00+00:00", 11.0, 0.1, 0.1, True)
+    ledger.save_outcomes("signal", [pending, complete])
+    record = ledger.get("signal")
+    assert [item["horizon_bars"] for item in record["outcomes"]] == [1, 20]
+    assert record["outcomes"][1]["signed_return"] is None
 
 
 def test_bar_timestamp_source_is_datetime_index():

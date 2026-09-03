@@ -1,8 +1,13 @@
 from fastapi import APIRouter, HTTPException
+import pandas as pd
 
-from ..models import PaperAccountResponse, PaperMarkRequest, PaperOrderRequest, PaperResetRequest
+from ..models import (
+    PaperAccountResponse, PaperAutomationRequest, PaperAutomationResponse,
+    PaperMarkRequest, PaperOrderRequest, PaperResetRequest,
+)
 from ..services.paper_execution import PaperExecutionError
 from ..services.paper_store import PaperAccountStore
+from ..services.paper_automation import evaluate_paper_signal
 from ..settings import get_settings
 
 router = APIRouter(prefix="/paper", tags=["paper-trading"])
@@ -59,4 +64,25 @@ def paper_reset(req: PaperResetRequest):
     try:
         return paper_store.reset(req.initial_cash)
     except (ValueError, RuntimeError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.post("/automate", response_model=PaperAutomationResponse)
+def paper_automate(req: PaperAutomationRequest):
+    """Evaluate the current technical signal and optionally execute it in PAPER."""
+    try:
+        account = paper_store.get()
+        frame = pd.DataFrame(req.bars)
+        result = evaluate_paper_signal(
+            account,
+            req.symbol,
+            frame,
+            max_order_notional=settings.paper_max_order_notional,
+            target_allocation=req.target_allocation,
+            execute=req.execute,
+        )
+        if result.get("executed"):
+            paper_store.save()
+        return result
+    except (ValueError, PaperExecutionError, RuntimeError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc

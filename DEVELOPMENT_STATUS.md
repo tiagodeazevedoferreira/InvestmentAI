@@ -42,7 +42,8 @@ Last updated: 2026-09-03
 - [x] Efficient frontier
 - [x] Parametric daily VaR 95%
 - [ ] Robust covariance/shrinkage
-- [ ] Position sizing and portfolio risk limits
+- [x] Initial paper position sizing and order risk limits
+- [ ] Production-grade portfolio risk limits
 
 ## AI/ML
 - [x] Technical feature engineering
@@ -83,7 +84,9 @@ Last updated: 2026-09-03
 - [x] Paper portfolio mark-to-market and P&L accounting
 - [x] Paper account persistence boundary in Firebase with bounded recent history
 - [x] Paper execution API and lifecycle tests
+- [x] Signal → risk gate → position sizing → paper order automation primitive
 - [ ] Paper-to-TradingView reconciliation automation
+- [ ] Provider-backed paper scheduler/orchestrator
 - [ ] Doto/MT5 demo broker adapter
 - [ ] Live broker adapter
 - [ ] Empirical model promotion gate
@@ -93,7 +96,9 @@ Last updated: 2026-09-03
 - [x] Paper execution primitive
 - [x] End-to-end paper order -> fill -> portfolio accounting
 - [x] Bounded paper account state persistence
-- [ ] Signal -> risk gate -> paper automation
+- [x] Deterministic technical signal → risk → sizing → paper execution path
+- [ ] Signal automation scheduler
+- [ ] Idempotent decision ledger
 - [ ] Shadow decision ledger
 - [ ] Outcome attribution/calibration report
 
@@ -117,6 +122,7 @@ Last updated: 2026-09-03
 - [x] Causal pooled cross-asset ML experiment tests
 - [x] Paper execution accounting tests
 - [x] Paper API lifecycle tests
+- [x] Paper signal automation tests
 - [ ] Full integration test suite against provider mocks
 - [ ] End-to-end training/backtest test
 - [ ] Security/dependency scan
@@ -126,7 +132,7 @@ Last updated: 2026-09-03
 The causal ML trading backtest, robustness audit and model diagnosis are complete. The robustness gate is not yet passed because performance is not stable across all evaluated assets and assumptions. A causal pooled cross-asset model experiment is implemented to test whether normalized technical features transfer across PETR4, VALE3 and ITUB4 without changing execution policy. The experiment remains research-only until its out-of-sample evidence is reviewed.
 
 ## Current execution gate
-The internal paper execution path is now implemented as a deterministic, broker-independent engine. It supports market and limit orders, immediate fills, crossed-limit fills on market marks, configurable fees/slippage, cash/position validation, realized/unrealized P&L, mark-to-market and bounded Firebase persistence. The API is exposed under `/api/paper/*`. This remains PAPER only and does not contact TradingView, a broker or any live venue.
+The internal paper execution path is a deterministic, broker-independent engine. It supports market and limit orders, crossed-limit fills on market marks, configurable fees/slippage, cash and position validation, weighted-average cost, realized/unrealized P&L, mark-to-market and bounded Firebase persistence. The new automation primitive connects current OHLCV technical indicators to RSI-based BUY/HOLD/SELL decisions, applies conservative paper-only position sizing and executes only through the internal paper account. It does not contact TradingView, a broker or a live venue.
 
 ## Promotion boundary
 Phases 1-9 remain non-live. Phase 10/live is intentionally disabled and requires explicit authorization after empirical validation.

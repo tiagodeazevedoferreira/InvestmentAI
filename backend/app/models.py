@@ -156,3 +156,20 @@ class PaperAccountResponse(BaseModel):
     open_orders: list[dict]
     orders_count: int
     executions_count: int
+
+class PaperAutomationRequest(BaseModel):
+    symbol: str = Field(min_length=1, max_length=32)
+    bars: list[dict[str, float]] = Field(min_length=25, max_length=5000)
+    execute: bool = True
+    target_allocation: float = Field(default=0.05, gt=0, le=1)
+
+    @field_validator("symbol")
+    @classmethod
+    def normalize_symbol(cls, value: str) -> str:
+        return value.strip().upper()
+
+class PaperAutomationResponse(BaseModel):
+    decision: dict
+    executed: bool
+    order: dict | None = None
+    error: str | None = None

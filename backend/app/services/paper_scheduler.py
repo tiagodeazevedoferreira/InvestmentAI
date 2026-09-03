@@ -86,8 +86,6 @@ def run_symbol(
         frame = frame.sort_index()
 
     timestamp = bar_timestamp(frame)
-    # Evaluate once to obtain the deterministic action. The ledger is claimed
-    # before any order is submitted, so retries of the same bar become no-ops.
     preview = evaluate_paper_signal(
         account_store.get(),
         display_symbol,
@@ -98,20 +96,22 @@ def run_symbol(
     )
     action = preview["decision"]["action"]
     sid = signal_id(display_symbol, timestamp, action)
-    created, _ = ledger.claim(
+    created, existing = ledger.claim(
         sid,
         symbol=display_symbol,
         bar_timestamp=timestamp,
         action=action,
     )
-    if not created:
+    if not created and existing.get("status") == "completed":
         return SchedulerResult(
             symbol=display_symbol,
             status="duplicate_skipped",
             signal_id=sid,
             action=action,
             bar_timestamp=timestamp,
-            reason="decision already exists in Firebase ledger",
+            executed=bool(existing.get("executed")),
+            order=existing.get("order"),
+            reason="decision already completed in Firebase ledger",
         )
 
     result = evaluate_paper_signal(
@@ -121,12 +121,15 @@ def run_symbol(
         max_order_notional=account_store.settings.paper_max_order_notional,
         target_allocation=target_allocation,
         execute=execute,
+        client_order_id=f"paper-{sid}" if execute else None,
     )
     if result.get("executed"):
         account_store.save()
-        ledger.mark_executed(sid, result.get("order"))
+        ledger.complete(sid, executed=True, order=result.get("order"))
+    elif result.get("error"):
+        ledger.complete(sid, executed=False, order=None, error=result["error"])
     else:
-        ledger.mark_executed(sid, None)
+        ledger.complete(sid, executed=False, order=None)
 
     decision = result["decision"]
     return SchedulerResult(

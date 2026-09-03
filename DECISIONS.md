@@ -65,3 +65,6 @@ When robustness differs materially across assets, the next change must first qua
 
 ## ADR-022 — Shared cross-asset model as a controlled experiment
 After diagnosis, a candidate improvement may pool the same leakage-safe, scale-invariant technical features across assets into one shared supervised model. Each target asset keeps the existing walk-forward test windows; training uses only observations from all assets that precede the target fold's purge boundary. The experiment must compare pooled and asset-specific probabilities on identical OOS timestamps with paired statistics. It does not alter trading thresholds, execution policy, broker authorization or the live gate.
+
+## ADR-023 — Broker-independent scheduled paper execution
+The first scheduled automation uses the existing deterministic RSI paper policy, OpenBB/yfinance B3 daily data and Firebase as the durable decision ledger. It runs only in a weekday post-close window, is serialized through GitHub Actions concurrency, and derives idempotency from symbol + completed bar timestamp + action. A duplicate invocation must skip without submitting another paper order. Firebase is mandatory for scheduled execution so a retry cannot silently start from a fresh account. This stage does not add broker authority or change the live gate.

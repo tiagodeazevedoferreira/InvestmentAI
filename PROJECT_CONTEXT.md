@@ -51,10 +51,13 @@ The repository now contains an OpenBB market-data adapter, symbol normalization 
 The internal paper engine is deterministic and broker-independent. It supports market and limit orders, crossed-limit fills on market marks, configurable fee/slippage, cash and position validation, weighted-average cost, realized/unrealized P&L, mark-to-market and bounded Firebase persistence. API endpoints are under `/api/paper/*`. It never contacts TradingView or a live venue.
 
 ## Paper automation
-`POST /api/paper/automate` now connects supplied OHLCV bars to the deterministic RSI policy, risk gate, conservative position sizing and the internal paper executor. RSI<30 produces BUY, RSI>70 produces SELL, otherwise HOLD. BUY is capped by target allocation and paper order notional; SELL requires an existing position; HOLD never creates an order. `execute=false` supports shadow evaluation without account mutation. This remains PAPER only.
+`POST /api/paper/automate` connects supplied OHLCV bars to the deterministic RSI policy, risk gate, conservative position sizing and the internal paper executor. RSI<30 produces BUY, RSI>70 produces SELL, otherwise HOLD. BUY is capped by target allocation and paper order notional; SELL requires an existing position; HOLD never creates an order. `execute=false` supports shadow evaluation without account mutation. This remains PAPER only.
+
+## Provider-backed paper scheduler
+`scripts/run_paper_scheduler.py` obtains fresh B3 history through the OpenBB/yfinance provider boundary for PETR4, VALE3 and ITUB4, then invokes the existing paper automation policy. It is restricted to a weekday post-close B3 window, requires Firebase for durable state, and persists a deterministic decision ledger key based on symbol/bar timestamp/action. Repeated scheduler runs therefore skip already-processed decisions. GitHub Actions serializes runs and invokes the scheduler at 20:30 UTC (17:30 BRT) on weekdays. Manual dispatch supports shadow mode and an explicit guard bypass for validation.
 
 ## Current execution target
-Complete the provider-backed scheduler/orchestrator with fresh market data, idempotency by symbol/bar timestamp, shadow decision ledger, outcome attribution, model/signal calibration, kill switch and reconciliation. Then add a broker demo adapter. No live execution should be enabled as part of these steps.
+Stabilize the scheduler with real CI runs, then add outcome attribution/calibration, paper-to-TradingView reconciliation, kill switch/reconciliation and only afterward a broker demo adapter. No live execution should be enabled as part of these steps.
 
 ## Handoff rule
 A new conversation should read this file plus `DEVELOPMENT_STATUS.md`, `DECISIONS.md`, `ARCHITECTURE.md`, `ROADMAP.md`, `docs/OPENBB_B3_PROVIDER.md` and `docs/PAPER_SIGNAL_AUTOMATION.md`, then inspect current source/workflows before changing anything.

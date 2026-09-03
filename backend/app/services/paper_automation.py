@@ -29,12 +29,14 @@ def evaluate_paper_signal(
     max_order_notional: float = 10_000.0,
     target_allocation: float = 0.05,
     execute: bool = True,
+    client_order_id: str | None = None,
 ) -> dict[str, Any]:
     """Run a deterministic technical signal through risk, sizing and paper execution.
 
-    This is deliberately a conservative first automation policy: RSI<30 buys and
-    RSI>70 sells, no shorting, and BUY sizing is capped by both target allocation
-    and the configured order-notional limit. HOLD never creates an order.
+    RSI<30 buys and RSI>70 sells. Shorting is not permitted. BUY sizing is capped
+    by both the configured order-notional limit and the remaining amount needed
+    to bring the symbol toward its target portfolio allocation. HOLD never creates
+    an order.
     """
     if max_order_notional <= 0 or not 0 < target_allocation <= 1:
         raise ValueError("invalid automation risk parameters")
@@ -56,11 +58,15 @@ def evaluate_paper_signal(
     risk_allowed = True
 
     if action == "BUY":
-        budget = min(account.equity * target_allocation, max_order_notional)
+        position = account.positions.get(symbol)
+        current_value = position.quantity * price if position else 0.0
+        target_value = account.equity * target_allocation
+        remaining_budget = max(0.0, target_value - current_value)
+        budget = min(remaining_budget, max_order_notional)
         quantity = int(budget // price)
         if quantity <= 0:
             risk_allowed = False
-            reason += "; risk gate rejected: calculated quantity is zero"
+            reason += "; risk gate rejected: target allocation already reached"
     elif action == "SELL":
         position = account.positions.get(symbol)
         quantity = position.quantity if position else 0
@@ -91,6 +97,7 @@ def evaluate_paper_signal(
                 quantity=quantity,
                 reference_price=price,
                 reason=reason,
+                client_order_id=client_order_id,
             )
         except (ValueError, PaperExecutionError) as exc:
             result["error"] = str(exc)

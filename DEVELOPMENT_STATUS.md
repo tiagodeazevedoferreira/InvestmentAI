@@ -86,7 +86,7 @@ Last updated: 2026-09-03
 - [x] Paper execution API and lifecycle tests
 - [x] Signal → risk gate → position sizing → paper order automation primitive
 - [ ] Paper-to-TradingView reconciliation automation
-- [ ] Provider-backed paper scheduler/orchestrator
+- [x] Provider-backed paper scheduler/orchestrator
 - [ ] Doto/MT5 demo broker adapter
 - [ ] Live broker adapter
 - [ ] Empirical model promotion gate
@@ -97,8 +97,8 @@ Last updated: 2026-09-03
 - [x] End-to-end paper order -> fill -> portfolio accounting
 - [x] Bounded paper account state persistence
 - [x] Deterministic technical signal → risk → sizing → paper execution path
-- [ ] Signal automation scheduler
-- [ ] Idempotent decision ledger
+- [x] Signal automation scheduler
+- [x] Idempotent decision ledger
 - [ ] Shadow decision ledger
 - [ ] Outcome attribution/calibration report
 
@@ -123,6 +123,7 @@ Last updated: 2026-09-03
 - [x] Paper execution accounting tests
 - [x] Paper API lifecycle tests
 - [x] Paper signal automation tests
+- [x] Paper scheduler/ledger unit tests
 - [ ] Full integration test suite against provider mocks
 - [ ] End-to-end training/backtest test
 - [ ] Security/dependency scan
@@ -132,7 +133,7 @@ Last updated: 2026-09-03
 The causal ML trading backtest, robustness audit and model diagnosis are complete. The robustness gate is not yet passed because performance is not stable across all evaluated assets and assumptions. A causal pooled cross-asset model experiment is implemented to test whether normalized technical features transfer across PETR4, VALE3 and ITUB4 without changing execution policy. The experiment remains research-only until its out-of-sample evidence is reviewed.
 
 ## Current execution gate
-The internal paper execution path is a deterministic, broker-independent engine. It supports market and limit orders, crossed-limit fills on market marks, configurable fees/slippage, cash and position validation, weighted-average cost, realized/unrealized P&L, mark-to-market and bounded Firebase persistence. The new automation primitive connects current OHLCV technical indicators to RSI-based BUY/HOLD/SELL decisions, applies conservative paper-only position sizing and executes only through the internal paper account. It does not contact TradingView, a broker or a live venue.
+The internal paper execution path is a deterministic, broker-independent engine. It supports market and limit orders, crossed-limit fills on market marks, configurable fees/slippage, cash and position validation, weighted-average cost, realized/unrealized P&L, mark-to-market and bounded Firebase persistence. Provider-backed scheduling now obtains B3 history through the OpenBB/yfinance boundary, evaluates the existing RSI paper policy, persists a deterministic symbol/bar/action decision key in Firebase, and skips duplicate decisions. GitHub Actions serializes scheduler runs and executes the daily post-close workflow. This remains PAPER only and requires Firebase persistence; it does not contact TradingView, a broker or a live venue.
 
 ## Promotion boundary
 Phases 1-9 remain non-live. Phase 10/live is intentionally disabled and requires explicit authorization after empirical validation.

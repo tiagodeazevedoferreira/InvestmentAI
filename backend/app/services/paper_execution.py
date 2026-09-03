@@ -56,12 +56,23 @@ class PaperAccount:
             raise ValueError("side must be BUY or SELL")
         return symbol, side
 
+    def _existing_client_order(self, client_order_id: str | None) -> dict | None:
+        if not client_order_id:
+            return None
+        for order in self.orders:
+            if order.get("client_order_id") == client_order_id:
+                return dict(order)
+        return None
+
     def submit_order(
         self, symbol: str, side: str, quantity: int, reference_price: float,
         order_type: str = "MARKET", limit_price: float | None = None,
-        reason: str | None = None,
+        reason: str | None = None, client_order_id: str | None = None,
     ) -> dict:
         symbol, side = self._normalize(symbol, side)
+        existing = self._existing_client_order(client_order_id)
+        if existing is not None:
+            return existing
         if quantity <= 0:
             raise ValueError("quantity must be positive")
         if reference_price <= 0:
@@ -78,7 +89,7 @@ class PaperAccount:
             executable = reference_price <= limit_price if side == "BUY" else reference_price >= limit_price
             if not executable:
                 order = {
-                    "order_id": order_id, "symbol": symbol, "side": side,
+                    "order_id": order_id, "client_order_id": client_order_id, "symbol": symbol, "side": side,
                     "quantity": quantity, "order_type": order_type,
                     "limit_price": float(limit_price), "status": "open",
                     "environment": "paper", "reason": reason, "timestamp": now,
@@ -92,7 +103,7 @@ class PaperAccount:
         self._apply_fill(symbol, side, quantity, fill_price, fee, notional)
 
         order = {
-            "order_id": order_id, "symbol": symbol, "side": side, "quantity": quantity,
+            "order_id": order_id, "client_order_id": client_order_id, "symbol": symbol, "side": side, "quantity": quantity,
             "order_type": order_type, "reference_price": float(reference_price),
             "limit_price": float(limit_price) if limit_price is not None else None,
             "status": "filled", "environment": "paper", "reason": reason, "timestamp": now,

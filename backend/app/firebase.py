@@ -1,5 +1,4 @@
 import json
-import os
 from typing import Any
 
 class FirebaseRepository:
@@ -35,3 +34,18 @@ class FirebaseRepository:
         if not self._db:
             raise RuntimeError("Firebase is not configured")
         return self._db.reference(path.strip("/")).get()
+
+    def list_children(self, path: str, *, limit: int = 200) -> list[Any]:
+        if limit <= 0:
+            raise ValueError("limit must be positive")
+        if not self._db:
+            raise RuntimeError("Firebase is not configured")
+        value = (
+            self._db.reference(path.strip("/"))
+            .order_by_child("created_at")
+            .limit_to_last(limit)
+            .get()
+        )
+        if not isinstance(value, dict):
+            return []
+        return list(value.values())

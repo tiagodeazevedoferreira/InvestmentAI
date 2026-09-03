@@ -21,8 +21,13 @@ def indicators(df: pd.DataFrame) -> pd.DataFrame:
     delta = close.diff()
     gain = delta.clip(lower=0).ewm(alpha=1/14, adjust=False).mean()
     loss = (-delta.clip(upper=0)).ewm(alpha=1/14, adjust=False).mean()
-    rs = gain / loss.replace(0, np.nan)
-    out["RSI14"] = 100 - (100 / (1 + rs))
+    rs = gain / loss
+    rsi = 100 - (100 / (1 + rs))
+    # A strictly rising series has zero losses, so its RSI is 100 rather than NA.
+    rsi = rsi.mask((loss == 0) & (gain > 0), 100.0)
+    # A flat series has neither gains nor losses; keep it neutral.
+    rsi = rsi.mask((loss == 0) & (gain == 0), 50.0)
+    out["RSI14"] = rsi
     ma = close.rolling(20).mean()
     std = close.rolling(20).std(ddof=0)
     out["BB_MIDDLE"] = ma

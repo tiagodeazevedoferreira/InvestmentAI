@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from math import isclose
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping
 
 
 @dataclass(frozen=True)
@@ -32,6 +32,7 @@ class OperationalReconciler:
         evidence_timestamp: datetime | None = None,
         max_evidence_age_seconds: int = 120,
         cash_tolerance: float = 0.01,
+        now: Callable[[], datetime] | None = None,
     ) -> ReconciliationResult:
         reasons: list[str] = []
         if max_evidence_age_seconds <= 0:
@@ -39,9 +40,10 @@ class OperationalReconciler:
         if cash_tolerance < 0:
             raise ValueError("cash_tolerance must be non-negative")
 
+        current_time = (now or (lambda: datetime.now(timezone.utc)))().astimezone(timezone.utc)
         if evidence_timestamp is not None:
             ts = evidence_timestamp.astimezone(timezone.utc)
-            age = (datetime.now(timezone.utc) - ts).total_seconds()
+            age = (current_time - ts).total_seconds()
             if age < 0:
                 reasons.append("reconciliation evidence timestamp is in the future")
             elif age > max_evidence_age_seconds:
@@ -76,7 +78,7 @@ class OperationalReconciler:
         return ReconciliationResult(
             status=status,
             reasons=tuple(dict.fromkeys(reasons)),
-            checked_at=datetime.now(timezone.utc).isoformat(),
+            checked_at=current_time.isoformat(),
         )
 
     @staticmethod

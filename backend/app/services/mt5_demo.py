@@ -64,6 +64,19 @@ class MetaTrader5DemoGateway:
         ok = bool(mt5.initialize(**kwargs))
         if not ok:
             raise DemoBrokerError(f"MT5 initialize failed: {mt5.last_error()}")
+        account = mt5.account_info()
+        if account is None:
+            mt5.shutdown()
+            raise DemoBrokerError("MT5 account_info returned no account after initialize")
+        server = str(getattr(account, "server", ""))
+        if "demo" not in server.lower():
+            mt5.shutdown()
+            raise DemoBrokerError("Refusing non-demo MT5 server")
+        trade_mode = getattr(account, "trade_mode", None)
+        real_mode = getattr(mt5, "ACCOUNT_TRADE_MODE_REAL", None)
+        if real_mode is not None and trade_mode == real_mode:
+            mt5.shutdown()
+            raise DemoBrokerError("Refusing MT5 real/live trade mode")
         return True
 
     def shutdown(self) -> None:
@@ -123,6 +136,13 @@ class MT5DemoBroker:
             raise DemoBrokerError("Refusing MT5 real/live trade mode")
         return account
 
+    def initialize(self) -> bool:
+        """Initialize the gateway and immediately verify that the account is DEMO."""
+        return bool(self.gateway.initialize())
+
+    def shutdown(self) -> None:
+        self.gateway.shutdown()
+
     def account(self) -> DemoAccountSnapshot:
         account = self._ensure_demo_account()
         return DemoAccountSnapshot(
@@ -170,6 +190,9 @@ class MT5DemoBroker:
             raise ValueError("quantity must be positive")
         if intent.side not in {"BUY", "SELL"}:
             raise ValueError("side must be BUY or SELL")
+        if intent.limit_price is not None:
+            raise DemoBrokerError("limit_price is unsupported until MT5 pending-order semantics are implemented")
+
         symbol = intent.symbol.upper()
         info = self.gateway.symbol_info(symbol)
         if info is None:
@@ -185,16 +208,32 @@ class MT5DemoBroker:
             sell_type = mt5.ORDER_TYPE_SELL
             action = mt5.TRADE_ACTION_DEAL
             filling = mt5.ORDER_FILLING_IOC
-        tick = self._value(info, "last", None) or self._value(info, "ask" if intent.side == "BUY" else "bid", None)
+
+        price_field = "ask" if intent.side == "BUY" else "bid"
+        tick = self._value(info, price_field, None)
         if tick is None:
-            raise DemoBrokerError(f"No executable price for {symbol}")
-        request = {"action": action, "symbol": symbol, "volume": float(intent.quantity), "type": buy_type if intent.side == "BUY" else sell_type, "price": float(intent.limit_price if intent.limit_price is not None else tick), "deviation": 20, "type_filling": filling, "comment": "InvestmentAI demo"}
+            raise DemoBrokerError(f"No executable {price_field} price for {symbol}")
+        price = float(tick)
+        if price <= 0:
+            raise DemoBrokerError(f"Invalid executable {price_field} price for {symbol}: {price}")
+
+        request = {
+            "action": action,
+            "symbol": symbol,
+            "volume": float(intent.quantity),
+            "type": buy_type if intent.side == "BUY" else sell_type,
+            "price": price,
+            "deviation": 20,
+            "type_filling": filling,
+            "comment": "InvestmentAI demo",
+        }
         check = self.gateway.order_check(request)
         if check is None:
             raise DemoBrokerError("MT5 order_check returned no result")
         check_retcode = self._value(check, "retcode", None)
-        if check_retcode not in (None, 0, getattr(mt5, "TRADE_RETCODE_DONE", 10009) if mt5 else 10009):
+        if check_retcode is not None and check_retcode != 0:
             raise DemoBrokerError(f"MT5 order_check rejected request: {check_retcode}")
+
         result = self.gateway.order_send(request)
         if result is None:
             raise DemoBrokerError("MT5 order_send returned no result")
@@ -202,7 +241,17 @@ class MT5DemoBroker:
         done = getattr(mt5, "TRADE_RETCODE_DONE", 10009) if mt5 else 10009
         if retcode != done:
             raise DemoBrokerError(f"MT5 order_send rejected request: {retcode}")
-        return {"order_id": str(self._value(result, "order", "")), "deal_id": str(self._value(result, "deal", "")), "status": "accepted", "environment": self.environment, "symbol": symbol, "side": intent.side, "quantity": intent.quantity, "price": float(self._value(result, "price", request["price"])), "timestamp": datetime.now(timezone.utc).isoformat()}
+        return {
+            "order_id": str(self._value(result, "order", "")),
+            "deal_id": str(self._value(result, "deal", "")),
+            "status": "accepted",
+            "environment": self.environment,
+            "symbol": symbol,
+            "side": intent.side,
+            "quantity": intent.quantity,
+            "price": float(self._value(result, "price", request["price"])),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
 
     def cancel(self, order_id: str) -> dict[str, Any]:
         raise DemoBrokerError("Pending-order cancellation is not implemented until broker order semantics are validated")

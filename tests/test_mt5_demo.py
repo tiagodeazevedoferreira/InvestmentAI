@@ -15,7 +15,7 @@ class FakeGateway:
     ORDER_FILLING_IOC = 1
     TRADE_RETCODE_DONE = 10009
 
-    def __init__(self, *, server="Doto-Demo", trade_allowed=True):
+    def __init__(self, *, server="Doto-Demo", trade_allowed=True, check_retcode=0):
         self._account = {
             "login": 123,
             "server": server,
@@ -24,7 +24,17 @@ class FakeGateway:
             "currency": "USD",
             "trade_allowed": trade_allowed,
         }
+        self.check_retcode = check_retcode
         self.requests = []
+        self.initialized = False
+        self.shutdown_called = False
+
+    def initialize(self):
+        self.initialized = True
+        return True
+
+    def shutdown(self):
+        self.shutdown_called = True
 
     def account_info(self):
         return self._account
@@ -43,7 +53,7 @@ class FakeGateway:
 
     def order_check(self, request):
         self.requests.append(("check", request))
-        return {"retcode": self.TRADE_RETCODE_DONE}
+        return {"retcode": self.check_retcode}
 
     def order_send(self, request):
         self.requests.append(("send", request))
@@ -69,12 +79,39 @@ def test_positions_orders_and_executions_are_read_only_snapshots():
     assert broker.executions(datetime(2026, 1, 1, tzinfo=timezone.utc), datetime(2026, 1, 2, tzinfo=timezone.utc))[0]["execution_id"] == "30"
 
 
+def test_initialize_verifies_demo_before_execution_path():
+    gateway = FakeGateway()
+    broker = MT5DemoBroker(gateway)
+    assert broker.initialize() is True
+    assert gateway.initialized is True
+
+
 def test_submit_requires_order_check_then_send():
     gateway = FakeGateway()
     result = MT5DemoBroker(gateway).submit(OrderIntent("PETR4", "BUY", 1))
     assert result["environment"] == "demo"
     assert result["order_id"] == "40"
+    assert result["price"] == 100.1
     assert [kind for kind, _ in gateway.requests] == ["check", "send"]
+
+
+def test_submit_uses_bid_for_sell_market_order():
+    gateway = FakeGateway()
+    result = MT5DemoBroker(gateway).submit(OrderIntent("PETR4", "SELL", 1))
+    assert result["price"] == 99.9
+    assert gateway.requests[0][1]["price"] == 99.9
+
+
+def test_submit_rejects_limit_price_until_pending_orders_are_implemented():
+    with pytest.raises(DemoBrokerError, match="limit_price is unsupported"):
+        MT5DemoBroker(FakeGateway()).submit(OrderIntent("PETR4", "BUY", 1, limit_price=99.0))
+
+
+def test_submit_requires_successful_order_check():
+    gateway = FakeGateway(check_retcode=10019)
+    with pytest.raises(DemoBrokerError, match="order_check rejected"):
+        MT5DemoBroker(gateway).submit(OrderIntent("PETR4", "BUY", 1))
+    assert [kind for kind, _ in gateway.requests] == ["check"]
 
 
 def test_submit_rejects_account_without_trade_permission():

@@ -87,8 +87,9 @@ Last updated: 2026-09-03
 - [x] Signal → risk gate → position sizing → paper order automation primitive
 - [x] Paper-to-TradingView reconciliation primitive
 - [x] Provider-backed paper scheduler/orchestrator
-- [x] Doto/MT5 demo broker adapter contract (demo-only; end-to-end validation pending)
+- [x] Doto/MT5 demo broker adapter contract (demo-only)
 - [x] MT5 demo reconciliation validation harness (read-only; live disabled)
+- [x] DEMO authorization gate with kill switch + reconciliation + fail-closed policy
 - [ ] Live broker adapter
 - [x] Empirical promotion gate evaluator (human-review only)
 - [x] Kill switch and reconciliation engine (broker-neutral, read-only)
@@ -137,6 +138,7 @@ Last updated: 2026-09-03
 - [x] Operational safety unit tests
 - [x] MT5 demo adapter contract tests
 - [x] MT5 demo reconciliation harness tests
+- [x] DEMO authorization gate tests
 - [ ] Full integration test suite against provider mocks
 - [ ] End-to-end training/backtest test
 - [ ] Security/dependency scan
@@ -146,7 +148,7 @@ Last updated: 2026-09-03
 The causal ML trading backtest, robustness audit and model diagnosis are complete. The robustness gate is not yet passed because performance is not stable across all evaluated assets and assumptions. A causal pooled cross-asset model experiment is implemented to test whether normalized technical features transfer across PETR4, VALE3 and ITUB4 without changing execution policy. The experiment remains research-only until its out-of-sample evidence is reviewed.
 
 ## Current execution gate
-The internal paper execution path is deterministic and broker-independent. Provider-backed scheduling obtains B3 history through the OpenBB/yfinance boundary, evaluates the existing RSI paper policy, persists a deterministic decision key, and skips duplicates. Completed decisions now receive persisted 1/5/20-bar forward outcomes. The calibration layer reports directional hit rate, confidence intervals and return statistics under an explicit transaction-cost assumption, and the runner can partition results by a causal trailing-volatility regime. Paper decisions can also be reconciled against TradingView validator evidence using an explicit timestamp tolerance. The empirical gate now evaluates predefined evidence criteria, but a passing result only permits human review and can never authorize promotion automatically. Operational kill-switch and broker-neutral reconciliation primitives are hardened. A Doto/MT5 demo-only adapter contract now exists with account/position/order/execution normalization and order-check-before-send semantics. A read-only validation harness can capture the external MT5 DEMO snapshot and, when supplied with an internal snapshot, run the operational reconciler. This remains PAPER/DEMO only and does not contact a live venue.
+The internal paper execution path is deterministic and broker-independent. Provider-backed scheduling obtains B3 history through the OpenBB/yfinance boundary, evaluates the existing RSI paper policy, persists a deterministic decision key, and skips duplicates. Completed decisions now receive persisted 1/5/20-bar forward outcomes. The calibration layer reports directional hit rate, confidence intervals and return statistics under an explicit transaction-cost assumption, and the runner can partition results by a causal trailing-volatility regime. Paper decisions can also be reconciled against TradingView validator evidence using an explicit timestamp tolerance. The empirical gate now evaluates predefined evidence criteria, but a passing result only permits human review and can never authorize promotion automatically. Operational kill-switch and broker-neutral reconciliation primitives are hardened. The Doto/MT5 demo-only adapter and read-only reconciliation harness are implemented. A dedicated DEMO authorization gate now fails closed unless the environment is DEMO, the kill switch is clear, and the external broker snapshot reconciles successfully with fresh evidence. No automatic signal-to-broker connection exists yet; this remains PAPER/DEMO only and does not contact a live venue.
 
 ## Promotion boundary
 Phases 1-9 remain non-live. Phase 10/live is intentionally disabled and requires explicit authorization after empirical validation and operational readiness, including kill-switch and reconciliation hardening.

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Mapping
+from datetime import datetime
+from typing import Any, Callable, Mapping
 
 from .operational_kill_switch import OperationalKillSwitch
 from .operational_reconciliation import OperationalReconciler, ReconciliationResult
@@ -48,7 +49,8 @@ class DemoAuthorizationGate:
         environment: str,
         internal: Mapping[str, Any],
         external: Mapping[str, Any],
-        evidence_timestamp=None,
+        evidence_timestamp: datetime | None = None,
+        now: Callable[[], datetime] | None = None,
     ) -> DemoAuthorizationResult:
         reasons: list[str] = []
         if environment.strip().lower() != "demo":
@@ -65,6 +67,7 @@ class DemoAuthorizationGate:
                 evidence_timestamp=evidence_timestamp,
                 max_evidence_age_seconds=self.max_evidence_age_seconds,
                 cash_tolerance=self.cash_tolerance,
+                now=now,
             )
             if not reconciliation.healthy:
                 reasons.extend(reconciliation.reasons)
@@ -81,13 +84,15 @@ class DemoAuthorizationGate:
         environment: str,
         internal: Mapping[str, Any],
         external: Mapping[str, Any],
-        evidence_timestamp=None,
+        evidence_timestamp: datetime | None = None,
+        now: Callable[[], datetime] | None = None,
     ) -> DemoAuthorizationResult:
         result = self.authorize(
             environment=environment,
             internal=internal,
             external=external,
             evidence_timestamp=evidence_timestamp,
+            now=now,
         )
         if not result.allowed:
             detail = "; ".join(result.reasons) or "authorization failed"

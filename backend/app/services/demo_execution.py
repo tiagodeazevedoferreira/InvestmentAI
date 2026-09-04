@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Callable, Mapping, Protocol
 
 from .demo_authorization import DemoAuthorizationGate, DemoAuthorizationResult
 from .order_manager import OrderIntent
-from .operational_reconciliation import OperationalReconciler, ReconciliationResult
+from .operational_reconciliation import ReconciliationResult
 
 
 class DemoExecutionBroker(Protocol):
@@ -64,7 +64,7 @@ class AuthorizedDemoExecutor:
 
         before = self._now().astimezone(timezone.utc)
         external_before = self.broker.reconciliation_snapshot(
-            before - __import__("datetime").timedelta(seconds=self.reconciliation_window_seconds),
+            before - timedelta(seconds=self.reconciliation_window_seconds),
             before,
         )
         evidence_timestamp = self._snapshot_timestamp(external_before)
@@ -79,7 +79,7 @@ class AuthorizedDemoExecutor:
 
         after = self._now().astimezone(timezone.utc)
         external_after = self.broker.reconciliation_snapshot(
-            after - __import__("datetime").timedelta(seconds=self.reconciliation_window_seconds),
+            after - timedelta(seconds=self.reconciliation_window_seconds),
             after,
         )
         post_evidence_timestamp = self._snapshot_timestamp(external_after)

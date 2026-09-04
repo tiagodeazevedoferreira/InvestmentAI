@@ -11,12 +11,12 @@ from app.services.order_manager import OrderIntent
 NOW = datetime(2026, 9, 4, 17, 0, tzinfo=timezone.utc)
 
 
-def _state(cash=1000.0, quantity=10):
+def _state(cash=1000.0, quantity=10, executions=None):
     return {
         "cash": cash,
         "positions": {"PETR4": {"quantity": quantity}},
         "open_orders": [],
-        "executions": [],
+        "executions": executions or [],
     }
 
 
@@ -32,7 +32,7 @@ class FakeDemoBroker:
 
     def submit(self, intent):
         self.submissions.append(intent)
-        return {"order_id": "o-demo-1", "status": "accepted", "environment": "demo"}
+        return {"order_id": "o-demo-1", "deal_id": "e-demo-1", "status": "accepted", "environment": "demo"}
 
 
 def _snapshot(state, captured_at=NOW):
@@ -40,19 +40,20 @@ def _snapshot(state, captured_at=NOW):
 
 
 def test_executes_only_after_pre_authorization_and_post_reconciliation():
-    broker = FakeDemoBroker([_snapshot(_state()), _snapshot(_state(cash=900.0, quantity=20))])
+    post_state = _state(cash=900.0, quantity=20, executions=[{"execution_id": "e-demo-1"}])
+    broker = FakeDemoBroker([_snapshot(_state()), _snapshot(post_state)])
     gate = DemoAuthorizationGate(OperationalKillSwitch())
     executor = AuthorizedDemoExecutor(broker, gate, now=lambda: NOW)
 
     result = executor.execute(
         OrderIntent(symbol="PETR4", side="BUY", quantity=10),
         internal_before=_state(),
-        internal_after={**_state(cash=900.0, quantity=20), "executions": [{"execution_id": "e-demo-1"}]},
+        internal_after=post_state,
     )
 
     assert result.authorization.allowed is True
-    assert result.post_reconciliation.healthy is False
-    assert broker.submissions == []
+    assert result.post_reconciliation.healthy is True
+    assert len(broker.submissions) == 1
 
 
 def test_blocks_when_pre_reconciliation_is_unhealthy():

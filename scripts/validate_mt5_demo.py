@@ -8,6 +8,7 @@ from pathlib import Path
 
 from app.services.mt5_demo import DemoBrokerError, MetaTrader5DemoGateway, MT5DemoBroker
 from app.services.operational_reconciliation import OperationalReconciler
+from app.services.order_manager import OrderIntent
 
 
 def _utc_now() -> datetime:
@@ -19,12 +20,20 @@ def _parse_timestamp(value: str) -> datetime:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Read and optionally reconcile a Doto/MT5 DEMO account")
+    parser = argparse.ArgumentParser(description="Read and preflight-validate a Doto/MT5 DEMO account")
     parser.add_argument("--internal-snapshot", type=Path, help="JSON internal snapshot to reconcile against MT5")
     parser.add_argument("--hours", type=int, default=24, help="Execution history window in hours (default: 24)")
+    parser.add_argument("--check-order-symbol", help="Optional symbol for a non-submitting MT5 order_check preflight")
+    parser.add_argument("--side", choices=("BUY", "SELL"), help="Side for --check-order-symbol")
+    parser.add_argument("--quantity", type=int, help="Quantity for --check-order-symbol")
     args = parser.parse_args()
     if args.hours <= 0:
         parser.error("--hours must be positive")
+    order_args = (args.check_order_symbol, args.side, args.quantity)
+    if any(value is not None for value in order_args) and not all(value is not None for value in order_args):
+        parser.error("--check-order-symbol, --side and --quantity must be supplied together")
+    if args.quantity is not None and args.quantity <= 0:
+        parser.error("--quantity must be positive")
 
     server = os.environ.get("DOTO_MT5_SERVER", "").strip()
     login_raw = os.environ.get("DOTO_MT5_LOGIN", "").strip()
@@ -45,20 +54,34 @@ def main() -> int:
     date_from = date_to - timedelta(hours=args.hours)
     try:
         gateway.initialize()
+        account = broker.account()
         external = broker.reconciliation_snapshot(date_from, date_to)
         result: dict[str, object] = {
+            "status": "preflight_ok",
             "environment": broker.environment,
             "broker": broker.name,
             "account": {
-                "login": broker.account().login,
-                "server": broker.account().server,
-                "balance": broker.account().balance,
-                "equity": broker.account().equity,
-                "currency": broker.account().currency,
-                "trade_allowed": broker.account().trade_allowed,
+                "login": account.login,
+                "server": account.server,
+                "balance": account.balance,
+                "equity": account.equity,
+                "currency": account.currency,
+                "trade_allowed": account.trade_allowed,
             },
             "external_snapshot": external,
         }
+
+        if args.check_order_symbol:
+            intent = OrderIntent(symbol=args.check_order_symbol.upper(), side=args.side, quantity=args.quantity)
+            request = broker.prepare_market_order(intent)
+            check = broker.check_order(request)
+            result["order_preflight"] = {
+                "submitted": False,
+                "intent": {"symbol": intent.symbol, "side": intent.side, "quantity": intent.quantity},
+                "request": request,
+                "check": check,
+            }
+
         if args.internal_snapshot:
             internal = json.loads(args.internal_snapshot.read_text(encoding="utf-8"))
             evidence_timestamp = _parse_timestamp(str(external["captured_at"]))

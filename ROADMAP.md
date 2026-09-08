@@ -13,7 +13,14 @@ Train on real historical datasets, out-of-sample validation, calibration, model 
 Integrate the simulator with the signal engine, portfolio accounting, fees/slippage, reconciliation and audit trail.
 
 ## Paper/Demo
-Implement one real broker sandbox adapter when a supported demo account/API is selected. Validate complete order lifecycle and failure recovery.
+- [x] Internal deterministic paper engine and scheduler
+- [x] Doto/MT5 DEMO broker adapter contract
+- [x] Read-only DEMO reconciliation harness
+- [x] Fail-closed DEMO authorization with pre/post reconciliation
+- [x] Non-submitting MT5 order preflight (`order_check`)
+- [ ] Controlled single-order validation against the real Doto/MT5 DEMO account
+- [ ] Durable independent DEMO ledger and scheduler-to-DEMO integration
+- [ ] Complete DEMO order lifecycle and failure-recovery validation
 
 ## Live promotion
 Only after empirical evidence across backtest, paper and demo. Require explicit model approval, risk limits, kill switch, reconciliation and separate live credentials. Live remains disabled until then.

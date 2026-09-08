@@ -56,8 +56,13 @@ The internal paper engine is deterministic and broker-independent. It supports m
 ## Provider-backed paper scheduler
 `scripts/run_paper_scheduler.py` obtains fresh B3 history through the OpenBB/yfinance provider boundary for PETR4, VALE3 and ITUB4, then invokes the existing paper automation policy. It is restricted to a weekday post-close B3 window, requires Firebase for durable state, and persists a deterministic decision ledger key based on symbol/bar timestamp/action. Repeated scheduler runs therefore skip already-processed decisions. GitHub Actions serializes runs and invokes the scheduler at 20:30 UTC (17:30 BRT) on weekdays. Manual dispatch supports shadow mode and an explicit guard bypass for validation.
 
+## DEMO broker boundary
+The Doto/MT5 adapter is DEMO-only and fail-closed. It verifies the DEMO server during initialization, normalizes account/positions/open orders/executions for reconciliation, uses bid/ask semantics for market orders, requires `order_check()` before `order_send()`, rejects unsupported limit intents and refuses cancellation until pending-order semantics are validated. `AuthorizedDemoExecutor` requires kill-switch clearance plus healthy/fresh pre-execution reconciliation and healthy post-execution reconciliation. The scheduler is intentionally disconnected from the DEMO broker.
+
+The controlled validation path now includes a non-submitting MT5 preflight: `scripts/validate_mt5_demo.py --check-order-symbol SYMBOL --side BUY|SELL --quantity N` connects only to the configured DEMO account, builds the market request using the executable bid/ask, runs `order_check()` and reports the result without calling `order_send()`. This is the required connectivity/order-semantics checkpoint before any controlled DEMO order test.
+
 ## Current execution target
-Stabilize the scheduler with real CI runs, then add outcome attribution/calibration, paper-to-TradingView reconciliation, kill switch/reconciliation and only afterward a broker demo adapter. No live execution should be enabled as part of these steps.
+First validate the real Doto/MT5 DEMO account through the read-only snapshot and non-submitting order preflight. Then perform a single controlled DEMO order only after the external state and order semantics are confirmed. Automatic scheduler-to-broker execution remains disconnected until the application has a durable internal DEMO ledger capable of independent pre/post reconciliation. Live execution remains disabled.
 
 ## Handoff rule
 A new conversation should read this file plus `DEVELOPMENT_STATUS.md`, `DECISIONS.md`, `ARCHITECTURE.md`, `ROADMAP.md`, `docs/OPENBB_B3_PROVIDER.md` and `docs/PAPER_SIGNAL_AUTOMATION.md`, then inspect current source/workflows before changing anything.

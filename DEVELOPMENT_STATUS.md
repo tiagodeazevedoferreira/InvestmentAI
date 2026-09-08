@@ -1,6 +1,6 @@
 # Development Status
 
-Last updated: 2026-09-04
+Last updated: 2026-09-08
 
 ## Foundation
 - [x] Repository and persistent handoff context
@@ -96,6 +96,7 @@ Last updated: 2026-09-04
 - [ ] Live broker adapter
 - [x] Empirical promotion gate evaluator (human-review only)
 - [x] Kill switch and reconciliation engine (broker-neutral, read-only)
+- [x] MT5 DEMO non-submitting order preflight
 
 ## Paper/Shadow
 - [x] Paper execution primitive
@@ -143,6 +144,7 @@ Last updated: 2026-09-04
 - [x] MT5 demo reconciliation harness tests
 - [x] DEMO authorization gate tests
 - [x] Authorized DEMO execution coordinator tests
+- [x] MT5 DEMO preflight tests
 - [ ] Full integration test suite against provider mocks
 - [ ] End-to-end training/backtest test
 - [ ] Security/dependency scan
@@ -152,7 +154,7 @@ Last updated: 2026-09-04
 The causal ML trading backtest, robustness audit and model diagnosis are complete. The robustness gate is not yet passed because performance is not stable across all evaluated assets and assumptions. A causal pooled cross-asset model experiment is implemented to test whether normalized technical features transfer across PETR4, VALE3 and ITUB4 without changing execution policy. The experiment remains research-only until its out-of-sample evidence is reviewed.
 
 ## Current execution gate
-The internal paper execution path is deterministic and broker-independent. Provider-backed scheduling obtains B3 history through the OpenBB/yfinance boundary, evaluates the existing RSI paper policy, persists a deterministic decision key, and skips duplicates. Completed decisions now receive persisted 1/5/20-bar forward outcomes. The calibration layer reports directional hit rate, confidence intervals and return statistics under an explicit transaction-cost assumption, and the runner can partition results by a causal trailing-volatility regime. Paper decisions can also be reconciled against TradingView validator evidence using an explicit timestamp tolerance. The empirical gate now evaluates predefined evidence criteria, but a passing result only permits human review and can never authorize promotion automatically. Operational kill-switch and broker-neutral reconciliation primitives are hardened. The Doto/MT5 demo-only adapter, read-only reconciliation harness, fail-closed authorization gate, and pre/post-reconciled DEMO execution coordinator are implemented. The adapter now rejects unsupported limit intents, uses bid/ask semantics for market orders, requires a successful order_check result, and verifies DEMO status immediately after gateway initialization. The next gate is a controlled end-to-end validation against a real Doto/MT5 DEMO account; automatic scheduler-to-broker execution remains disconnected and live trading remains disabled.
+The internal paper execution path is deterministic and broker-independent. Provider-backed scheduling obtains B3 history through the OpenBB/yfinance boundary, evaluates the existing RSI paper policy, persists a deterministic decision key, and skips duplicates. Completed decisions receive persisted 1/5/20-bar forward outcomes. The calibration layer reports directional hit rate, confidence intervals and return statistics under an explicit transaction-cost assumption, and the runner can partition results by a causal trailing-volatility regime. Paper decisions can also be reconciled against TradingView validator evidence using an explicit timestamp tolerance. The empirical gate evaluates predefined evidence criteria, but a passing result only permits human review and can never authorize promotion automatically. Operational kill-switch and broker-neutral reconciliation primitives are hardened. The Doto/MT5 demo-only adapter, read-only reconciliation harness, fail-closed authorization gate, and pre/post-reconciled DEMO execution coordinator are implemented. The adapter rejects unsupported limit intents, uses bid/ask semantics for market orders, requires a successful order_check result, and verifies DEMO status during initialization. A new non-submitting preflight path builds the exact market request and runs order_check without order_send. The next gate is controlled validation against the real Doto/MT5 DEMO account; automatic scheduler-to-broker execution remains disconnected and live trading remains disabled.
 
 ## Promotion boundary
 Phases 1-9 remain non-live. Phase 10/live is intentionally disabled and requires explicit authorization after empirical validation and operational readiness, including kill-switch and reconciliation hardening.

@@ -182,7 +182,24 @@ class MT5DemoBroker:
             "executions": self.executions(date_from, date_to),
         }
 
-    def submit(self, intent: OrderIntent) -> dict[str, Any]:
+    def _constants(self) -> tuple[Any, Any, Any, Any, Any]:
+        mt5 = getattr(self.gateway, "_mt5", None)
+        if mt5 is None:
+            buy_type = getattr(self.gateway, "ORDER_TYPE_BUY", 0)
+            sell_type = getattr(self.gateway, "ORDER_TYPE_SELL", 1)
+            action = getattr(self.gateway, "TRADE_ACTION_DEAL", 1)
+            filling = getattr(self.gateway, "ORDER_FILLING_IOC", 1)
+            done = 10009
+        else:
+            buy_type = mt5.ORDER_TYPE_BUY
+            sell_type = mt5.ORDER_TYPE_SELL
+            action = mt5.TRADE_ACTION_DEAL
+            filling = mt5.ORDER_FILLING_IOC
+            done = getattr(mt5, "TRADE_RETCODE_DONE", 10009)
+        return buy_type, sell_type, action, filling, done
+
+    def prepare_market_order(self, intent: OrderIntent) -> dict[str, Any]:
+        """Build a validated market request without sending it."""
         account = self._ensure_demo_account()
         if not bool(self._value(account, "trade_allowed", False)):
             raise DemoBrokerError("MT5 demo account does not allow trading")
@@ -197,18 +214,7 @@ class MT5DemoBroker:
         info = self.gateway.symbol_info(symbol)
         if info is None:
             raise DemoBrokerError(f"Unknown MT5 symbol: {symbol}")
-        mt5 = getattr(self.gateway, "_mt5", None)
-        if mt5 is None:
-            buy_type = getattr(self.gateway, "ORDER_TYPE_BUY", 0)
-            sell_type = getattr(self.gateway, "ORDER_TYPE_SELL", 1)
-            action = getattr(self.gateway, "TRADE_ACTION_DEAL", 1)
-            filling = getattr(self.gateway, "ORDER_FILLING_IOC", 1)
-        else:
-            buy_type = mt5.ORDER_TYPE_BUY
-            sell_type = mt5.ORDER_TYPE_SELL
-            action = mt5.TRADE_ACTION_DEAL
-            filling = mt5.ORDER_FILLING_IOC
-
+        buy_type, sell_type, action, filling, _ = self._constants()
         price_field = "ask" if intent.side == "BUY" else "bid"
         tick = self._value(info, price_field, None)
         if tick is None:
@@ -217,7 +223,7 @@ class MT5DemoBroker:
         if price <= 0:
             raise DemoBrokerError(f"Invalid executable {price_field} price for {symbol}: {price}")
 
-        request = {
+        return {
             "action": action,
             "symbol": symbol,
             "volume": float(intent.quantity),
@@ -227,18 +233,26 @@ class MT5DemoBroker:
             "type_filling": filling,
             "comment": "InvestmentAI demo",
         }
+
+    def check_order(self, request: dict[str, Any]) -> dict[str, Any]:
+        """Run MT5 order_check without sending an order."""
         check = self.gateway.order_check(request)
         if check is None:
             raise DemoBrokerError("MT5 order_check returned no result")
-        check_retcode = self._value(check, "retcode", None)
-        if check_retcode is not None and check_retcode != 0:
-            raise DemoBrokerError(f"MT5 order_check rejected request: {check_retcode}")
+        retcode = self._value(check, "retcode", None)
+        result = {"retcode": retcode, "comment": self._value(check, "comment", "")}
+        if retcode is not None and retcode != 0:
+            raise DemoBrokerError(f"MT5 order_check rejected request: {retcode}")
+        return result
 
+    def submit(self, intent: OrderIntent) -> dict[str, Any]:
+        request = self.prepare_market_order(intent)
+        self.check_order(request)
         result = self.gateway.order_send(request)
         if result is None:
             raise DemoBrokerError("MT5 order_send returned no result")
         retcode = self._value(result, "retcode", None)
-        done = getattr(mt5, "TRADE_RETCODE_DONE", 10009) if mt5 else 10009
+        _, _, _, _, done = self._constants()
         if retcode != done:
             raise DemoBrokerError(f"MT5 order_send rejected request: {retcode}")
         return {
@@ -246,7 +260,7 @@ class MT5DemoBroker:
             "deal_id": str(self._value(result, "deal", "")),
             "status": "accepted",
             "environment": self.environment,
-            "symbol": symbol,
+            "symbol": intent.symbol.upper(),
             "side": intent.side,
             "quantity": intent.quantity,
             "price": float(self._value(result, "price", request["price"])),

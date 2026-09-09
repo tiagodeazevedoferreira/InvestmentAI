@@ -1,12 +1,15 @@
 from enum import Enum
 from functools import lru_cache
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
 
 class TradingMode(str, Enum):
     SIMULATION = "simulation"
     PAPER = "paper"
     DEMO = "demo"
     LIVE = "live"
+
 
 class Settings(BaseSettings):
     app_name: str = "InvestmentAI"
@@ -26,7 +29,15 @@ class Settings(BaseSettings):
     paper_slippage_bps: float = 5.0
     paper_account_path: str = "paper/account"
     paper_max_order_notional: float = 10_000.0
+
+    # MT5/Doto connection settings. No password is stored here: the desktop
+    # Doto Global MT5 terminal must already be authenticated.
+    mt5_terminal_path: str | None = None
+    mt5_expected_login: int | None = None
+    mt5_expected_server: str = "DOTOGlobal-Real"
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
 
 @lru_cache
 def get_settings() -> Settings:

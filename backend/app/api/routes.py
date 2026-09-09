@@ -13,6 +13,7 @@ from ..services.evaluation import trading_metrics
 from ..services.fundamentals import fundamental_metrics
 from ..services.tradingview import event_fingerprint, normalize_timestamp, normalize_tradingview_payload, verify_webhook_secret
 from ..services.mt5_doto import DotoMT5ConnectionError, MetaTrader5DotoGateway
+from ..services.mt5_market_data import MT5MarketDataError, MetaTrader5MarketDataGateway
 
 router = APIRouter()
 settings = get_settings()
@@ -56,6 +57,35 @@ def mt5_status():
             "trade_expert": account.trade_expert,
         }
     except DotoMT5ConnectionError as exc:
+        raise HTTPException(503, str(exc)) from exc
+    finally:
+        gateway.close()
+
+@router.get("/market/mt5/{symbol}")
+def mt5_market(symbol: str):
+    """Return a read-only MT5 quote from the authenticated Doto terminal."""
+    if not settings.mt5_terminal_path:
+        raise HTTPException(503, "MT5 terminal path is not configured")
+
+    gateway = MetaTrader5MarketDataGateway(
+        terminal_path=settings.mt5_terminal_path,
+        expected_login=settings.mt5_expected_login,
+        expected_server=settings.mt5_expected_server,
+    )
+    try:
+        gateway.connect()
+        quote = gateway.quote(symbol)
+        return {
+            "symbol": quote.symbol,
+            "bid": quote.bid,
+            "ask": quote.ask,
+            "last": quote.last,
+            "spread": quote.spread,
+            "time": quote.time,
+            "time_msc": quote.time_msc,
+            "timestamp": quote.timestamp,
+        }
+    except (ValueError, MT5MarketDataError) as exc:
         raise HTTPException(503, str(exc)) from exc
     finally:
         gateway.close()

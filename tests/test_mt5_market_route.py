@@ -1,6 +1,7 @@
 from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
+import pytest
 
 from app.main import app
 from app.api import routes
@@ -40,16 +41,17 @@ def test_mt5_market_returns_quote(monkeypatch):
     response = client.get("/api/market/mt5/EURUSD")
 
     assert response.status_code == 200
-    assert response.json() == {
-        "symbol": "EURUSD",
-        "bid": 1.16280,
-        "ask": 1.16294,
-        "last": 0.0,
-        "spread": 0.00014,
-        "time": 1788990888,
-        "time_msc": 1788990888424,
-        "timestamp": "2026-09-09T14:14:48+00:00",
-    }
+
+    data = response.json()
+
+    assert data["symbol"] == "EURUSD"
+    assert data["bid"] == pytest.approx(1.16280)
+    assert data["ask"] == pytest.approx(1.16294)
+    assert data["last"] == pytest.approx(0.0)
+    assert data["spread"] == pytest.approx(0.00014)
+    assert data["time"] == 1788990888
+    assert data["time_msc"] == 1788990888424
+    assert data["timestamp"] == "2026-09-09T21:54:48+00:00"
 
 
 def test_mt5_market_requires_terminal_path(monkeypatch):

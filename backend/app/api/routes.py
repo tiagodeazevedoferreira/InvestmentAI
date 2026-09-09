@@ -14,6 +14,7 @@ from ..services.fundamentals import fundamental_metrics
 from ..services.tradingview import event_fingerprint, normalize_timestamp, normalize_tradingview_payload, verify_webhook_secret
 from ..services.mt5_doto import DotoMT5ConnectionError, MetaTrader5DotoGateway
 from ..services.mt5_market_data import MT5MarketDataError, MetaTrader5MarketDataGateway
+from ..services.mt5_historical_data import MT5HistoricalDataError, MetaTrader5HistoricalDataGateway
 
 router = APIRouter()
 settings = get_settings()
@@ -86,6 +87,54 @@ def mt5_market(symbol: str):
             "timestamp": quote.timestamp,
         }
     except (ValueError, MT5MarketDataError) as exc:
+        raise HTTPException(503, str(exc)) from exc
+    finally:
+        gateway.close()
+
+@router.get("/market/mt5/{symbol}/candles")
+def mt5_historical_candles(
+    symbol: str,
+    timeframe: str = Query("M15"),
+    count: int = Query(100, ge=1, le=5000),
+    start_pos: int = Query(0, ge=0),
+):
+    """Return read-only historical MT5 candles from the authenticated Doto terminal."""
+    if not settings.mt5_terminal_path:
+        raise HTTPException(503, "MT5 terminal path is not configured")
+
+    gateway = MetaTrader5HistoricalDataGateway(
+        terminal_path=settings.mt5_terminal_path,
+        expected_login=settings.mt5_expected_login,
+        expected_server=settings.mt5_expected_server,
+    )
+    try:
+        candles = gateway.candles(
+            symbol,
+            timeframe,
+            count=count,
+            start_pos=start_pos,
+        )
+        return {
+            "symbol": symbol.upper(),
+            "timeframe": timeframe.upper(),
+            "count": len(candles),
+            "start_pos": start_pos,
+            "candles": [
+                {
+                    "time": candle.time,
+                    "timestamp": candle.timestamp,
+                    "open": candle.open,
+                    "high": candle.high,
+                    "low": candle.low,
+                    "close": candle.close,
+                    "tick_volume": candle.tick_volume,
+                    "spread": candle.spread,
+                    "real_volume": candle.real_volume,
+                }
+                for candle in candles
+            ],
+        }
+    except (ValueError, MT5HistoricalDataError) as exc:
         raise HTTPException(503, str(exc)) from exc
     finally:
         gateway.close()

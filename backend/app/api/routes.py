@@ -12,6 +12,7 @@ from ..services.features import build_features
 from ..services.evaluation import trading_metrics
 from ..services.fundamentals import fundamental_metrics
 from ..services.tradingview import event_fingerprint, normalize_timestamp, normalize_tradingview_payload, verify_webhook_secret
+from ..services.mt5_doto import DotoMT5ConnectionError, MetaTrader5DotoGateway
 
 router = APIRouter()
 settings = get_settings()
@@ -29,6 +30,35 @@ def market(symbol: str, period: str = "1y", provider: str = Query("yahoo")):
         return {"symbol": symbol.upper(), "close": float(row["Close"]), "ema9": float(row["EMA9"]), "ema21": float(row["EMA21"]), "rsi14": None if pd.isna(row["RSI14"]) else float(row["RSI14"]), "provider": provider}
     except (ValueError, RuntimeError) as exc:
         raise HTTPException(422, str(exc)) from exc
+
+@router.get("/broker/mt5/status")
+def mt5_status():
+    """Return the authenticated Doto MT5 account state without placing orders."""
+    if not settings.mt5_terminal_path:
+        raise HTTPException(503, "MT5 terminal path is not configured")
+
+    gateway = MetaTrader5DotoGateway(
+        terminal_path=settings.mt5_terminal_path,
+        expected_login=settings.mt5_expected_login,
+        expected_server=settings.mt5_expected_server,
+    )
+    try:
+        account = gateway.connect()
+        return {
+            "connected": True,
+            "login": account.login,
+            "server": account.server,
+            "company": account.company,
+            "currency": account.currency,
+            "balance": account.balance,
+            "equity": account.equity,
+            "trade_allowed": account.trade_allowed,
+            "trade_expert": account.trade_expert,
+        }
+    except DotoMT5ConnectionError as exc:
+        raise HTTPException(503, str(exc)) from exc
+    finally:
+        gateway.close()
 
 @router.post("/integrations/tradingview/webhook/{webhook_token}", response_model=TradingViewWebhookResponse)
 def tradingview_webhook(webhook_token: str, payload: dict):

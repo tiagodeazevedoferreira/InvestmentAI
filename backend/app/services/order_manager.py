@@ -9,7 +9,7 @@ from .execution import can_execute_live
 class OrderIntent:
     symbol: str
     side: str
-    quantity: int
+    quantity: float
     limit_price: float | None = None
 
 

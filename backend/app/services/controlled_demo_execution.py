@@ -45,8 +45,8 @@ class ControlledDemoExecutionService:
 
             def mark_submitted(execution: Mapping[str, Any]) -> None:
                 self.ledger.transition(intent_id, "SUBMITTED", now=self._now(),
-                                      order_id=_first_value(execution, "order_id"),
-                                      deal_id=_first_value(execution, "deal_id", "execution_id"),
+                                      order_id=_first_value(execution, "order_id", "order"),
+                                      deal_id=_first_value(execution, "deal_id", "deal", "execution_id"),
                                       execution=execution)
 
             result = self.executor.execute(normalized, internal_before=internal_before,
@@ -54,10 +54,14 @@ class ControlledDemoExecutionService:
                                            on_authorized=mark_authorized,
                                            on_submitted=mark_submitted)
             broker_execution = result.execution
-            record = self.ledger.transition(intent_id, _final_state(broker_execution), now=self._now(),
-                                            order_id=_first_value(broker_execution, "order_id"),
-                                            deal_id=_first_value(broker_execution, "deal_id", "execution_id"),
-                                            execution=broker_execution)
+            final_state = _final_state(broker_execution)
+            if final_state != self.ledger.get(intent_id).state:
+                record = self.ledger.transition(intent_id, final_state, now=self._now(),
+                                                order_id=_first_value(broker_execution, "order_id", "order"),
+                                                deal_id=_first_value(broker_execution, "deal_id", "deal", "execution_id"),
+                                                execution=broker_execution)
+            else:
+                record = self.ledger.get(intent_id)
             return ControlledDemoExecutionResult(record=record, execution=result)
         except Exception as exc:
             current = self.ledger.get(intent_id)
@@ -74,13 +78,22 @@ class ControlledDemoExecutionService:
 def _first_value(data: Mapping[str, Any], *keys: str) -> str | None:
     for key in keys:
         value = data.get(key)
-        if value is not None and str(value).strip(): return str(value)
+        if value is not None and str(value).strip() and str(value) != "0": return str(value)
     return None
 
 
 def _final_state(execution: Mapping[str, Any]) -> str:
-    status = str(execution.get("status", "accepted")).strip().lower()
+    status = str(execution.get("status", "")).strip().lower()
     if status in {"rejected", "reject"}: return "REJECTED"
     if status in {"failed", "error"}: return "FAILED"
+    retcode = execution.get("retcode")
+    if retcode is not None:
+        try:
+            code = int(retcode)
+            if code == 10009: return "FILLED"
+            if code == 10008: return "SUBMITTED"
+        except (TypeError, ValueError):
+            pass
     if status in {"filled", "done", "closed"}: return "FILLED"
+    if execution.get("accepted") is False: return "REJECTED"
     return "SUBMITTED"

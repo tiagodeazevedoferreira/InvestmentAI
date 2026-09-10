@@ -19,32 +19,21 @@ class ControlledDemoExecutionResult:
 class ControlledDemoExecutionService:
     """Orchestrate one explicitly requested DEMO order with durable lifecycle state.
 
-    This service is intentionally manual-call only. It has no scheduler hook,
-    no signal generation, and no automatic retry. A submitted order is never
-    retried automatically because a process crash can occur after broker
-    acceptance and before local persistence.
+    This service is manual-call only. It has no scheduler hook, no signal
+    generation, and no automatic retry. If broker outcome is uncertain, the
+    ledger remains recoverable instead of guessing that an order failed.
     """
 
-    def __init__(
-        self,
-        executor: AuthorizedDemoExecutor,
-        ledger: DemoOrderLedger,
-        *,
-        intent_id_factory: Callable[[], str] | None = None,
-        now: Callable[[], datetime] | None = None,
-    ) -> None:
+    def __init__(self, executor: AuthorizedDemoExecutor, ledger: DemoOrderLedger, *,
+                 intent_id_factory: Callable[[], str] | None = None,
+                 now: Callable[[], datetime] | None = None) -> None:
         self.executor = executor
         self.ledger = ledger
         self._intent_id_factory = intent_id_factory or (lambda: str(uuid4()))
         self._now = now or (lambda: datetime.now(timezone.utc))
 
-    def execute(
-        self,
-        intent: OrderIntent,
-        *,
-        internal_before: Mapping[str, Any],
-        internal_after: Mapping[str, Any],
-    ) -> ControlledDemoExecutionResult:
+    def execute(self, intent: OrderIntent, *, internal_before: Mapping[str, Any],
+                internal_after: Mapping[str, Any]) -> ControlledDemoExecutionResult:
         intent_id = self._intent_id_factory()
         normalized = self.executor.preflight.validate(intent, environment="demo")
         self.executor.preflight.validate_state(internal_before)
@@ -55,58 +44,43 @@ class ControlledDemoExecutionService:
                 self.ledger.transition(intent_id, "AUTHORIZED", now=self._now())
 
             def mark_submitted(execution: Mapping[str, Any]) -> None:
-                self.ledger.transition(
-                    intent_id,
-                    "SUBMITTED",
-                    now=self._now(),
-                    order_id=_first_value(execution, "order_id"),
-                    deal_id=_first_value(execution, "deal_id", "execution_id"),
-                    execution=execution,
-                )
+                self.ledger.transition(intent_id, "SUBMITTED", now=self._now(),
+                                      order_id=_first_value(execution, "order_id"),
+                                      deal_id=_first_value(execution, "deal_id", "execution_id"),
+                                      execution=execution)
 
-            result = self.executor.execute(
-                normalized,
-                internal_before=internal_before,
-                internal_after=internal_after,
-                on_authorized=mark_authorized,
-                on_submitted=mark_submitted,
-            )
+            result = self.executor.execute(normalized, internal_before=internal_before,
+                                           internal_after=internal_after,
+                                           on_authorized=mark_authorized,
+                                           on_submitted=mark_submitted)
             broker_execution = result.execution
-            record = self.ledger.transition(
-                intent_id,
-                _final_state(broker_execution),
-                now=self._now(),
-                order_id=_first_value(broker_execution, "order_id"),
-                deal_id=_first_value(broker_execution, "deal_id", "execution_id"),
-                execution=broker_execution,
-            )
+            record = self.ledger.transition(intent_id, _final_state(broker_execution), now=self._now(),
+                                            order_id=_first_value(broker_execution, "order_id"),
+                                            deal_id=_first_value(broker_execution, "deal_id", "execution_id"),
+                                            execution=broker_execution)
             return ControlledDemoExecutionResult(record=record, execution=result)
         except Exception as exc:
             current = self.ledger.get(intent_id)
-            if current.state not in self.ledger.TERMINAL_STATES:
+            if current.state == "INTENDED":
                 try:
                     record = self.ledger.transition(intent_id, "FAILED", now=self._now(), error=str(exc))
                 except Exception:
                     record = self.ledger.get(intent_id)
             else:
-                record = current
+                record = self.ledger.record_error(intent_id, str(exc), now=self._now())
             raise
 
 
 def _first_value(data: Mapping[str, Any], *keys: str) -> str | None:
     for key in keys:
         value = data.get(key)
-        if value is not None and str(value).strip():
-            return str(value)
+        if value is not None and str(value).strip(): return str(value)
     return None
 
 
 def _final_state(execution: Mapping[str, Any]) -> str:
     status = str(execution.get("status", "accepted")).strip().lower()
-    if status in {"rejected", "reject"}:
-        return "REJECTED"
-    if status in {"failed", "error"}:
-        return "FAILED"
-    if status in {"filled", "done", "closed"}:
-        return "FILLED"
+    if status in {"rejected", "reject"}: return "REJECTED"
+    if status in {"failed", "error"}: return "FAILED"
+    if status in {"filled", "done", "closed"}: return "FILLED"
     return "SUBMITTED"

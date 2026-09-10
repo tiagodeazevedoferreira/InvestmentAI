@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Callable, Mapping, Protocol
 
 from .demo_authorization import DemoAuthorizationGate, DemoAuthorizationResult
+from .demo_order_preflight import DemoOrderPreflight
 from .order_manager import OrderIntent
 from .operational_reconciliation import ReconciliationResult
 
@@ -29,7 +30,7 @@ class DemoExecutionResult:
 
 
 class AuthorizedDemoExecutor:
-    """Execute one DEMO order behind pre/post operational reconciliation.
+    """Execute one DEMO order behind deterministic preflight and reconciliation.
 
     The executor is deliberately not connected to the scheduler. A caller
     must provide the internal state before execution and a fresh internal
@@ -44,6 +45,7 @@ class AuthorizedDemoExecutor:
         *,
         reconciliation_window_seconds: int = 300,
         now: Callable[[], datetime] | None = None,
+        preflight: DemoOrderPreflight | None = None,
     ) -> None:
         if reconciliation_window_seconds <= 0:
             raise ValueError("reconciliation_window_seconds must be positive")
@@ -51,6 +53,7 @@ class AuthorizedDemoExecutor:
         self.gate = gate
         self.reconciliation_window_seconds = reconciliation_window_seconds
         self._now = now or (lambda: datetime.now(timezone.utc))
+        self.preflight = preflight or DemoOrderPreflight()
 
     def execute(
         self,
@@ -61,6 +64,13 @@ class AuthorizedDemoExecutor:
     ) -> DemoExecutionResult:
         if str(getattr(self.broker, "environment", "")).strip().lower() != "demo":
             raise DemoExecutionBlocked("DEMO executor requires a broker with environment=demo")
+
+        try:
+            normalized_intent = self.preflight.validate(intent, environment="demo")
+            self.preflight.validate_state(internal_before)
+            self.preflight.validate_state(internal_after)
+        except (ValueError, TypeError) as exc:
+            raise DemoExecutionBlocked(f"DEMO order preflight failed: {exc}") from exc
 
         before = self._now().astimezone(timezone.utc)
         external_before = self.broker.reconciliation_snapshot(
@@ -76,7 +86,7 @@ class AuthorizedDemoExecutor:
             now=lambda: before,
         )
 
-        execution = self.broker.submit(intent)
+        execution = self.broker.submit(normalized_intent)
 
         after = self._now().astimezone(timezone.utc)
         external_after = self.broker.reconciliation_snapshot(

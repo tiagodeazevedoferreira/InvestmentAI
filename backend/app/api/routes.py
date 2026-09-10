@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Query
+from pathlib import Path
 import pandas as pd
 from ..models import HealthResponse, BacktestRequest, BacktestResponse, ValuationRequest, ValuationResponse, PortfolioRequest, PortfolioResponse, VaRRequest, VaRResponse, PredictionResponse, FundamentalResponse, TradingViewWebhookResponse
 from ..settings import get_settings
@@ -15,6 +16,7 @@ from ..services.tradingview import event_fingerprint, normalize_timestamp, norma
 from ..services.mt5_doto import DotoMT5ConnectionError, MetaTrader5DotoGateway
 from ..services.mt5_market_data import MT5MarketDataError, MetaTrader5MarketDataGateway
 from ..services.mt5_historical_data import MT5HistoricalDataError, MetaTrader5HistoricalDataGateway
+from ..services.xgboost_inference import XGBoostInferenceError, predict_with_artifact
 
 router = APIRouter()
 settings = get_settings()
@@ -221,6 +223,26 @@ def ai_features(symbol: str, period: str = "2y"):
         return {"symbol": symbol.upper(), "horizon_days": 5, "probability_up": None, "model": "xgboost-baseline-not-trained", "status": f"features_ready:{len(X)} labels:{int(y.sum())}"}
     except (ValueError, RuntimeError) as exc:
         raise HTTPException(422, str(exc)) from exc
+
+@router.get("/ai/predict/{symbol}", response_model=PredictionResponse)
+def ai_predict(symbol: str, period: str = "2y"):
+    normalized_symbol = symbol.strip().upper()
+    if not normalized_symbol:
+        raise HTTPException(422, "symbol cannot be empty")
+    try:
+        history = get_provider("openbb").history(normalized_symbol, period)
+        X, _ = build_features(history, horizon=5)
+        model_path = Path(settings.xgboost_model_dir) / f"{normalized_symbol}.json"
+        probability, metadata = predict_with_artifact(X.iloc[[-1]], str(model_path))
+        return {
+            "symbol": normalized_symbol,
+            "horizon_days": int(metadata.get("horizon", 5)),
+            "probability_up": probability,
+            "model": "xgboost-baseline",
+            "status": f"prediction_ready:feature_version={metadata['feature_version']}",
+        }
+    except (ValueError, RuntimeError, XGBoostInferenceError) as exc:
+        raise HTTPException(503, str(exc)) from exc
 
 @router.get("/evaluation/rsi/{symbol}")
 def evaluate_rsi(symbol: str, period: str = "5y"):

@@ -56,8 +56,9 @@ def test_controlled_service_persists_full_success_lifecycle(tmp_path):
 
 def test_controlled_service_leaves_uncertain_execution_recoverable(tmp_path):
     before = state()
-    after = state(cash=999.0, quantity=20)
-    broker = Broker([snapshot(before), snapshot(after)])
+    after = state(cash=999.0, quantity=20, executions=[{"execution_id": "456"}])
+    external_after = state(cash=999.0, quantity=19, executions=[{"execution_id": "456"}])
+    broker = Broker([snapshot(before), snapshot(external_after)])
     executor = AuthorizedDemoExecutor(broker, DemoAuthorizationGate(OperationalKillSwitch()), now=lambda: NOW)
     ledger = DemoOrderLedger(tmp_path / "demo.sqlite3")
     service = ControlledDemoExecutionService(executor, ledger, intent_id_factory=lambda: "intent-1", now=lambda: NOW)

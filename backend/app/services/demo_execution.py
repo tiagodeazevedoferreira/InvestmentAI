@@ -61,6 +61,8 @@ class AuthorizedDemoExecutor:
         *,
         internal_before: Mapping[str, Any],
         internal_after: Mapping[str, Any],
+        on_authorized: Callable[[], None] | None = None,
+        on_submitted: Callable[[Mapping[str, Any]], None] | None = None,
     ) -> DemoExecutionResult:
         if str(getattr(self.broker, "environment", "")).strip().lower() != "demo":
             raise DemoExecutionBlocked("DEMO executor requires a broker with environment=demo")
@@ -85,8 +87,12 @@ class AuthorizedDemoExecutor:
             evidence_timestamp=evidence_timestamp,
             now=lambda: before,
         )
+        if on_authorized is not None:
+            on_authorized()
 
         execution = self.broker.submit(normalized_intent)
+        if on_submitted is not None:
+            on_submitted(execution)
 
         after = self._now().astimezone(timezone.utc)
         external_after = self.broker.reconciliation_snapshot(

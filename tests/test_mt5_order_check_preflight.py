@@ -31,7 +31,7 @@ class FakeMT5:
         return selected
 
     def symbol_info(self, symbol):
-        return SimpleNamespace(volume_min=0.01, volume_max=100.0, volume_step=0.01)
+        return SimpleNamespace(volume_min=0.001, volume_max=100.0, volume_step=0.01)
 
     def symbol_info_tick(self, symbol):
         return SimpleNamespace(bid=100.0, ask=101.0)
@@ -88,4 +88,4 @@ def test_build_request_rejects_volume_above_controlled_limit():
 def test_build_request_rejects_step_mismatch():
     mt5 = FakeMT5()
     with pytest.raises(OrderCheckBlocked, match="not aligned"):
-        build_request(mt5, symbol="EURUSD", side="BUY", volume=0.015)
+        build_request(mt5, symbol="EURUSD", side="BUY", volume=0.005)

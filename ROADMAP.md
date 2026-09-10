@@ -18,9 +18,13 @@ Integrate the simulator with the signal engine, portfolio accounting, fees/slipp
 - [x] Read-only DEMO reconciliation harness
 - [x] Fail-closed DEMO authorization with pre/post reconciliation
 - [x] Non-submitting MT5 order preflight (`order_check`)
-- [ ] Controlled single-order validation against the real Doto/MT5 DEMO account
-- [ ] Durable independent DEMO ledger and scheduler-to-DEMO integration
-- [ ] Complete DEMO order lifecycle and failure-recovery validation
+- [x] Broker-independent DEMO order preflight enforced by the executor
+- [x] Durable independent DEMO order ledger
+- [x] Conservative DEMO failure recovery without automatic retry
+- [x] Manual controlled DEMO execution service (scheduler remains disconnected)
+- [ ] Controlled single-order validation against the DOTO/MT5 DEMO account
+- [ ] Scheduler-to-DEMO integration after single-order validation
+- [ ] Complete DEMO order lifecycle and failure-recovery validation against the broker
 
 ## Live promotion
 Only after empirical evidence across backtest, paper and demo. Require explicit model approval, risk limits, kill switch, reconciliation and separate live credentials. Live remains disabled until then.

@@ -95,10 +95,11 @@ class MetaTrader5DemoBroker:
             raise MT5DemoExecutionError("DEMO execution is disabled")
         if not self._connected:
             raise MT5DemoExecutionError("MT5 DEMO broker is not connected")
-        if intent.quantity <= 0:
+        quantity = float(intent.quantity)
+        if quantity <= 0:
             raise ValueError("quantity must be positive")
-        if float(intent.quantity) > self.max_volume:
-            raise MT5DemoExecutionError(f"requested volume exceeds DEMO safety limit: {intent.quantity} > {self.max_volume}")
+        if quantity > self.max_volume:
+            raise MT5DemoExecutionError(f"requested volume exceeds DEMO safety limit: {quantity} > {self.max_volume}")
         if intent.side not in {"BUY", "SELL"}:
             raise ValueError("side must be BUY or SELL")
         mt5 = self._module()
@@ -107,17 +108,16 @@ class MetaTrader5DemoBroker:
             raise ValueError("symbol cannot be empty")
         if not mt5.symbol_select(symbol, True):
             raise MT5DemoExecutionError(f"cannot select MT5 symbol: {symbol}")
-        info = mt5.symbol_info(symbol)
-        tick = mt5.symbol_info_tick(symbol)
-        if info is None or tick is None:
+        if mt5.symbol_info(symbol) is None or mt5.symbol_info_tick(symbol) is None:
             raise MT5DemoExecutionError(f"MT5 market data unavailable for {symbol}")
+        tick = mt5.symbol_info_tick(symbol)
         order_type = mt5.ORDER_TYPE_BUY if intent.side == "BUY" else mt5.ORDER_TYPE_SELL
         price = intent.limit_price
         if price is None:
             price = float(self._value(tick, "ask" if intent.side == "BUY" else "bid", 0.0))
         if price <= 0:
             raise MT5DemoExecutionError("invalid execution price")
-        request = {"action": mt5.TRADE_ACTION_DEAL, "symbol": symbol, "volume": float(intent.quantity),
+        request = {"action": mt5.TRADE_ACTION_DEAL, "symbol": symbol, "volume": quantity,
                    "type": order_type, "price": price, "deviation": 20,
                    "type_time": mt5.ORDER_TIME_GTC, "type_filling": mt5.ORDER_FILLING_IOC,
                    "comment": "InvestmentAI-DEMO"}
@@ -128,7 +128,7 @@ class MetaTrader5DemoBroker:
         return {"accepted": retcode in {getattr(mt5, "TRADE_RETCODE_DONE", 10009), getattr(mt5, "TRADE_RETCODE_PLACED", 10008)},
                 "retcode": retcode, "order": self._value(result, "order", 0), "deal": self._value(result, "deal", 0),
                 "volume": float(self._value(result, "volume", 0.0) or 0.0), "symbol": symbol,
-                "side": intent.side, "requested_quantity": int(intent.quantity), "price": price,
+                "side": intent.side, "requested_quantity": quantity, "price": price,
                 "environment": self.environment, "timestamp": datetime.now(timezone.utc).isoformat()}
 
     def close(self) -> None:

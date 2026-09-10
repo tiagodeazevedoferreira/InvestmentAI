@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     paper_slippage_bps: float = 5.0
     paper_account_path: str = "paper/account"
     paper_max_order_notional: float = 10_000.0
+    xgboost_model_dir: str = "models/xgboost"
 
     # MT5/Doto connection settings. No password is stored here: the desktop
     # Doto Global MT5 terminal must already be authenticated.

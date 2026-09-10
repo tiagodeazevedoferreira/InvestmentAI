@@ -37,6 +37,12 @@ class Settings(BaseSettings):
     mt5_expected_login: int | None = None
     mt5_expected_server: str = "DOTOGlobal-Real"
 
+    # DEMO execution is fail-closed. Both account identity and explicit enablement
+    # are required before the MT5 demo adapter can submit an order.
+    mt5_demo_execution_enabled: bool = False
+    mt5_demo_expected_login: int | None = None
+    mt5_demo_expected_server: str | None = None
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 

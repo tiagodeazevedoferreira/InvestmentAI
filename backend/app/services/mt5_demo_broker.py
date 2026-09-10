@@ -90,11 +90,63 @@ class MetaTrader5DemoBroker:
                               bool(self._value(account, "trade_allowed", False)),
                               bool(self._value(account, "trade_expert", False)))
 
+    def _require_connected(self) -> Any:
+        if not self._connected:
+            raise MT5DemoExecutionError("MT5 DEMO broker is not connected")
+        return self._module()
+
+    def account(self) -> MT5DemoAccount:
+        mt5 = self._require_connected()
+        account = mt5.account_info()
+        if account is None:
+            raise MT5DemoExecutionError("MT5 account_info returned no account")
+        login = int(self._value(account, "login", 0))
+        server = str(self._value(account, "server", ""))
+        if login != self.expected_login or server != self.expected_server:
+            raise MT5DemoExecutionError("connected MT5 account no longer matches expected DEMO identity")
+        return MT5DemoAccount(login, server, float(self._value(account, "balance", 0.0)),
+                              float(self._value(account, "equity", 0.0)),
+                              str(self._value(account, "currency", "")),
+                              bool(self._value(account, "trade_allowed", False)),
+                              bool(self._value(account, "trade_expert", False)))
+
+    def reconciliation_snapshot(self, date_from: datetime, date_to: datetime) -> dict[str, Any]:
+        """Return normalized broker state for the authorization/reconciliation boundary."""
+        mt5 = self._require_connected()
+        account = self.account()
+        positions = mt5.positions_get() or []
+        orders = mt5.orders_get() or []
+        deals = mt5.history_deals_get(date_from, date_to) or []
+        return {
+            "captured_at": datetime.now(timezone.utc).isoformat(),
+            "cash": account.balance,
+            "equity": account.equity,
+            "currency": account.currency,
+            "positions": {
+                str(self._value(row, "symbol", "")).strip().upper(): {
+                    "quantity": float(self._value(row, "volume", 0.0)),
+                    "side": "BUY" if int(self._value(row, "type", 0)) == 0 else "SELL",
+                }
+                for row in positions
+            },
+            "open_orders": [
+                {"order_id": str(self._value(row, "ticket", "")), "symbol": str(self._value(row, "symbol", "")).upper()}
+                for row in orders
+            ],
+            "executions": [
+                {"execution_id": str(self._value(row, "ticket", "")), "order_id": str(self._value(row, "order", "")),
+                 "symbol": str(self._value(row, "symbol", "")).upper(), "quantity": float(self._value(row, "volume", 0.0))}
+                for row in deals
+            ],
+        }
+
     def submit(self, intent: OrderIntent) -> dict:
         if not self.execution_enabled:
             raise MT5DemoExecutionError("DEMO execution is disabled")
-        if not self._connected:
-            raise MT5DemoExecutionError("MT5 DEMO broker is not connected")
+        mt5 = self._require_connected()
+        account = self.account()
+        if not account.trade_allowed:
+            raise MT5DemoExecutionError("MT5 DEMO account does not allow trading")
         quantity = float(intent.quantity)
         if quantity <= 0:
             raise ValueError("quantity must be positive")
@@ -102,7 +154,8 @@ class MetaTrader5DemoBroker:
             raise MT5DemoExecutionError(f"requested volume exceeds DEMO safety limit: {quantity} > {self.max_volume}")
         if intent.side not in {"BUY", "SELL"}:
             raise ValueError("side must be BUY or SELL")
-        mt5 = self._module()
+        if intent.limit_price is not None:
+            raise MT5DemoExecutionError("limit_price is unsupported until MT5 pending-order semantics are implemented")
         symbol = intent.symbol.strip().upper()
         if not symbol:
             raise ValueError("symbol cannot be empty")
@@ -112,21 +165,26 @@ class MetaTrader5DemoBroker:
             raise MT5DemoExecutionError(f"MT5 market data unavailable for {symbol}")
         tick = mt5.symbol_info_tick(symbol)
         order_type = mt5.ORDER_TYPE_BUY if intent.side == "BUY" else mt5.ORDER_TYPE_SELL
-        price = intent.limit_price
-        if price is None:
-            price = float(self._value(tick, "ask" if intent.side == "BUY" else "bid", 0.0))
+        price = float(self._value(tick, "ask" if intent.side == "BUY" else "bid", 0.0))
         if price <= 0:
             raise MT5DemoExecutionError("invalid execution price")
         request = {"action": mt5.TRADE_ACTION_DEAL, "symbol": symbol, "volume": quantity,
                    "type": order_type, "price": price, "deviation": 20,
                    "type_time": mt5.ORDER_TIME_GTC, "type_filling": mt5.ORDER_FILLING_IOC,
                    "comment": "InvestmentAI-DEMO"}
+        check = mt5.order_check(request)
+        if check is None:
+            raise MT5DemoExecutionError("MT5 order_check returned None")
+        check_retcode = self._value(check, "retcode", None)
+        if check_retcode is not None and int(check_retcode) != 0:
+            raise MT5DemoExecutionError(f"MT5 order_check rejected request: {check_retcode}")
         result = mt5.order_send(request)
         if result is None:
             raise MT5DemoExecutionError(f"MT5 order_send returned None: {mt5.last_error()}")
         retcode = int(self._value(result, "retcode", -1))
-        return {"accepted": retcode in {getattr(mt5, "TRADE_RETCODE_DONE", 10009), getattr(mt5, "TRADE_RETCODE_PLACED", 10008)},
-                "retcode": retcode, "order": self._value(result, "order", 0), "deal": self._value(result, "deal", 0),
+        accepted_codes = {getattr(mt5, "TRADE_RETCODE_DONE", 10009), getattr(mt5, "TRADE_RETCODE_PLACED", 10008)}
+        return {"accepted": retcode in accepted_codes, "retcode": retcode,
+                "order": self._value(result, "order", 0), "deal": self._value(result, "deal", 0),
                 "volume": float(self._value(result, "volume", 0.0) or 0.0), "symbol": symbol,
                 "side": intent.side, "requested_quantity": quantity, "price": price,
                 "environment": self.environment, "timestamp": datetime.now(timezone.utc).isoformat()}

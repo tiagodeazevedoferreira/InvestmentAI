@@ -19,6 +19,7 @@ class FakeMT5:
         self.login = login
         self.server = server
         self.sent = []
+        self.checked = []
         self.shutdown_called = False
 
     def initialize(self, **kwargs):
@@ -41,6 +42,10 @@ class FakeMT5:
 
     def symbol_info_tick(self, symbol):
         return SimpleNamespace(bid=100.0, ask=101.0)
+
+    def order_check(self, request):
+        self.checked.append(request)
+        return SimpleNamespace(retcode=0, comment="OK")
 
     def order_send(self, request):
         self.sent.append(request)
@@ -76,5 +81,6 @@ def test_submit_sends_only_after_explicit_demo_enablement():
     result = broker.submit(OrderIntent("EURUSD", "BUY", 0.01))
     assert result["accepted"] is True
     assert result["environment"] == "demo"
+    assert len(mt5.checked) == 1
     assert len(mt5.sent) == 1
     assert mt5.sent[0]["comment"] == "InvestmentAI-DEMO"

@@ -57,9 +57,9 @@ class OperationalReconciler:
         self_positions = self._positions(internal.get("positions", {}))
         external_positions = self._positions(external.get("positions", {}))
         for symbol in sorted(set(self_positions) | set(external_positions)):
-            expected = self_positions.get(symbol, 0)
-            observed = external_positions.get(symbol, 0)
-            if expected != observed:
+            expected = self_positions.get(symbol, 0.0)
+            observed = external_positions.get(symbol, 0.0)
+            if not isclose(expected, observed, abs_tol=1e-9, rel_tol=0.0):
                 reasons.append(f"position quantity mismatch: {symbol}")
 
         self_open = self._order_ids(internal.get("open_orders", []))
@@ -82,16 +82,16 @@ class OperationalReconciler:
         )
 
     @staticmethod
-    def _positions(value: Any) -> dict[str, int]:
+    def _positions(value: Any) -> dict[str, float]:
         if not isinstance(value, Mapping):
             raise ValueError("positions must be a mapping")
-        result: dict[str, int] = {}
+        result: dict[str, float] = {}
         for symbol, position in value.items():
             if isinstance(position, Mapping):
-                quantity = position.get("quantity", 0)
+                quantity = position.get("quantity", 0.0)
             else:
                 quantity = position
-            result[str(symbol).strip().upper()] = int(quantity)
+            result[str(symbol).strip().upper()] = float(quantity)
         return result
 
     @staticmethod

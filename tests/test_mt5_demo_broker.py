@@ -31,15 +31,7 @@ class FakeMT5:
         return SimpleNamespace(connected=True)
 
     def account_info(self):
-        return SimpleNamespace(
-            login=self.login,
-            server=self.server,
-            balance=100000.0,
-            equity=100000.0,
-            currency="USD",
-            trade_allowed=True,
-            trade_expert=True,
-        )
+        return SimpleNamespace(login=self.login, server=self.server, balance=100000.0, equity=100000.0, currency="USD", trade_allowed=True, trade_expert=True)
 
     def symbol_select(self, symbol, selected):
         return selected
@@ -58,48 +50,30 @@ class FakeMT5:
         self.shutdown_called = True
 
 
-def test_connect_rejects_wrong_demo_server():
-    mt5 = FakeMT5(server="DOTOGlobal-Real")
-    broker = MetaTrader5DemoBroker(
-        terminal_path="terminal64.exe",
-        expected_login=123456,
-        expected_server="DOTOGlobal-Demo",
-        mt5_module=mt5,
-    )
+def make_broker(mt5, enabled=False):
+    return MetaTrader5DemoBroker(terminal_path="terminal64.exe", expected_login=123456, expected_server="Demo-Server", mt5_module=mt5, execution_enabled=enabled)
 
+
+def test_connect_rejects_wrong_demo_server():
+    broker = MetaTrader5DemoBroker(terminal_path="terminal64.exe", expected_login=123456, expected_server="DOTOGlobal-Demo", mt5_module=FakeMT5(server="DOTOGlobal-Real"))
     with pytest.raises(MT5DemoExecutionError, match="DEMO server mismatch"):
         broker.connect()
 
 
 def test_submit_is_disabled_by_default_even_when_connected():
     mt5 = FakeMT5()
-    broker = MetaTrader5DemoBroker(
-        terminal_path="terminal64.exe",
-        expected_login=123456,
-        expected_server="Demo-Server",
-        mt5_module=mt5,
-    )
+    broker = make_broker(mt5)
     broker.connect()
-
     with pytest.raises(MT5DemoExecutionError, match="execution is disabled"):
         broker.submit(OrderIntent("EURUSD", "BUY", 1))
-
     assert mt5.sent == []
 
 
 def test_submit_sends_only_after_explicit_demo_enablement():
     mt5 = FakeMT5()
-    broker = MetaTrader5DemoBroker(
-        terminal_path="terminal64.exe",
-        expected_login=123456,
-        expected_server="Demo-Server",
-        mt5_module=mt5,
-        execution_enabled=True,
-    )
+    broker = make_broker(mt5, enabled=True)
     broker.connect()
-
     result = broker.submit(OrderIntent("EURUSD", "BUY", 1))
-
     assert result["accepted"] is True
     assert result["environment"] == "demo"
     assert len(mt5.sent) == 1

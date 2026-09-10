@@ -49,33 +49,38 @@ class ControlledDemoExecutionService:
         normalized = self.executor.preflight.validate(intent, environment="demo")
         self.executor.preflight.validate_state(internal_before)
         self.executor.preflight.validate_state(internal_after)
-        record = self.ledger.create(
-            intent_id,
-            normalized.symbol,
-            normalized.side,
-            normalized.quantity,
-            now=self._now(),
-        )
+        self.ledger.create(intent_id, normalized.symbol, normalized.side, normalized.quantity, now=self._now())
         try:
-            self.ledger.transition(intent_id, "AUTHORIZED", now=self._now())
-            execution = self.executor.execute(
+            def mark_authorized() -> None:
+                self.ledger.transition(intent_id, "AUTHORIZED", now=self._now())
+
+            def mark_submitted(execution: Mapping[str, Any]) -> None:
+                self.ledger.transition(
+                    intent_id,
+                    "SUBMITTED",
+                    now=self._now(),
+                    order_id=_first_value(execution, "order_id"),
+                    deal_id=_first_value(execution, "deal_id", "execution_id"),
+                    execution=execution,
+                )
+
+            result = self.executor.execute(
                 normalized,
                 internal_before=internal_before,
                 internal_after=internal_after,
+                on_authorized=mark_authorized,
+                on_submitted=mark_submitted,
             )
-            broker_execution = execution.execution
-            order_id = _first_value(broker_execution, "order_id")
-            deal_id = _first_value(broker_execution, "deal_id", "execution_id")
-            final_state = _final_state(broker_execution)
+            broker_execution = result.execution
             record = self.ledger.transition(
                 intent_id,
-                final_state,
+                _final_state(broker_execution),
                 now=self._now(),
-                order_id=order_id,
-                deal_id=deal_id,
+                order_id=_first_value(broker_execution, "order_id"),
+                deal_id=_first_value(broker_execution, "deal_id", "execution_id"),
                 execution=broker_execution,
             )
-            return ControlledDemoExecutionResult(record=record, execution=execution)
+            return ControlledDemoExecutionResult(record=record, execution=result)
         except Exception as exc:
             current = self.ledger.get(intent_id)
             if current.state not in self.ledger.TERMINAL_STATES:
@@ -104,6 +109,4 @@ def _final_state(execution: Mapping[str, Any]) -> str:
         return "FAILED"
     if status in {"filled", "done", "closed"}:
         return "FILLED"
-    # A broker response that does not explicitly confirm a fill remains
-    # SUBMITTED so recovery can reconcile it instead of assuming success.
     return "SUBMITTED"

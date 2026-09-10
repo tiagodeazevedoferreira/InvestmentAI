@@ -65,7 +65,7 @@ def test_submit_is_disabled_by_default_even_when_connected():
     broker = make_broker(mt5)
     broker.connect()
     with pytest.raises(MT5DemoExecutionError, match="execution is disabled"):
-        broker.submit(OrderIntent("EURUSD", "BUY", 1))
+        broker.submit(OrderIntent("EURUSD", "BUY", 0.01))
     assert mt5.sent == []
 
 
@@ -73,7 +73,7 @@ def test_submit_sends_only_after_explicit_demo_enablement():
     mt5 = FakeMT5()
     broker = make_broker(mt5, enabled=True)
     broker.connect()
-    result = broker.submit(OrderIntent("EURUSD", "BUY", 1))
+    result = broker.submit(OrderIntent("EURUSD", "BUY", 0.01))
     assert result["accepted"] is True
     assert result["environment"] == "demo"
     assert len(mt5.sent) == 1

@@ -18,10 +18,33 @@ if (-not (Test-Path -LiteralPath $taskPath -PathType Leaf)) {
     throw "Arquivo de tarefa não encontrado: $taskPath"
 }
 
-$codexCommand = Get-Command codex -ErrorAction SilentlyContinue
-if (-not $codexCommand) {
-    throw "Codex CLI não encontrado no PATH."
+function Resolve-CodexExecutable {
+    $command = Get-Command codex -ErrorAction SilentlyContinue
+    if ($command -and $command.CommandType -eq "Application") {
+        return $command.Source
+    }
+
+    $codexRoot = Join-Path $env:LOCALAPPDATA "OpenAI\Codex\bin"
+    if (Test-Path -LiteralPath $codexRoot -PathType Container) {
+        $candidate = Get-ChildItem -LiteralPath $codexRoot -Directory -ErrorAction SilentlyContinue |
+            ForEach-Object {
+                $exe = Join-Path $_.FullName "codex.exe"
+                if (Test-Path -LiteralPath $exe -PathType Leaf) {
+                    Get-Item -LiteralPath $exe
+                }
+            } |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -First 1
+
+        if ($candidate) {
+            return $candidate.FullName
+        }
+    }
+
+    throw "Codex CLI não encontrado. Nem 'codex' no PATH nem uma instalação do Codex App em '$codexRoot' foi localizada."
 }
+
+$codexPath = Resolve-CodexExecutable
 
 $outputPath = Join-Path $repoRoot $OutputDirectory
 New-Item -ItemType Directory -Force -Path $outputPath | Out-Null
@@ -39,11 +62,11 @@ $eventsPath = Join-Path $runDirectory "events.jsonl"
 $resultPath = Join-Path $runDirectory "result.json"
 $metadataPath = Join-Path $runDirectory "run.json"
 
-$codexVersion = (& codex --version 2>&1 | Out-String).Trim()
+$codexVersion = (& $codexPath --version 2>&1 | Out-String).Trim()
 $metadata = [ordered]@{
     task_file = $taskPath
     started_at = (Get-Date).ToString("o")
-    codex_command = $codexCommand.Source
+    codex_command = $codexPath
     codex_version = $codexVersion
     repository = $repoRoot
     sandbox = "workspace-write"
@@ -86,9 +109,10 @@ Write-Host "InvestmentAI Codex Task Runner"
 Write-Host "Task: $taskPath"
 Write-Host "Run:  $runDirectory"
 Write-Host "Codex: $codexVersion"
+Write-Host "Path:  $codexPath"
 Write-Host ""
 
-$prompt | & codex @codexArgs 2>&1 | Tee-Object -FilePath $eventsPath
+$prompt | & $codexPath @codexArgs 2>&1 | Tee-Object -FilePath $eventsPath
 $exitCode = $LASTEXITCODE
 
 if ($exitCode -ne 0) {

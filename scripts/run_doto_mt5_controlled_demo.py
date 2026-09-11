@@ -134,6 +134,8 @@ def main() -> int:
             internal_before=internal_before,
             internal_after_provider=refresh_internal_state,
         )
+        execution = result.execution.execution
+        post_reconciliation = result.execution.post_reconciliation
         print("CONTROLLED DEMO RUN: SUCCESS")
         print(f"login: {account.login}")
         print(f"server: {account.server}")
@@ -143,8 +145,11 @@ def main() -> int:
         print(f"ledger_state: {result.record.state}")
         print(f"order_id: {result.record.order_id}")
         print(f"deal_id: {result.record.deal_id}")
-        print(f"retcode: {_value(result.execution, 'retcode', '')}")
-        print(f"post_reconciliation: {result.execution and result.execution.get('environment', 'demo')}")
+        print(f"retcode: {_value(execution, 'retcode', '')}")
+        print(f"execution_status: {_value(execution, 'status', '')}")
+        print(f"post_reconciliation_healthy: {post_reconciliation.healthy}")
+        if post_reconciliation.reasons:
+            print(f"post_reconciliation_reasons: {'; '.join(post_reconciliation.reasons)}")
         return 0
     except Exception as exc:
         print(f"CONTROLLED DEMO RUN: BLOCKED\nreason: {exc}")

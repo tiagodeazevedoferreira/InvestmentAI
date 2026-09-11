@@ -23,6 +23,7 @@ Integrate the simulator with the signal engine, portfolio accounting, fees/slipp
 - [x] Conservative DEMO failure recovery without automatic retry
 - [x] Manual controlled DEMO execution service (scheduler remains disconnected)
 - [x] Controlled DEMO preflight harness against the authenticated DOTO/MT5 DEMO workstation, with execution disabled and `order_send` explicitly not called
+- [x] Controlled DEMO execution path requires a fresh internal post-execution state provider before post-reconciliation can report success
 - [ ] Controlled single-order validation against the DOTO/MT5 DEMO account
 - [ ] Scheduler-to-DEMO integration after single-order validation
 - [ ] Complete DEMO order lifecycle and failure-recovery validation against the broker

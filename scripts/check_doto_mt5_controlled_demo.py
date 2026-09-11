@@ -74,7 +74,7 @@ def main() -> int:
             service.execute(
                 intent,
                 internal_before=snapshot,
-                internal_after=snapshot,
+                internal_after_provider=lambda: snapshot,
             )
             print("CONTROLLED DEMO PREFLIGHT: UNEXPECTED SUCCESS", file=sys.stderr)
             return 2

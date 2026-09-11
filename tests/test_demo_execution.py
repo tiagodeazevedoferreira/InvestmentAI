@@ -48,7 +48,7 @@ def test_executes_only_after_pre_authorization_and_post_reconciliation():
     result = executor.execute(
         OrderIntent(symbol="PETR4", side="BUY", quantity=0.01),
         internal_before=_state(),
-        internal_after=post_state,
+        internal_after_provider=lambda: post_state,
     )
 
     assert result.authorization.allowed is True
@@ -66,7 +66,7 @@ def test_blocks_when_pre_reconciliation_is_unhealthy():
         executor.execute(
             OrderIntent("PETR4", "BUY", 0.01),
             internal_before=_state(),
-            internal_after=_state(),
+            internal_after_provider=lambda: _state(),
         )
     assert broker.submissions == []
 
@@ -77,7 +77,11 @@ def test_blocks_non_demo_broker_before_snapshot():
     executor = AuthorizedDemoExecutor(broker, DemoAuthorizationGate(OperationalKillSwitch()), now=lambda: NOW)
 
     with pytest.raises(DemoExecutionBlocked, match="environment=demo"):
-        executor.execute(OrderIntent("PETR4", "BUY", 0.01), internal_before=_state(), internal_after=_state())
+        executor.execute(
+            OrderIntent("PETR4", "BUY", 0.01),
+            internal_before=_state(),
+            internal_after_provider=lambda: _state(),
+        )
     assert broker.submissions == []
 
 
@@ -90,7 +94,7 @@ def test_blocks_when_post_execution_reconciliation_fails():
         executor.execute(
             OrderIntent("PETR4", "BUY", 0.01),
             internal_before=_state(),
-            internal_after=_state(cash=900.0, quantity=10.01),
+            internal_after_provider=lambda: _state(cash=900.0, quantity=10.01),
         )
     assert len(broker.submissions) == 1
 
@@ -102,7 +106,11 @@ def test_stale_pre_snapshot_blocks_before_submit():
     executor = AuthorizedDemoExecutor(broker, gate, now=lambda: NOW)
 
     with pytest.raises(PermissionError, match="reconciliation evidence is stale"):
-        executor.execute(OrderIntent("PETR4", "BUY", 0.01), internal_before=_state(), internal_after=_state())
+        executor.execute(
+            OrderIntent("PETR4", "BUY", 0.01),
+            internal_before=_state(),
+            internal_after_provider=lambda: _state(),
+        )
     assert broker.submissions == []
 
 
@@ -112,7 +120,11 @@ def test_preflight_blocks_oversized_order_before_broker_snapshot():
     executor = AuthorizedDemoExecutor(broker, gate, now=lambda: NOW)
 
     with pytest.raises(DemoExecutionBlocked, match="preflight limit"):
-        executor.execute(OrderIntent("PETR4", "BUY", 0.010001), internal_before=_state(), internal_after=_state())
+        executor.execute(
+            OrderIntent("PETR4", "BUY", 0.010001),
+            internal_before=_state(),
+            internal_after_provider=lambda: _state(),
+        )
 
     assert broker.submissions == []
 
@@ -126,7 +138,7 @@ def test_preflight_blocks_pending_order_before_broker_snapshot():
         executor.execute(
             OrderIntent("PETR4", "BUY", 0.01, limit_price=1.1),
             internal_before=_state(),
-            internal_after=_state(),
+            internal_after_provider=lambda: _state(),
         )
 
     assert broker.submissions == []

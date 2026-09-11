@@ -18,6 +18,11 @@ if (-not (Test-Path -LiteralPath $taskPath -PathType Leaf)) {
     throw "Arquivo de tarefa não encontrado: $taskPath"
 }
 
+$codexCommand = Get-Command codex -ErrorAction SilentlyContinue
+if (-not $codexCommand) {
+    throw "Codex CLI não encontrado no PATH."
+}
+
 $outputPath = Join-Path $repoRoot $OutputDirectory
 New-Item -ItemType Directory -Force -Path $outputPath | Out-Null
 
@@ -32,6 +37,20 @@ if (-not (Test-Path -LiteralPath $schemaPath -PathType Leaf)) {
 
 $eventsPath = Join-Path $runDirectory "events.jsonl"
 $resultPath = Join-Path $runDirectory "result.json"
+$metadataPath = Join-Path $runDirectory "run.json"
+
+$codexVersion = (& codex --version 2>&1 | Out-String).Trim()
+$metadata = [ordered]@{
+    task_file = $taskPath
+    started_at = (Get-Date).ToString("o")
+    codex_command = $codexCommand.Source
+    codex_version = $codexVersion
+    repository = $repoRoot
+    sandbox = "workspace-write"
+    approval_policy = "on-request"
+}
+$metadata | ConvertTo-Json | Set-Content -LiteralPath $metadataPath -Encoding utf8
+
 $prompt = @"
 Você está executando uma tarefa do InvestmentAI recebida pelo protocolo ChatGPT ↔ Codex ↔ GitHub.
 
@@ -66,6 +85,7 @@ $codexArgs = @(
 Write-Host "InvestmentAI Codex Task Runner"
 Write-Host "Task: $taskPath"
 Write-Host "Run:  $runDirectory"
+Write-Host "Codex: $codexVersion"
 Write-Host ""
 
 $prompt | & codex @codexArgs 2>&1 | Tee-Object -FilePath $eventsPath
@@ -76,9 +96,30 @@ if ($exitCode -ne 0) {
     Write-Error "Codex terminou com código $exitCode. Consulte: $eventsPath"
 }
 
-if (Test-Path -LiteralPath $resultPath) {
-    Write-Host ""
-    Write-Host "Resultado estruturado: $resultPath"
+if (-not (Test-Path -LiteralPath $resultPath -PathType Leaf)) {
+    if ($exitCode -eq 0) {
+        Write-Error "Codex terminou com sucesso, mas não produziu o handoff estruturado: $resultPath"
+        $exitCode = 1
+    }
+} else {
+    try {
+        $result = Get-Content -LiteralPath $resultPath -Raw | ConvertFrom-Json
+        $required = @("task_id", "status", "changes", "tests", "results", "risks", "pending", "next_step", "commit")
+        foreach ($field in $required) {
+            if ($null -eq $result.PSObject.Properties[$field]) {
+                throw "Campo obrigatório ausente no handoff: $field"
+            }
+        }
+        if ($result.status -notin @("DONE", "BLOCKED", "PARTIAL")) {
+            throw "Status de handoff inválido: $($result.status)"
+        }
+        Write-Host ""
+        Write-Host "Handoff válido: $($result.status)"
+        Write-Host "Resultado estruturado: $resultPath"
+    } catch {
+        Write-Error "Handoff inválido: $($_.Exception.Message)"
+        $exitCode = 1
+    }
 }
 
 exit $exitCode

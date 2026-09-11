@@ -72,6 +72,13 @@ class ControlledDemoExecutionService:
                     record = self.ledger.transition(intent_id, "FAILED", now=self._now(), error=str(exc))
                 except Exception:
                     record = self.ledger.get(intent_id)
+            elif current.state == "AUTHORIZED":
+                # Authorization is the last local state before broker submission.
+                # If submission then raises, the broker outcome is unknowable: the
+                # request may have reached MT5 even though no response was received.
+                # Preserve it as recoverable SUBMITTED/uncertain; never classify it
+                # as FAILED and never retry automatically.
+                record = self.ledger.transition(intent_id, "SUBMITTED", now=self._now(), error=str(exc))
             else:
                 record = self.ledger.record_error(intent_id, str(exc), now=self._now())
             raise

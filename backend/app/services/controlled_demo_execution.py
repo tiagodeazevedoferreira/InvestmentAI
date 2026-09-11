@@ -33,11 +33,10 @@ class ControlledDemoExecutionService:
         self._now = now or (lambda: datetime.now(timezone.utc))
 
     def execute(self, intent: OrderIntent, *, internal_before: Mapping[str, Any],
-                internal_after: Mapping[str, Any]) -> ControlledDemoExecutionResult:
+                internal_after_provider: Callable[[], Mapping[str, Any]]) -> ControlledDemoExecutionResult:
         intent_id = self._intent_id_factory()
         normalized = self.executor.preflight.validate(intent, environment="demo")
         self.executor.preflight.validate_state(internal_before)
-        self.executor.preflight.validate_state(internal_after)
         self.ledger.create(intent_id, normalized.symbol, normalized.side, normalized.quantity, now=self._now())
         try:
             def mark_authorized() -> None:
@@ -50,9 +49,8 @@ class ControlledDemoExecutionService:
                                       execution=execution)
 
             result = self.executor.execute(normalized, internal_before=internal_before,
-                                           internal_after=internal_after,
-                                           on_authorized=mark_authorized,
-                                           on_submitted=mark_submitted)
+                                           internal_after_provider=internal_after_provider,
+                                           on_authorized=mark_authorized, on_submitted=mark_submitted)
             broker_execution = result.execution
             final_state = _final_state(broker_execution)
             if final_state != self.ledger.get(intent_id).state:

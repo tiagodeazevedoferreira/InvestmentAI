@@ -33,9 +33,9 @@ class AuthorizedDemoExecutor:
     """Execute one DEMO order behind deterministic preflight and reconciliation.
 
     The executor is deliberately not connected to the scheduler. A caller
-    must provide the internal state before execution and a fresh internal
-    state after the broker operation. The broker is therefore never treated
-    as the source of truth for the application's internal ledger.
+    must provide the internal state before execution and a callable that
+    refreshes the application's internal state after the broker operation.
+    The post-execution state is therefore never a stale copy of the pre-state.
     """
 
     def __init__(
@@ -60,17 +60,18 @@ class AuthorizedDemoExecutor:
         intent: OrderIntent,
         *,
         internal_before: Mapping[str, Any],
-        internal_after: Mapping[str, Any],
+        internal_after_provider: Callable[[], Mapping[str, Any]],
         on_authorized: Callable[[], None] | None = None,
         on_submitted: Callable[[Mapping[str, Any]], None] | None = None,
     ) -> DemoExecutionResult:
         if str(getattr(self.broker, "environment", "")).strip().lower() != "demo":
             raise DemoExecutionBlocked("DEMO executor requires a broker with environment=demo")
+        if not callable(internal_after_provider):
+            raise DemoExecutionBlocked("DEMO execution requires a callable post-execution internal state provider")
 
         try:
             normalized_intent = self.preflight.validate(intent, environment="demo")
             self.preflight.validate_state(internal_before)
-            self.preflight.validate_state(internal_after)
         except (ValueError, TypeError) as exc:
             raise DemoExecutionBlocked(f"DEMO order preflight failed: {exc}") from exc
 
@@ -95,6 +96,12 @@ class AuthorizedDemoExecutor:
             on_submitted(execution)
 
         after = self._now().astimezone(timezone.utc)
+        try:
+            internal_after = internal_after_provider()
+            self.preflight.validate_state(internal_after)
+        except (ValueError, TypeError) as exc:
+            raise DemoExecutionBlocked(f"DEMO post-execution internal state is invalid: {exc}") from exc
+
         external_after = self.broker.reconciliation_snapshot(
             after - timedelta(seconds=self.reconciliation_window_seconds),
             after,

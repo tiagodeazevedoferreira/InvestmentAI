@@ -57,11 +57,13 @@ class MetaTrader5DemoGateway:
         login: int | None = None,
         server: str | None = None,
         password: str | None = None,
+        terminal_path: str | None = None,
         demo_account_logins: set[str] | frozenset[str] | None = None,
     ) -> None:
         self.login = login
         self.server = server
         self.password = password
+        self.terminal_path = terminal_path or os.getenv("DOTO_MT5_TERMINAL_PATH", "").strip()
         self.demo_account_logins = frozenset(
             str(item).strip()
             for item in (demo_account_logins if demo_account_logins is not None else _configured_demo_logins())
@@ -98,6 +100,8 @@ class MetaTrader5DemoGateway:
     def initialize(self) -> bool:
         mt5 = self._module()
         kwargs: dict[str, Any] = {}
+        if self.terminal_path:
+            kwargs["path"] = self.terminal_path
         if self.login is not None:
             kwargs["login"] = self.login
         if self.server:

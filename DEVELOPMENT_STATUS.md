@@ -96,6 +96,7 @@ Last updated: 2026-09-11
 - [x] Empirical restart/recovery validation against the persisted DEMO ledger, confirming an ambiguous `SUBMITTED` record remains pending without broker submission
 - [x] Broker-connected read-only recovery validation using the confirmed Order `29453207` / Deal `28862296`
 - [x] Fault-injected submission-interruption test: exception after authorization remains recoverable `SUBMITTED` and never becomes an automatic retry
+- [x] Scheduler → DEMO fail-closed promotion boundary (plan-only; broker submission disconnected)
 - [ ] Scheduler → DEMO broker integration
 - [ ] Real interrupted-broker-submission recovery validation without deliberately creating another DEMO transaction
 - [ ] Live broker adapter
@@ -152,6 +153,7 @@ Last updated: 2026-09-11
 - [x] MT5 DEMO preflight tests
 - [x] DEMO restart/recovery tests
 - [x] Fault-injected DEMO submission-interruption test
+- [x] Scheduler → DEMO promotion-boundary unit tests
 - [ ] Full integration test suite against provider mocks
 - [ ] End-to-end training/backtest test
 - [ ] Security/dependency scan
@@ -165,7 +167,7 @@ The internal paper execution path is deterministic and broker-independent. Provi
 
 The controlled Doto/MT5 DEMO end-to-end gate was completed on 2026-09-11. The first explicitly authorized `EURUSD BUY 0.01` was accepted and filled: order `29453207`, deal `28862296`, position `29453207`, open at `1.15960`. External MT5 inspection confirmed exactly one open EURUSD BUY position with volume `0.01`; no pending open order remained because the market order was filled. Targeted post-execution reconciliation was validated using broker history lookup by deal/order/position identifiers after a time-window lookup proved unreliable because the broker/server history clock differed from the Python UTC window. The corrected reconciliation path recovered execution `28862296` and position `EURUSD: BUY 0.01` without submitting another order. The durable demo ledger reports the valid transaction as `FILLED`, and the local demo portfolio state mirrors the external position. The restart/recovery coordinator was then exercised against the actual persisted local ledger. The historical ambiguous `SUBMITTED` record remained `SUBMITTED` with no broker identifiers, while the already `FILLED` reference transaction remained untouched. The recovery call did not invoke broker submission, did not create a new intent and did not alter the existing EURUSD DEMO position. This empirically validates the restart/recovery no-duplicate boundary for the current persisted state.
 
-A broker-connected, read-only recovery harness was then validated using a disposable SQLite ledger. It seeded the already confirmed Order `29453207` / Deal `28862296` and a separate synthetic unknown submission. Targeted MT5 history promoted only the confirmed record to `FILLED`; the unknown record remained `SUBMITTED`; `order_send` was not called; and temporary SQLite state was successfully discarded on Windows. A separate fault-injected coordinator test confirms that a timeout after local authorization preserves `SUBMITTED` uncertainty rather than classifying the intent as `FAILED` or retrying automatically. A real broker interruption is intentionally not induced merely for testing because doing so could create another DEMO transaction. Scheduler-to-DEMO integration therefore remains disconnected and live execution remains disabled.
+A broker-connected, read-only recovery harness was then validated using a disposable SQLite ledger. It seeded the already confirmed Order `29453207` / Deal `28862296` and a separate synthetic unknown submission. Targeted MT5 history promoted only the confirmed record to `FILLED`; the unknown record remained `SUBMITTED`; `order_send` was not called; and temporary SQLite state was successfully discarded on Windows. A separate fault-injected coordinator test confirms that a timeout after local authorization preserves `SUBMITTED` uncertainty rather than classifying the intent as `FAILED` or retrying automatically. The new scheduler-to-DEMO boundary now exposes the scheduler's deterministic decision, quantity, reference price and risk result to a fail-closed promotion planner. The planner is disabled by default, requires an explicit symbol mapping, and stops at an `OrderIntent`; it does not own a broker or call `order_send`. Actual scheduler-driven DEMO submission remains disconnected pending a separate promotion step. A real broker interruption is intentionally not induced merely for testing because doing so could create another DEMO transaction. Live execution remains disabled.
 
 The controlled runner remains manual and fail-closed: read-only mode does not call `order_send()`, and execution requires both explicit `--execute` and the dedicated DEMO execution arm. No additional DEMO order should be sent solely for verification. Automatic scheduler-to-broker execution remains disconnected, and live execution remains disabled.
 

@@ -90,14 +90,21 @@ class ControlledDemoExecutionService:
         persisted SUBMITTED records and broker evidence supplied by the caller.
         A record becomes FILLED only when its exact deal ID is externally
         confirmed. No pending record is resubmitted automatically.
+
+        A failure while obtaining evidence for one pending record is itself
+        treated as unresolved. The record remains SUBMITTED with the error
+        recorded, and recovery continues for the remaining pending records.
         """
         recovered: list[DemoOrderRecord] = []
         for record in self.ledger.pending():
             if record.state != "SUBMITTED":
                 recovered.append(record)
                 continue
-            external = external_provider(record)
-            recovered.append(self.ledger.recover_submitted(record.intent_id, external, now=self._now()))
+            try:
+                external = external_provider(record)
+                recovered.append(self.ledger.recover_submitted(record.intent_id, external, now=self._now()))
+            except Exception as exc:
+                recovered.append(self.ledger.record_error(record.intent_id, str(exc), now=self._now()))
         return tuple(recovered)
 
 

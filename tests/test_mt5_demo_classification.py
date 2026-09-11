@@ -40,14 +40,14 @@ def account(*, login="5344431", server="DOTOGlobal-Real", company="DOTO Global L
 
 
 def gateway(fake_mt5, *, demo_logins=None):
-    gateway = MetaTrader5DemoGateway(demo_account_logins=demo_logins or set())
+    gateway = MetaTrader5DemoGateway(demo_account_logins=demo_logins)
     gateway._mt5 = fake_mt5
     return gateway
 
 
-def test_doto_demo_login_is_allowed_on_real_named_server():
+def test_known_doto_demo_login_is_allowed_on_real_named_server_without_environment_override():
     fake = FakeMT5(account(trade_mode=FakeMT5.ACCOUNT_TRADE_MODE_REAL))
-    broker = MT5DemoBroker(gateway(fake, demo_logins={"5344431"}))
+    broker = MT5DemoBroker(gateway(fake))
 
     assert broker.initialize() is True
     snapshot = broker.account()
@@ -57,8 +57,8 @@ def test_doto_demo_login_is_allowed_on_real_named_server():
     assert snapshot.trade_allowed is True
 
 
-def test_real_named_doto_server_is_rejected_without_explicit_demo_allowlist():
-    fake = FakeMT5(account(trade_mode=FakeMT5.ACCOUNT_TRADE_MODE_REAL))
+def test_unknown_real_named_doto_server_is_rejected():
+    fake = FakeMT5(account(login="9999999", trade_mode=FakeMT5.ACCOUNT_TRADE_MODE_REAL))
     broker = MT5DemoBroker(gateway(fake))
 
     with pytest.raises(DemoBrokerError, match="non-demo"):
@@ -68,7 +68,7 @@ def test_real_named_doto_server_is_rejected_without_explicit_demo_allowlist():
 
 
 def test_regular_demo_server_does_not_need_allowlist():
-    fake = FakeMT5(account(server="DOTOGlobal-Demo", trade_mode=FakeMT5.ACCOUNT_TRADE_MODE_DEMO))
+    fake = FakeMT5(account(login="9999999", server="DOTOGlobal-Demo", trade_mode=FakeMT5.ACCOUNT_TRADE_MODE_DEMO))
     broker = MT5DemoBroker(gateway(fake))
 
     assert broker.initialize() is True
@@ -82,14 +82,19 @@ def test_allowlisted_login_must_still_be_a_doto_account():
         broker.initialize()
 
 
-def test_doto_demo_allowlist_is_required_again_during_account_validation():
+def test_known_doto_demo_classification_remains_valid_during_account_validation():
     fake = FakeMT5(account(trade_mode=FakeMT5.ACCOUNT_TRADE_MODE_REAL))
-    gateway_instance = gateway(fake, demo_logins={"5344431"})
+    gateway_instance = gateway(fake)
     broker = MT5DemoBroker(gateway_instance)
 
     broker.initialize()
     assert broker.account().login == "5344431"
+    assert broker.is_demo_environment is True
 
-    gateway_instance.demo_account_logins = frozenset()
-    with pytest.raises(DemoBrokerError, match="non-demo"):
-        broker.account()
+
+def test_configured_additional_doto_demo_login_is_allowed():
+    fake = FakeMT5(account(login="7654321", trade_mode=FakeMT5.ACCOUNT_TRADE_MODE_REAL))
+    broker = MT5DemoBroker(gateway(fake, demo_logins={"7654321"}))
+
+    assert broker.initialize() is True
+    assert broker.account().login == "7654321"

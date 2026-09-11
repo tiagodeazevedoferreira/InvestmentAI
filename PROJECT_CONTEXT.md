@@ -80,11 +80,15 @@ The Doto/MT5 adapter is DEMO-only and fail-closed. It verifies the DEMO server d
 - Reported lifecycle state: `FILLED`.
 - Reported order ID: `29453207`.
 - Reported deal ID: `28862296`.
-- The broker submission itself succeeded sufficiently for the ledger to reach `FILLED` before the runner encountered a reporting bug.
-- The runner then incorrectly attempted `.get()` on the `DemoExecutionResult` dataclass, producing `CONTROLLED DEMO RUN: BLOCKED` after the successful execution. This is a reporting defect, not evidence that the broker transaction failed.
-- The reporting defect was fixed in commit `3ce15dd2c9336b037c899244c0d6afe3baaeca1e` by reading the nested `DemoExecutionResult.execution` mapping and `post_reconciliation` result explicitly.
-- **Do not rerun the runner with `--execute` to verify the reporting fix**, because doing so would create another broker order. Verification must be read-only.
-- Next required action: pull commit `3ce15dd2c9336b037c899244c0d6afe3baaeca1e`, then perform read-only external reconciliation against the live DEMO terminal and inspect the durable local ledger/portfolio state for order `29453207` / deal `28862296`.
+- External MT5 inspection subsequently confirmed the full chain: order `29453207` → deal `28862296` → open position `29453207`, `EURUSD BUY 0.01` at `1.15960`.
+- The broker submission succeeded and the valid transaction is recorded as `FILLED` in the durable demo ledger.
+- The runner initially encountered a reporting defect after successful execution because it attempted `.get()` on the `DemoExecutionResult` dataclass. This was fixed in commit `3ce15dd2c9336b037c899244c0d6afe3baaeca1e` by reading the nested execution and post-reconciliation structures explicitly.
+- A subsequent reconciliation-clock fix was made in commit `f83201abcf3726ac8b7e4cf3a43e850334cbedff` to avoid a broker snapshot timestamp racing ahead of the local clock.
+- A targeted-history reconciliation fix was then implemented in commit `0c164b6`: after execution, the broker adapter queries `history_deals_get(ticket=deal_id)`, then order and position fallbacks, rather than relying only on a Python UTC time-window query. This is required because the broker/server history clock can differ from the local Python UTC window.
+- The corrected targeted reconciliation was validated read-only and recovered execution `28862296` with position `EURUSD: BUY 0.01`; `OPEN_ORDERS` was empty as expected for a filled market order.
+- The local demo portfolio state mirrors the external open position (`EURUSD` quantity `0.01`, side `BUY`), while execution audit remains in the durable demo order ledger.
+- The full automated test suite after the reconciliation fix is green: `232 passed, 2 warnings`.
+- **Do not rerun the runner with `--execute` merely to verify reporting or reconciliation**, because that would create another broker order. Verification of the existing transaction is read-only.
 
 ## Application configuration checkpoint — 2026-09-11
 - `backend/app/settings.py` now reads `DOTO_MT5_TERMINAL_PATH` as the canonical environment variable for `settings.mt5_terminal_path`.
@@ -96,13 +100,15 @@ The Doto/MT5 adapter is DEMO-only and fail-closed. It verifies the DEMO server d
 - The FastAPI application exposes the read-only endpoint `GET /api/broker/mt5/status`.
 - The endpoint was validated against the configured Doto MT5 terminal and returned `connected=true`, login `5344431`, server `DOTOGlobal-Real`, company `DOTO Global Ltd`, currency `BRL`, balance/equity `52000.0`, `trade_allowed=true` and `trade_expert=true`.
 - This confirms the application path `InvestmentAI → FastAPI → MT5 → DOTO` for read-only account state.
-- No execution endpoint is enabled by this validation and no `order_send()` was called.
-- Full automated test suite was green: `231 passed, 2 warnings`.
+- No execution endpoint is enabled by this validation and no `order_send()` was called by the API path.
+- Full automated test suite was green: `231 passed, 2 warnings` at this checkpoint; after the later reconciliation changes it is `232 passed, 2 warnings`.
 
 ## Current execution target
-The first controlled DEMO transaction has now been submitted and the runner's durable ledger reports `FILLED` for `EURUSD BUY 0.01`, order `29453207`, deal `28862296`. The remaining task is **read-only post-execution reconciliation and verification**: confirm the position/order/deal in the Doto MT5 terminal, confirm the persisted internal portfolio state matches the external snapshot, and verify the corrected runner reporting path without submitting another order. No additional DEMO order should be sent until this reconciliation is complete. Automatic scheduler-to-broker execution remains disconnected. Live execution remains disabled.
+The controlled Doto/MT5 DEMO end-to-end validation gate is complete as of 2026-09-11. The first explicitly authorized `EURUSD BUY 0.01` was filled as order `29453207`, deal `28862296`, with open position ticket `29453207`. External MT5 state and targeted history reconciliation have been confirmed read-only, and the local demo ledger/portfolio state matches the broker position. The next engineering work must not send another DEMO order solely for verification. Automatic scheduler-to-broker execution remains disconnected. Live execution remains disabled.
 
 ## Recent commits / handoff checkpoint
+- `0c164b6` — targeted post-execution reconciliation by broker history identifiers
+- `f83201abcf3726ac8b7e4cf3a43e850334cbedff` — align post-execution reconciliation clock with broker snapshot
 - `3ce15dd2c9336b037c899244c0d6afe3baaeca1e` — `Fix controlled DEMO runner result reporting`
 - `6f9c85643e3a679a61698d5cbea64b49daa7f8bd` — `fix: support decimal DEMO order preflight volume`
 - `ff90035e8cc6becb0c5d9a68ecac8fef3db93ae5` — `test: cover decimal DEMO preflight volume`

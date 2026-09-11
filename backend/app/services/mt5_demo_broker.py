@@ -110,6 +110,14 @@ class MetaTrader5DemoBroker:
                               bool(self._value(account, "trade_allowed", False)),
                               bool(self._value(account, "trade_expert", False)))
 
+    @classmethod
+    def _normalize_deals(cls, deals: Any) -> list[dict[str, Any]]:
+        return [
+            {"execution_id": str(cls._value(row, "ticket", "")), "order_id": str(cls._value(row, "order", "")),
+             "symbol": str(cls._value(row, "symbol", "")).upper(), "quantity": float(cls._value(row, "volume", 0.0))}
+            for row in (deals or [])
+        ]
+
     def reconciliation_snapshot(self, date_from: datetime, date_to: datetime) -> dict[str, Any]:
         """Return normalized broker state for the authorization/reconciliation boundary."""
         mt5 = self._require_connected()
@@ -133,12 +141,59 @@ class MetaTrader5DemoBroker:
                 {"order_id": str(self._value(row, "ticket", "")), "symbol": str(self._value(row, "symbol", "")).upper()}
                 for row in orders
             ],
-            "executions": [
-                {"execution_id": str(self._value(row, "ticket", "")), "order_id": str(self._value(row, "order", "")),
-                 "symbol": str(self._value(row, "symbol", "")).upper(), "quantity": float(self._value(row, "volume", 0.0))}
-                for row in deals
-            ],
+            "executions": self._normalize_deals(deals),
         }
+
+    def reconciliation_snapshot_after_execution(self, execution: Any) -> dict[str, Any]:
+        """Capture current state and recover the just-submitted deal by ticket.
+
+        MT5 supports deal-history lookup by order ticket or position ticket in
+        addition to time-window queries. This targeted lookup is important for
+        brokers whose server/history clock does not align with the Python UTC
+        clock used by the caller.
+        """
+        mt5 = self._require_connected()
+        now = datetime.now(timezone.utc)
+        snapshot = self.reconciliation_snapshot(now, now)
+
+        deal_id = self._value(execution, "deal", self._value(execution, "deal_id", 0))
+        order_id = self._value(execution, "order", self._value(execution, "order_id", 0))
+        deals: list[Any] = []
+
+        if deal_id:
+            try:
+                deals = list(mt5.history_deals_get(ticket=int(deal_id)) or [])
+            except (TypeError, ValueError):
+                deals = []
+        if not deals and order_id:
+            try:
+                deals = list(mt5.history_deals_get(ticket=int(order_id)) or [])
+            except (TypeError, ValueError):
+                deals = []
+        if not deals and order_id:
+            try:
+                orders = list(mt5.history_orders_get(ticket=int(order_id)) or [])
+            except (TypeError, ValueError):
+                orders = []
+            position_ids = {
+                int(self._value(row, "position_id", 0))
+                for row in orders
+                if self._value(row, "position_id", 0)
+            }
+            for position_id in position_ids:
+                try:
+                    deals = list(mt5.history_deals_get(position=position_id) or [])
+                except (TypeError, ValueError):
+                    deals = []
+                if deals:
+                    break
+
+        normalized = self._normalize_deals(deals)
+        existing_ids = {item.get("execution_id") for item in snapshot["executions"]}
+        snapshot["executions"] = snapshot["executions"] + [
+            item for item in normalized if item.get("execution_id") not in existing_ids
+        ]
+        return snapshot
 
     def submit(self, intent: OrderIntent) -> dict:
         if not self.execution_enabled:

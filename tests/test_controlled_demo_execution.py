@@ -86,8 +86,6 @@ def test_known_broker_rejection_is_terminal_even_if_post_reconciliation_fails(tm
     ledger = DemoOrderLedger(tmp_path / "demo.sqlite3")
     service = ControlledDemoExecutionService(executor, ledger, intent_id_factory=lambda: "intent-1", now=lambda: NOW)
 
-    # Force the broker's second snapshot to fail reconciliation while preserving
-    # the known rejected execution result in the ledger.
     original_snapshot = broker.reconciliation_snapshot
     calls = {"count": 0}
 
@@ -184,3 +182,43 @@ def test_post_snapshot_capture_is_not_marked_future_when_broker_captures_after_r
 
     assert result.record.state == "FILLED"
     assert broker.capture_calls == 2
+
+
+def test_recover_pending_after_restart_promotes_confirmed_submission_without_broker_submit(tmp_path):
+    path = tmp_path / "demo.sqlite3"
+    ledger = DemoOrderLedger(path)
+    ledger.create("intent-1", "EURUSD", "BUY", 0.01, now=NOW)
+    ledger.transition("intent-1", "AUTHORIZED", now=NOW)
+    ledger.transition("intent-1", "SUBMITTED", now=NOW, order_id="29453207", deal_id="28862296")
+
+    restarted_ledger = DemoOrderLedger(path)
+    broker = Broker([])
+    executor = AuthorizedDemoExecutor(broker, DemoAuthorizationGate(OperationalKillSwitch()), now=lambda: NOW)
+    service = ControlledDemoExecutionService(executor, restarted_ledger, now=lambda: NOW)
+
+    recovered = service.recover_pending(
+        lambda record: {"executions": [{"execution_id": record.deal_id, "order_id": record.order_id}]}
+    )
+
+    assert recovered[0].state == "FILLED"
+    assert restarted_ledger.get("intent-1").state == "FILLED"
+    assert broker.submissions == []
+
+
+def test_recover_pending_after_restart_keeps_unconfirmed_submission_and_does_not_submit(tmp_path):
+    path = tmp_path / "demo.sqlite3"
+    ledger = DemoOrderLedger(path)
+    ledger.create("intent-1", "EURUSD", "BUY", 0.01, now=NOW)
+    ledger.transition("intent-1", "AUTHORIZED", now=NOW)
+    ledger.transition("intent-1", "SUBMITTED", now=NOW, order_id="order-1", deal_id="deal-1")
+
+    restarted_ledger = DemoOrderLedger(path)
+    broker = Broker([])
+    executor = AuthorizedDemoExecutor(broker, DemoAuthorizationGate(OperationalKillSwitch()), now=lambda: NOW)
+    service = ControlledDemoExecutionService(executor, restarted_ledger, now=lambda: NOW)
+
+    recovered = service.recover_pending(lambda record: {"executions": [], "positions": {"EURUSD": {"quantity": 0.01}}})
+
+    assert recovered[0].state == "SUBMITTED"
+    assert restarted_ledger.get("intent-1").state == "SUBMITTED"
+    assert broker.submissions == []

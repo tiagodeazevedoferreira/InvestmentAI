@@ -34,8 +34,6 @@ class DemoOrderLedger:
     TERMINAL_STATES = frozenset({"FILLED", "REJECTED", "FAILED"})
     ALLOWED_TRANSITIONS = {
         "INTENDED": frozenset({"AUTHORIZED", "FAILED"}),
-        # A broker can reject the order immediately during submission, so a
-        # known terminal rejection is a valid outcome directly after authorization.
         "AUTHORIZED": frozenset({"SUBMITTED", "REJECTED", "FAILED"}),
         "SUBMITTED": frozenset({"FILLED", "REJECTED", "FAILED"}),
         "FILLED": frozenset(), "REJECTED": frozenset(), "FAILED": frozenset(),
@@ -114,6 +112,26 @@ class DemoOrderLedger:
             state=row["state"], created_at=row["created_at"], updated_at=row["updated_at"],
             order_id=row["order_id"], deal_id=row["deal_id"], error=row["error"], execution=execution,
         )
+
+    def find_terminal_match(self, symbol: str, side: str, quantity: float) -> DemoOrderRecord | None:
+        """Return the newest terminal record with the exact controlled intent shape.
+
+        This is a conservative duplicate guard for explicitly controlled DEMO
+        runs. It prevents a rerun of the same symbol/side/quantity from blindly
+        submitting a second order after a prior successful execution.
+        """
+        symbol = symbol.strip().upper()
+        side = side.strip().upper()
+        quantity = float(quantity)
+        with self._connect() as connection:
+            row = connection.execute(
+                """SELECT intent_id FROM demo_orders
+                   WHERE symbol=? AND side=? AND quantity=?
+                     AND state IN ('FILLED','REJECTED','FAILED')
+                   ORDER BY updated_at DESC LIMIT 1""",
+                (symbol, side, quantity),
+            ).fetchone()
+        return self.get(row["intent_id"]) if row is not None else None
 
     def pending(self) -> tuple[DemoOrderRecord, ...]:
         with self._connect() as connection:

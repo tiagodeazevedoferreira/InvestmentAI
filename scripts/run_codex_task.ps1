@@ -46,6 +46,11 @@ function Resolve-CodexExecutable {
 
 $codexPath = Resolve-CodexExecutable
 
+# The Codex agent inherits this environment variable. Tasks must use it when
+# they need to invoke the same CLI executable, because the agent sandbox may
+# have a PATH different from the PowerShell session that launched the runner.
+$env:CODEX_CLI_PATH = $codexPath
+
 $outputPath = Join-Path $repoRoot $OutputDirectory
 New-Item -ItemType Directory -Force -Path $outputPath | Out-Null
 

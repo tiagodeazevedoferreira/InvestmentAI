@@ -69,19 +69,25 @@ The Doto/MT5 adapter is DEMO-only and fail-closed. It verifies the DEMO server d
 - `EURUSD` is confirmed as an available MT5 symbol; the terminal exposes 216 symbols in the tested session.
 - Non-submitting order preflight for `EURUSD BUY quantity=1` succeeded: `order_check()` returned `retcode=0`, `comment=Done`.
 - The preflight explicitly reported `submitted=false`; **no `order_send()` was called and no DEMO order was submitted**.
-- The validator now accepts `DOTO_MT5_TERMINAL_PATH` and passes the configured terminal path to `mt5.initialize()`.
+- The validator accepts `DOTO_MT5_TERMINAL_PATH` and passes the configured terminal path to `mt5.initialize()`.
 - GitHub commit `b262cc90b7a3f0cb0d219b2bf80f6ea8f55729fd` contains that terminal-path fix.
 - The current PowerShell session uses `DOTO_MT5_SERVER`, `DOTO_MT5_LOGIN`, `DOTO_MT5_PASSWORD` and `DOTO_MT5_TERMINAL_PATH`; the password must remain outside source control and must never be written to this file.
 
-## Current execution target
-The real Doto/MT5 DEMO account connectivity and non-submitting order semantics have now passed the required checkpoint. The next application-level task is to make the FastAPI/settings layer consume the same configured MT5 terminal path (`DOTO_MT5_TERMINAL_PATH`) used by the validator, add regression coverage, and keep execution fail-closed. After that, review the durable internal DEMO ledger and reconciliation gates before considering any single controlled DEMO order test. **Do not call `order_send()` during the current validation/integration stage.** Automatic scheduler-to-broker execution remains disconnected. Live execution remains disabled.
+## Application configuration checkpoint — 2026-09-11
+- `backend/app/settings.py` now reads `DOTO_MT5_TERMINAL_PATH` as the canonical environment variable for `settings.mt5_terminal_path`.
+- `MT5_TERMINAL_PATH` remains accepted as a backwards-compatible alias.
+- Regression tests were added in `backend/tests/test_settings.py` for both environment-variable names.
+- Commit `18a39412c312c29825299c5e637495c8cb0b0573` contains the settings fix and its tests in the same commit.
 
-## Known configuration integration gap
-`backend/app/settings.py` currently exposes `mt5_terminal_path`, which Pydantic naturally maps to `MT5_TERMINAL_PATH`. The validator uses `DOTO_MT5_TERMINAL_PATH`. Therefore, unless alias support is added (or a second environment variable is manually maintained), FastAPI routes such as `/broker/mt5/status` and `/market/mt5/{symbol}` will not automatically see the same terminal-path variable used by the validator. This must be corrected in the application settings layer rather than by storing a terminal path in source code.
+## Current execution target
+The Doto/MT5 DEMO connectivity and non-submitting order semantics have passed the required checkpoint, and the application settings layer is now aligned with the validator's terminal-path configuration. The immediate next step is to pull commit `18a39412c312c29825299c5e637495c8cb0b0573` locally and run the targeted settings tests, followed by the full test suite. If those pass, inspect the durable internal DEMO ledger and reconciliation gates before considering any single controlled DEMO order test. **Do not call `order_send()` during the current validation/integration stage.** Automatic scheduler-to-broker execution remains disconnected. Live execution remains disabled.
 
 ## Recent commits / handoff checkpoint
-Latest verified `main` commit before this context update: `b262cc90b7a3f0cb0d219b2bf80f6ea8f55729fd` — `fix: use configured DOTO MT5 terminal in demo gateway`.
-Previous related commits: `b4700f4d924ff0c7702cbdb38c7d35dd31aeccd4` (tests) and `d2cc3e3776f05d933eff53689ff0e03681e9108e` (DOTO DEMO login recognition).
+- `18a39412c312c29825299c5e637495c8cb0b0573` — `fix: align MT5 terminal environment configuration`
+- `eb01b016641edd7b46a41c74f71fc43656a93b57` — `docs: update project context with Doto MT5 demo validation checkpoint`
+- `b262cc90b7a3f0cb0d219b2bf80f6ea8f55729fd` — `fix: use configured DOTO MT5 terminal in demo gateway`
+- `b4700f4d924ff0c7702cbdb38c7d35dd31aeccd4` — related tests
+- `d2cc3e3776f05d933eff53689ff0e03681e9108e` — DOTO DEMO login recognition
 
 ## Handoff rule
 A new conversation should read this file plus `DEVELOPMENT_STATUS.md`, `DECISIONS.md`, `ARCHITECTURE.md`, `ROADMAP.md`, `docs/OPENBB_B3_PROVIDER.md` and `docs/PAPER_SIGNAL_AUTOMATION.md`, then inspect current source/workflows before changing anything. The context files are part of the project's continuity mechanism: after every material change, update the relevant documentation so a new chat can resume from the recorded state without relying on an old conversation.

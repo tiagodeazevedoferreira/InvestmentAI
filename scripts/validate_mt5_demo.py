@@ -40,8 +40,6 @@ def main() -> int:
     password = os.environ.get("DOTO_MT5_PASSWORD")
     if not server or not login_raw or not password:
         parser.error("DOTO_MT5_SERVER, DOTO_MT5_LOGIN and DOTO_MT5_PASSWORD are required")
-    if "demo" not in server.lower():
-        parser.error("DOTO_MT5_SERVER must identify a DEMO server")
     try:
         login = int(login_raw)
     except ValueError as exc:
@@ -54,6 +52,8 @@ def main() -> int:
     date_from = date_to - timedelta(hours=args.hours)
     try:
         gateway.initialize()
+        if not broker.is_demo_environment:
+            raise DemoBrokerError("Connected MT5 account is not classified as DEMO")
         account = broker.account()
         external = broker.reconciliation_snapshot(date_from, date_to)
         result: dict[str, object] = {

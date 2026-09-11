@@ -94,7 +94,10 @@ Last updated: 2026-09-11
 - [x] Controlled end-to-end validation against a real Doto/MT5 DEMO account
 - [x] Durable DEMO restart/recovery coordinator with no automatic resubmission
 - [x] Empirical restart/recovery validation against the persisted DEMO ledger, confirming an ambiguous `SUBMITTED` record remains pending without broker submission
+- [x] Broker-connected read-only recovery validation using the confirmed Order `29453207` / Deal `28862296`
+- [x] Fault-injected submission-interruption test: exception after authorization remains recoverable `SUBMITTED` and never becomes an automatic retry
 - [ ] Scheduler → DEMO broker integration
+- [ ] Real interrupted-broker-submission recovery validation without deliberately creating another DEMO transaction
 - [ ] Live broker adapter
 - [x] Empirical promotion gate evaluator (human-review only)
 - [x] Kill switch and reconciliation engine (broker-neutral, read-only)
@@ -148,6 +151,7 @@ Last updated: 2026-09-11
 - [x] Authorized DEMO execution coordinator tests
 - [x] MT5 DEMO preflight tests
 - [x] DEMO restart/recovery tests
+- [x] Fault-injected DEMO submission-interruption test
 - [ ] Full integration test suite against provider mocks
 - [ ] End-to-end training/backtest test
 - [ ] Security/dependency scan
@@ -160,6 +164,8 @@ The causal ML trading backtest, robustness audit and model diagnosis are complet
 The internal paper execution path is deterministic and broker-independent. Provider-backed scheduling obtains B3 history through the OpenBB/yfinance boundary, evaluates the existing RSI paper policy, persists a deterministic decision key, and skips duplicates. Completed decisions receive persisted 1/5/20-bar forward outcomes. The calibration layer reports directional hit rate, confidence intervals and return statistics under an explicit transaction-cost assumption, and the runner can partition results by a causal trailing-volatility regime. Paper decisions can also be reconciled against TradingView validator evidence using an explicit timestamp tolerance. The empirical gate evaluates predefined evidence criteria, but a passing result only permits human review and can never authorize promotion automatically. Operational kill-switch and broker-neutral reconciliation primitives are hardened. The Doto/MT5 demo-only adapter, read-only reconciliation harness, fail-closed authorization gate, and pre/post-reconciled DEMO execution coordinator are implemented. The adapter rejects unsupported limit intents, uses bid/ask semantics for market orders, requires a successful order_check result, and verifies DEMO status during initialization. A non-submitting preflight path builds the exact market request and runs order_check without order_send().
 
 The controlled Doto/MT5 DEMO end-to-end gate was completed on 2026-09-11. The first explicitly authorized `EURUSD BUY 0.01` was accepted and filled: order `29453207`, deal `28862296`, position `29453207`, open at `1.15960`. External MT5 inspection confirmed exactly one open EURUSD BUY position with volume `0.01`; no pending open order remained because the market order was filled. Targeted post-execution reconciliation was validated using broker history lookup by deal/order/position identifiers after a time-window lookup proved unreliable because the broker/server history clock differed from the Python UTC window. The corrected reconciliation path recovered execution `28862296` and position `EURUSD: BUY 0.01` without submitting another order. The durable demo ledger reports the valid transaction as `FILLED`, and the local demo portfolio state mirrors the external position. The restart/recovery coordinator was then exercised against the actual persisted local ledger. The historical ambiguous `SUBMITTED` record remained `SUBMITTED` with no broker identifiers, while the already `FILLED` reference transaction remained untouched. The recovery call did not invoke broker submission, did not create a new intent and did not alter the existing EURUSD DEMO position. This empirically validates the restart/recovery no-duplicate boundary for the current persisted state.
+
+A broker-connected, read-only recovery harness was then validated using a disposable SQLite ledger. It seeded the already confirmed Order `29453207` / Deal `28862296` and a separate synthetic unknown submission. Targeted MT5 history promoted only the confirmed record to `FILLED`; the unknown record remained `SUBMITTED`; `order_send` was not called; and temporary SQLite state was successfully discarded on Windows. A separate fault-injected coordinator test confirms that a timeout after local authorization preserves `SUBMITTED` uncertainty rather than classifying the intent as `FAILED` or retrying automatically. A real broker interruption is intentionally not induced merely for testing because doing so could create another DEMO transaction. Scheduler-to-DEMO integration therefore remains disconnected and live execution remains disabled.
 
 The controlled runner remains manual and fail-closed: read-only mode does not call `order_send()`, and execution requires both explicit `--execute` and the dedicated DEMO execution arm. No additional DEMO order should be sent solely for verification. Automatic scheduler-to-broker execution remains disconnected, and live execution remains disabled.
 

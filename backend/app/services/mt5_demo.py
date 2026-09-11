@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Protocol
@@ -9,6 +10,12 @@ from .order_manager import OrderIntent
 
 class DemoBrokerError(RuntimeError):
     """Raised when the MT5 demo adapter cannot safely complete an operation."""
+
+
+def _configured_demo_logins() -> frozenset[str]:
+    """Return locally configured broker account IDs that Doto labels as DEMO."""
+    raw = os.getenv("INVESTMENTAI_DOTO_DEMO_LOGINS", "")
+    return frozenset(item.strip() for item in raw.split(",") if item.strip())
 
 
 class MT5Gateway(Protocol):
@@ -37,10 +44,22 @@ class DemoAccountSnapshot:
 class MetaTrader5DemoGateway:
     """Thin, lazy MT5 gateway. It never connects to a live account."""
 
-    def __init__(self, *, login: int | None = None, server: str | None = None, password: str | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        login: int | None = None,
+        server: str | None = None,
+        password: str | None = None,
+        demo_account_logins: set[str] | frozenset[str] | None = None,
+    ) -> None:
         self.login = login
         self.server = server
         self.password = password
+        self.demo_account_logins = frozenset(
+            str(item).strip()
+            for item in (demo_account_logins if demo_account_logins is not None else _configured_demo_logins())
+            if str(item).strip()
+        )
         self._mt5: Any | None = None
 
     def _module(self) -> Any:
@@ -51,6 +70,23 @@ class MetaTrader5DemoGateway:
                 raise DemoBrokerError("MetaTrader5 package is not installed") from exc
             self._mt5 = mt5
         return self._mt5
+
+    @staticmethod
+    def _value(obj: Any, name: str, default: Any = None) -> Any:
+        if isinstance(obj, dict):
+            return obj.get(name, default)
+        return getattr(obj, name, default)
+
+    def _is_configured_doto_demo(self, account: Any) -> bool:
+        """Recognize Doto's broker-side DEMO exception when MT5 reports a REAL mode."""
+        login = str(self._value(account, "login", ""))
+        server = str(self._value(account, "server", ""))
+        company = str(self._value(account, "company", ""))
+        return (
+            login in self.demo_account_logins
+            and "doto" in server.lower()
+            and "doto" in company.lower()
+        )
 
     def initialize(self) -> bool:
         mt5 = self._module()
@@ -68,13 +104,17 @@ class MetaTrader5DemoGateway:
         if account is None:
             mt5.shutdown()
             raise DemoBrokerError("MT5 account_info returned no account after initialize")
-        server = str(getattr(account, "server", ""))
-        if "demo" not in server.lower():
+
+        server = str(self._value(account, "server", ""))
+        configured_doto_demo = self._is_configured_doto_demo(account)
+        server_demo = "demo" in server.lower()
+        if not (server_demo or configured_doto_demo):
             mt5.shutdown()
-            raise DemoBrokerError("Refusing non-demo MT5 server")
-        trade_mode = getattr(account, "trade_mode", None)
+            raise DemoBrokerError("Refusing non-demo MT5 server/account")
+
+        trade_mode = self._value(account, "trade_mode", None)
         real_mode = getattr(mt5, "ACCOUNT_TRADE_MODE_REAL", None)
-        if real_mode is not None and trade_mode == real_mode:
+        if real_mode is not None and trade_mode == real_mode and not configured_doto_demo:
             mt5.shutdown()
             raise DemoBrokerError("Refusing MT5 real/live trade mode")
         return True
@@ -130,9 +170,18 @@ class MT5DemoBroker:
             raise DemoBrokerError("MT5 account_info returned no account")
         server = str(self._value(account, "server", ""))
         trade_mode = self._value(account, "trade_mode")
-        if self.require_demo_server and "demo" not in server.lower():
-            raise DemoBrokerError("Refusing non-demo MT5 server")
-        if trade_mode is not None and str(trade_mode).lower() in {"real", "live"}:
+
+        configured_doto_demo = False
+        if isinstance(self.gateway, MetaTrader5DemoGateway):
+            configured_doto_demo = self.gateway._is_configured_doto_demo(account)
+
+        if self.require_demo_server and "demo" not in server.lower() and not configured_doto_demo:
+            raise DemoBrokerError("Refusing non-demo MT5 server/account")
+        mt5 = getattr(self.gateway, "_mt5", None)
+        real_mode = getattr(mt5, "ACCOUNT_TRADE_MODE_REAL", None) if mt5 is not None else None
+        if trade_mode is not None and (
+            str(trade_mode).lower() in {"real", "live"} or (real_mode is not None and trade_mode == real_mode)
+        ) and not configured_doto_demo:
             raise DemoBrokerError("Refusing MT5 real/live trade mode")
         return account
 

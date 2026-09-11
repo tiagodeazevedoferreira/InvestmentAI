@@ -1,0 +1,84 @@
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory = $true)]
+    [string]$TaskFile,
+
+    [string]$OutputDirectory = ".runtime\codex"
+)
+
+$ErrorActionPreference = "Stop"
+
+$repoRoot = (git rev-parse --show-toplevel).Trim()
+if (-not $repoRoot) {
+    throw "Este script deve ser executado dentro do repositório InvestmentAI."
+}
+
+$taskPath = [System.IO.Path]::GetFullPath((Join-Path (Get-Location) $TaskFile))
+if (-not (Test-Path -LiteralPath $taskPath -PathType Leaf)) {
+    throw "Arquivo de tarefa não encontrado: $taskPath"
+}
+
+$outputPath = Join-Path $repoRoot $OutputDirectory
+New-Item -ItemType Directory -Force -Path $outputPath | Out-Null
+
+$stamp = Get-Date -Format "yyyyMMdd-HHmmss"
+$runDirectory = Join-Path $outputPath $stamp
+New-Item -ItemType Directory -Force -Path $runDirectory | Out-Null
+
+$schemaPath = Join-Path $repoRoot "docs\codex\handoff.schema.json"
+if (-not (Test-Path -LiteralPath $schemaPath -PathType Leaf)) {
+    throw "Schema de handoff não encontrado: $schemaPath"
+}
+
+$eventsPath = Join-Path $runDirectory "events.jsonl"
+$resultPath = Join-Path $runDirectory "result.json"
+$prompt = @"
+Você está executando uma tarefa do InvestmentAI recebida pelo protocolo ChatGPT ↔ Codex ↔ GitHub.
+
+Leia e respeite integralmente o AGENTS.md e os documentos de arquitetura/decisão/status do projeto.
+
+Regras desta execução:
+- Execute a tarefa abaixo dentro do escopo solicitado.
+- Inspecione o código existente antes de alterar arquivos.
+- Faça as alterações necessárias, sem trabalho não relacionado.
+- Execute os testes apropriados e registre resultados reais.
+- Se encontrar ambiguidade de arquitetura, estado ou segurança, pare e reporte BLOCKED.
+- Nunca execute operações financeiras, nunca chame mt5.order_send() e nunca crie uma nova ordem DEMO/LIVE.
+- Não apague, redefina ou limpe .runtime/.
+- Não use git reset --hard, git clean -fd ou ações destrutivas.
+- Ao finalizar, responda SOMENTE com um objeto JSON compatível com o schema de handoff fornecido.
+
+TAREFA:
+$(Get-Content -LiteralPath $taskPath -Raw)
+"@
+
+$codexArgs = @(
+    "exec",
+    "--cd", $repoRoot,
+    "--sandbox", "workspace-write",
+    "--config", 'approval_policy="on-request"',
+    "--json",
+    "--output-schema", $schemaPath,
+    "--output-last-message", $resultPath,
+    "-"
+)
+
+Write-Host "InvestmentAI Codex Task Runner"
+Write-Host "Task: $taskPath"
+Write-Host "Run:  $runDirectory"
+Write-Host ""
+
+$prompt | & codex @codexArgs 2>&1 | Tee-Object -FilePath $eventsPath
+$exitCode = $LASTEXITCODE
+
+if ($exitCode -ne 0) {
+    Write-Host ""
+    Write-Error "Codex terminou com código $exitCode. Consulte: $eventsPath"
+}
+
+if (Test-Path -LiteralPath $resultPath) {
+    Write-Host ""
+    Write-Host "Resultado estruturado: $resultPath"
+}
+
+exit $exitCode

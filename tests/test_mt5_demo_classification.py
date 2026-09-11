@@ -6,7 +6,9 @@ from app.services.mt5_demo import DemoBrokerError, MetaTrader5DemoGateway, MT5De
 
 
 class FakeMT5:
-    ACCOUNT_TRADE_MODE_REAL = 0
+    ACCOUNT_TRADE_MODE_DEMO = 0
+    ACCOUNT_TRADE_MODE_CONTEST = 1
+    ACCOUNT_TRADE_MODE_REAL = 2
 
     def __init__(self, account):
         self.account = account
@@ -44,7 +46,7 @@ def gateway(fake_mt5, *, demo_logins=None):
 
 
 def test_doto_demo_login_is_allowed_on_real_named_server():
-    fake = FakeMT5(account())
+    fake = FakeMT5(account(trade_mode=FakeMT5.ACCOUNT_TRADE_MODE_REAL))
     broker = MT5DemoBroker(gateway(fake, demo_logins={"5344431"}))
 
     assert broker.initialize() is True
@@ -56,7 +58,7 @@ def test_doto_demo_login_is_allowed_on_real_named_server():
 
 
 def test_real_named_doto_server_is_rejected_without_explicit_demo_allowlist():
-    fake = FakeMT5(account())
+    fake = FakeMT5(account(trade_mode=FakeMT5.ACCOUNT_TRADE_MODE_REAL))
     broker = MT5DemoBroker(gateway(fake))
 
     with pytest.raises(DemoBrokerError, match="non-demo"):
@@ -66,14 +68,14 @@ def test_real_named_doto_server_is_rejected_without_explicit_demo_allowlist():
 
 
 def test_regular_demo_server_does_not_need_allowlist():
-    fake = FakeMT5(account(server="DOTOGlobal-Demo", trade_mode=0))
+    fake = FakeMT5(account(server="DOTOGlobal-Demo", trade_mode=FakeMT5.ACCOUNT_TRADE_MODE_DEMO))
     broker = MT5DemoBroker(gateway(fake))
 
     assert broker.initialize() is True
 
 
 def test_allowlisted_login_must_still_be_a_doto_account():
-    fake = FakeMT5(account(company="Other Broker", server="OtherBroker-Real"))
+    fake = FakeMT5(account(company="Other Broker", server="OtherBroker-Real", trade_mode=FakeMT5.ACCOUNT_TRADE_MODE_REAL))
     broker = MT5DemoBroker(gateway(fake, demo_logins={"5344431"}))
 
     with pytest.raises(DemoBrokerError, match="non-demo"):
@@ -81,7 +83,7 @@ def test_allowlisted_login_must_still_be_a_doto_account():
 
 
 def test_doto_demo_allowlist_is_required_again_during_account_validation():
-    fake = FakeMT5(account())
+    fake = FakeMT5(account(trade_mode=FakeMT5.ACCOUNT_TRADE_MODE_REAL))
     gateway_instance = gateway(fake, demo_logins={"5344431"})
     broker = MT5DemoBroker(gateway_instance)
 

@@ -118,6 +118,17 @@ def main() -> int:
             print("next_gate: explicit --execute + execution arm")
             return 0
 
+        # A successful controlled DEMO execution is durable. Never submit another
+        # order with the same controlled intent shape merely because this script
+        # was invoked again. Rejected/failed records remain retryable.
+        duplicate = ledger.find_filled_match(intent.symbol, intent.side, intent.quantity)
+        if duplicate is not None:
+            raise ControlledDemoRunBlocked(
+                "duplicate DEMO execution blocked: "
+                f"{intent.symbol} {intent.side} {intent.quantity:g} already FILLED "
+                f"(order_id={duplicate.order_id}, deal_id={duplicate.deal_id})"
+            )
+
         # The application owns the internal state. A first execution may bootstrap
         # that state from one explicitly captured broker snapshot; subsequent runs
         # must reconcile against the persisted application state instead of silently

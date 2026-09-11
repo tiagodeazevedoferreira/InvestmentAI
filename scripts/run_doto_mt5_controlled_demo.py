@@ -17,6 +17,7 @@ from app.services.demo_authorization import DemoAuthorizationGate
 from app.services.demo_execution import AuthorizedDemoExecutor
 from app.services.demo_ledger import DemoOrderLedger
 from app.services.demo_order_preflight import DemoOrderPreflight
+from app.services.demo_portfolio_state import DemoPortfolioStateStore
 from app.services.mt5_demo_broker import MetaTrader5DemoBroker
 from app.services.operational_kill_switch import OperationalKillSwitch
 from app.services.order_manager import OrderIntent
@@ -51,28 +52,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--side", choices=("BUY", "SELL"), default="BUY")
     parser.add_argument("--volume", type=float, default=DEFAULT_VOLUME)
     parser.add_argument("--ledger", default=str(ROOT / ".runtime" / "demo-controlled.sqlite3"))
+    parser.add_argument(
+        "--portfolio-state",
+        default=str(ROOT / ".runtime" / "demo-portfolio-state.sqlite3"),
+        help="Application-owned persistent DEMO portfolio/accounting state.",
+    )
     parser.add_argument("--execute", action="store_true", help="Request the controlled DEMO submission path.")
     return parser.parse_args()
 
 
 def _execution_armed() -> bool:
     return os.getenv(ARM_ENV, "").strip().lower() in {"1", "true", "yes", "on"}
-
-
-def _internal_state_from_snapshot(snapshot: Mapping[str, Any]) -> dict[str, Any]:
-    """Normalize the current workstation state for the preflight boundary.
-
-    This is intentionally a temporary bridge for the manual controlled runner.
-    The scheduler and live trading paths do not consume it. Before the first
-    real DEMO order, the application portfolio-state provider must replace this
-    bridge so the post-execution provider reads the application's own state.
-    """
-    return {
-        "cash": float(snapshot.get("cash", 0.0)),
-        "positions": dict(snapshot.get("positions", {})),
-        "open_orders": list(snapshot.get("open_orders", [])),
-        "executions": list(snapshot.get("executions", [])),
-    }
 
 
 def main() -> int:
@@ -95,6 +85,7 @@ def main() -> int:
         max_volume=DEFAULT_VOLUME,
     )
     ledger = DemoOrderLedger(ledger_path)
+    portfolio_state = DemoPortfolioStateStore(args.portfolio_state)
     executor = AuthorizedDemoExecutor(
         broker,
         DemoAuthorizationGate(OperationalKillSwitch()),
@@ -109,8 +100,7 @@ def main() -> int:
             raise ControlledDemoRunBlocked("MT5 DEMO account trading permissions are not both enabled")
 
         now = datetime.now(timezone.utc)
-        before_snapshot = broker.reconciliation_snapshot(now, now)
-        internal_before = _internal_state_from_snapshot(before_snapshot)
+        broker_snapshot = broker.reconciliation_snapshot(now, now)
         intent = OrderIntent(args.symbol.upper(), args.side, args.volume)
         DemoOrderPreflight().validate(intent, environment="demo")
 
@@ -128,10 +118,16 @@ def main() -> int:
             print("next_gate: explicit --execute + execution arm")
             return 0
 
+        # The application owns the internal state. A first execution may bootstrap
+        # that state from one explicitly captured broker snapshot; subsequent runs
+        # must reconcile against the persisted application state instead of silently
+        # treating a fresh broker snapshot as internal state.
+        internal_before = portfolio_state.bootstrap(broker_snapshot)
+
         def refresh_internal_state() -> Mapping[str, Any]:
             refresh_now = datetime.now(timezone.utc)
-            refreshed = broker.reconciliation_snapshot(refresh_now, refresh_now)
-            return _internal_state_from_snapshot(refreshed)
+            refreshed_external = broker.reconciliation_snapshot(refresh_now, refresh_now)
+            return portfolio_state.synchronize(refreshed_external)
 
         result = service.execute(
             intent,

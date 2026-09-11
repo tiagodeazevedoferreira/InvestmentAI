@@ -29,6 +29,7 @@ Integrate the simulator with the signal engine, portfolio accounting, fees/slipp
 - [x] Controlled single-order validation against the DOTO/MT5 DEMO account
 - [x] Targeted post-execution reconciliation by broker execution/order/position identifiers
 - [x] External broker confirmation of Order `29453207` → Deal `28862296` → Position `29453207`
+- [x] Restart/recovery validation using the persisted DEMO ledger, with no automatic resubmission
 - [ ] Scheduler-to-DEMO integration after single-order validation
 - [ ] Complete DEMO order lifecycle and failure-recovery validation against the broker
 

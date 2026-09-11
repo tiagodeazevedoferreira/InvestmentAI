@@ -11,6 +11,7 @@ from .paper_automation import evaluate_paper_signal
 from .paper_ledger import PaperDecisionLedger
 from .paper_store import PaperAccountStore
 from .providers import MarketDataProvider, get_provider
+from .scheduler_demo_bridge import DemoPromotionPlan, SchedulerDemoBridge
 
 B3_TZ = ZoneInfo("America/Sao_Paulo")
 DEFAULT_SYMBOLS = ("PETR4", "VALE3", "ITUB4")
@@ -23,9 +24,13 @@ class SchedulerResult:
     signal_id: str | None = None
     action: str | None = None
     bar_timestamp: str | None = None
+    quantity: float = 0.0
+    reference_price: float | None = None
+    risk_allowed: bool = False
     executed: bool = False
     order: dict | None = None
     reason: str | None = None
+    demo_plan: DemoPromotionPlan | None = None
 
 
 def yahoo_symbol(symbol: str) -> str:
@@ -77,6 +82,7 @@ def run_symbol(
     target_allocation: float = 0.05,
     period: str = "3mo",
     execute: bool = True,
+    demo_bridge: SchedulerDemoBridge | None = None,
 ) -> SchedulerResult:
     display_symbol = symbol.strip().upper().removesuffix(".SA")
     frame = provider.history(yahoo_symbol(display_symbol), period=period)
@@ -103,7 +109,7 @@ def run_symbol(
         action=action,
     )
     if not created and existing.get("status") == "completed":
-        return SchedulerResult(
+        duplicate = SchedulerResult(
             symbol=display_symbol,
             status="duplicate_skipped",
             signal_id=sid,
@@ -113,6 +119,7 @@ def run_symbol(
             order=existing.get("order"),
             reason="decision already completed in Firebase ledger",
         )
+        return duplicate
 
     result = evaluate_paper_signal(
         account_store.get(),
@@ -132,16 +139,24 @@ def run_symbol(
         ledger.complete(sid, executed=False, order=None)
 
     decision = result["decision"]
-    return SchedulerResult(
+    scheduler_result = SchedulerResult(
         symbol=display_symbol,
         status="executed" if result.get("executed") else "decided",
         signal_id=sid,
         action=decision["action"],
         bar_timestamp=timestamp,
+        quantity=float(decision.get("quantity", 0) or 0),
+        reference_price=float(decision["reference_price"]),
+        risk_allowed=bool(decision.get("risk_allowed")),
         executed=bool(result.get("executed")),
         order=result.get("order"),
         reason=decision.get("reason") or result.get("error"),
     )
+    if demo_bridge is not None:
+        return SchedulerResult(
+            **{**scheduler_result.__dict__, "demo_plan": demo_bridge.plan(scheduler_result)}
+        )
+    return scheduler_result
 
 
 def run_scheduler(
@@ -154,6 +169,7 @@ def run_scheduler(
     period: str = "3mo",
     execute: bool = True,
     force: bool = False,
+    demo_bridge: SchedulerDemoBridge | None = None,
 ) -> list[SchedulerResult]:
     allowed, guard_reason = b3_session_allowed()
     if not force and not allowed:
@@ -177,6 +193,7 @@ def run_scheduler(
                     target_allocation=target_allocation,
                     period=period,
                     execute=execute,
+                    demo_bridge=demo_bridge,
                 )
             )
         except Exception as exc:

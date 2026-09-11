@@ -26,7 +26,9 @@ Integrate the simulator with the signal engine, portfolio accounting, fees/slipp
 - [x] Controlled DEMO execution path requires a fresh internal post-execution state provider before post-reconciliation can report success
 - [x] Controlled DOTO/MT5 DEMO runner with explicit execution arming and read-only default
 - [x] Application-owned persistent DEMO portfolio/accounting state provider
-- [ ] Controlled single-order validation against the DOTO/MT5 DEMO account
+- [x] Controlled single-order validation against the DOTO/MT5 DEMO account
+- [x] Targeted post-execution reconciliation by broker execution/order/position identifiers
+- [x] External broker confirmation of Order `29453207` → Deal `28862296` → Position `29453207`
 - [ ] Scheduler-to-DEMO integration after single-order validation
 - [ ] Complete DEMO order lifecycle and failure-recovery validation against the broker
 

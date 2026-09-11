@@ -11,9 +11,18 @@ The script `scripts/run_doto_mt5_controlled_demo.py` is the manual boundary for 
 - The broker remains restricted to the configured DEMO login/server and a maximum volume of `0.01`.
 - Post-execution state is refreshed through a callable provider before post-reconciliation.
 
-## Current limitation
+## Application portfolio state
 
-The runner currently uses a temporary workstation-state bridge for the internal-state boundary. Before relying on the first real DEMO execution as application evidence, the bridge must be replaced by the application's own portfolio/accounting state provider. This avoids treating the broker as the application's source of truth.
+The runner now uses `DemoPortfolioStateStore` as the application's persistent internal DEMO state provider.
+
+- The first explicitly armed execution bootstraps the provider once from the broker's pre-execution reconciliation snapshot.
+- Subsequent executions use the persisted application state for the authorization boundary; they do not silently replace it with a fresh broker snapshot before authorization.
+- After broker submission, the runner captures a fresh external snapshot and explicitly synchronizes the application state provider before the executor performs post-reconciliation.
+- The provider stores only the normalized state required by reconciliation: cash, positions, open orders and executions.
+- The broker remains the authoritative external execution system; the application provider is the internal state boundary used by InvestmentAI.
+- If the application state is missing or malformed, the path fails closed.
+
+This removes the previous direct workstation-state bridge from the runner.
 
 ## Execution procedure
 

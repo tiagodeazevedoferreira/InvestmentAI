@@ -224,6 +224,35 @@ def test_recover_pending_after_restart_keeps_unconfirmed_submission_and_does_not
     assert broker.submissions == []
 
 
+def test_recovery_evidence_failure_keeps_submission_pending_and_continues(tmp_path):
+    path = tmp_path / "demo.sqlite3"
+    ledger = DemoOrderLedger(path)
+    for intent_id, deal_id in (("intent-1", "deal-1"), ("intent-2", "deal-2")):
+        ledger.create(intent_id, "EURUSD", "BUY", 0.01, now=NOW)
+        ledger.transition(intent_id, "AUTHORIZED", now=NOW)
+        ledger.transition(intent_id, "SUBMITTED", now=NOW, order_id=f"order-{intent_id}", deal_id=deal_id)
+
+    restarted_ledger = DemoOrderLedger(path)
+    broker = Broker([])
+    executor = AuthorizedDemoExecutor(broker, DemoAuthorizationGate(OperationalKillSwitch()), now=lambda: NOW)
+    service = ControlledDemoExecutionService(executor, restarted_ledger, now=lambda: NOW)
+    calls = []
+
+    def evidence(record):
+        calls.append(record.intent_id)
+        if record.intent_id == "intent-1":
+            raise TimeoutError("history lookup timeout")
+        return {"executions": [{"execution_id": "deal-2", "order_id": "order-intent-2"}]}
+
+    recovered = service.recover_pending(evidence)
+
+    assert [record.state for record in recovered] == ["SUBMITTED", "FILLED"]
+    assert restarted_ledger.get("intent-1").error == "history lookup timeout"
+    assert restarted_ledger.get("intent-2").state == "FILLED"
+    assert calls == ["intent-1", "intent-2"]
+    assert broker.submissions == []
+
+
 def test_submission_exception_after_authorization_becomes_recoverable_submitted(tmp_path):
     before = state()
     broker = Broker([snapshot(before)])

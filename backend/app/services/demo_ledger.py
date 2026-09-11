@@ -34,7 +34,9 @@ class DemoOrderLedger:
     TERMINAL_STATES = frozenset({"FILLED", "REJECTED", "FAILED"})
     ALLOWED_TRANSITIONS = {
         "INTENDED": frozenset({"AUTHORIZED", "FAILED"}),
-        "AUTHORIZED": frozenset({"SUBMITTED", "FAILED"}),
+        # A broker can reject the order immediately during submission, so a
+        # known terminal rejection is a valid outcome directly after authorization.
+        "AUTHORIZED": frozenset({"SUBMITTED", "REJECTED", "FAILED"}),
         "SUBMITTED": frozenset({"FILLED", "REJECTED", "FAILED"}),
         "FILLED": frozenset(), "REJECTED": frozenset(), "FAILED": frozenset(),
     }

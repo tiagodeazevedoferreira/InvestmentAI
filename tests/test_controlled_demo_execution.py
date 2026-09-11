@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -25,16 +25,17 @@ def snapshot(value):
 class Broker:
     environment = "demo"
 
-    def __init__(self, snapshots):
+    def __init__(self, snapshots, submission=None):
         self.snapshots = iter(snapshots)
         self.submissions = []
+        self.submission = submission or {"order": 123, "deal": 456, "retcode": 10009, "accepted": True, "symbol": "PETR4"}
 
     def reconciliation_snapshot(self, date_from, date_to):
         return next(self.snapshots)
 
     def submit(self, intent):
         self.submissions.append(intent)
-        return {"order": 123, "deal": 456, "retcode": 10009, "accepted": True, "symbol": intent.symbol}
+        return dict(self.submission)
 
 
 def test_controlled_service_persists_full_success_lifecycle(tmp_path):
@@ -74,6 +75,41 @@ def test_controlled_service_leaves_uncertain_execution_recoverable(tmp_path):
     assert record.error
 
 
+def test_known_broker_rejection_is_terminal_even_if_post_reconciliation_fails(tmp_path):
+    before = state()
+    after = state()
+    broker = Broker(
+        [snapshot(before), snapshot(before)],
+        submission={"order": 0, "deal": 0, "retcode": 10027, "accepted": False, "symbol": "PETR4"},
+    )
+    executor = AuthorizedDemoExecutor(broker, DemoAuthorizationGate(OperationalKillSwitch()), now=lambda: NOW)
+    ledger = DemoOrderLedger(tmp_path / "demo.sqlite3")
+    service = ControlledDemoExecutionService(executor, ledger, intent_id_factory=lambda: "intent-1", now=lambda: NOW)
+
+    # Force the broker's second snapshot to fail reconciliation while preserving
+    # the known rejected execution result in the ledger.
+    original_snapshot = broker.reconciliation_snapshot
+    calls = {"count": 0}
+
+    def failing_second_snapshot(date_from, date_to):
+        calls["count"] += 1
+        if calls["count"] == 2:
+            return {**snapshot(before), "captured_at": (NOW + timedelta(seconds=1)).isoformat()}
+        return original_snapshot(date_from, date_to)
+
+    broker.reconciliation_snapshot = failing_second_snapshot
+
+    with pytest.raises(DemoExecutionBlocked, match="post-execution reconciliation failed"):
+        service.execute(OrderIntent("PETR4", "BUY", 0.01), internal_before=before,
+                        internal_after_provider=lambda: after)
+
+    record = ledger.get("intent-1")
+    assert record.state == "REJECTED"
+    assert record.execution["retcode"] == 10027
+    assert record.execution["accepted"] is False
+    assert record.error
+
+
 def test_post_execution_internal_state_is_refreshed_after_submission(tmp_path):
     before = state()
     refreshed = state(cash=900.0, quantity=20, executions=[{"execution_id": "456"}])
@@ -110,3 +146,41 @@ def test_invalid_post_execution_internal_state_blocks_success_after_submission(t
     assert record.state == "SUBMITTED"
     assert record.deal_id == "456"
     assert record.error
+
+
+def test_post_snapshot_capture_is_not_marked_future_when_broker_captures_after_request(tmp_path):
+    before = state()
+    after = state(cash=900.0, quantity=20, executions=[{"execution_id": "456"}])
+
+    class Clock:
+        def __init__(self):
+            self.current = NOW
+
+        def __call__(self):
+            value = self.current
+            self.current += timedelta(microseconds=100)
+            return value
+
+    clock = Clock()
+
+    class CapturingBroker(Broker):
+        def __init__(self):
+            super().__init__([snapshot(before), snapshot(after)])
+            self.capture_calls = 0
+
+        def reconciliation_snapshot(self, date_from, date_to):
+            self.capture_calls += 1
+            if self.capture_calls == 1:
+                return {**before, "captured_at": date_to.isoformat()}
+            return {**after, "captured_at": (date_to + timedelta(microseconds=100)).isoformat()}
+
+    broker = CapturingBroker()
+    executor = AuthorizedDemoExecutor(broker, DemoAuthorizationGate(OperationalKillSwitch()), now=clock)
+    ledger = DemoOrderLedger(tmp_path / "demo.sqlite3")
+    service = ControlledDemoExecutionService(executor, ledger, intent_id_factory=lambda: "intent-1", now=clock)
+
+    result = service.execute(OrderIntent("PETR4", "BUY", 0.01), internal_before=before,
+                             internal_after_provider=lambda: after)
+
+    assert result.record.state == "FILLED"
+    assert broker.capture_calls == 2

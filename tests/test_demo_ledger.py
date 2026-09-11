@@ -69,3 +69,40 @@ def test_ledger_does_not_treat_failed_or_rejected_as_duplicate(tmp_path):
     ledger.transition("failed", "FAILED", now=NOW)
 
     assert ledger.find_filled_match("EURUSD", "BUY", 0.01) is None
+
+
+def test_ledger_recovers_submitted_only_with_matching_deal(tmp_path):
+    ledger = DemoOrderLedger(tmp_path / "demo.sqlite3")
+    ledger.create("intent-1", "EURUSD", "BUY", 0.01, now=NOW)
+    ledger.transition("intent-1", "AUTHORIZED", now=NOW)
+    ledger.transition(
+        "intent-1", "SUBMITTED", now=NOW,
+        order_id="order-1", deal_id="deal-1",
+        execution={"order_id": "order-1", "deal_id": "deal-1", "status": "accepted"},
+    )
+
+    recovered = ledger.recover_submitted(
+        "intent-1",
+        {"executions": [{"execution_id": "deal-1", "order_id": "order-1", "symbol": "EURUSD", "quantity": 0.01}]},
+        now=NOW,
+    )
+
+    assert recovered.state == "FILLED"
+    assert recovered.order_id == "order-1"
+    assert recovered.deal_id == "deal-1"
+
+
+def test_ledger_keeps_submitted_when_deal_evidence_is_missing(tmp_path):
+    ledger = DemoOrderLedger(tmp_path / "demo.sqlite3")
+    ledger.create("intent-1", "EURUSD", "BUY", 0.01, now=NOW)
+    ledger.transition("intent-1", "AUTHORIZED", now=NOW)
+    ledger.transition("intent-1", "SUBMITTED", now=NOW, order_id="order-1", deal_id="deal-1")
+
+    recovered = ledger.recover_submitted(
+        "intent-1",
+        {"executions": [], "open_orders": [{"order_id": "order-1", "symbol": "EURUSD"}]},
+        now=NOW,
+    )
+
+    assert recovered.state == "SUBMITTED"
+    assert recovered.deal_id == "deal-1"

@@ -95,17 +95,22 @@ class AuthorizedDemoExecutor:
         if on_submitted is not None:
             on_submitted(execution)
 
-        after = self._now().astimezone(timezone.utc)
         try:
             internal_after = internal_after_provider()
             self.preflight.validate_state(internal_after)
         except (ValueError, TypeError) as exc:
             raise DemoExecutionBlocked(f"DEMO post-execution internal state is invalid: {exc}") from exc
 
+        # Capture the broker snapshot before taking the executor's post-state
+        # clock reading. MetaTrader5DemoBroker stamps captured_at when the
+        # snapshot is created, so taking `after` first can make valid evidence
+        # appear to be in the future by a few milliseconds.
+        snapshot_to = self._now().astimezone(timezone.utc)
         external_after = self.broker.reconciliation_snapshot(
-            after - timedelta(seconds=self.reconciliation_window_seconds),
-            after,
+            snapshot_to - timedelta(seconds=self.reconciliation_window_seconds),
+            snapshot_to,
         )
+        after = self._now().astimezone(timezone.utc)
         post_evidence_timestamp = self._snapshot_timestamp(external_after)
         post_reconciliation = self.gate.reconciler.evaluate(
             internal_after,

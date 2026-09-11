@@ -43,7 +43,11 @@ class ControlledDemoExecutionService:
                 self.ledger.transition(intent_id, "AUTHORIZED", now=self._now())
 
             def mark_submitted(execution: Mapping[str, Any]) -> None:
-                self.ledger.transition(intent_id, "SUBMITTED", now=self._now(),
+                # A broker-level rejection is already a known terminal outcome.
+                # Persist it immediately so a later reconciliation/clock error
+                # cannot incorrectly leave the order in SUBMITTED/unknown state.
+                submission_state = "REJECTED" if _is_known_rejection(execution) else "SUBMITTED"
+                self.ledger.transition(intent_id, submission_state, now=self._now(),
                                       order_id=_first_value(execution, "order_id", "order"),
                                       deal_id=_first_value(execution, "deal_id", "deal", "execution_id"),
                                       execution=execution)
@@ -78,6 +82,13 @@ def _first_value(data: Mapping[str, Any], *keys: str) -> str | None:
         value = data.get(key)
         if value is not None and str(value).strip() and str(value) != "0": return str(value)
     return None
+
+
+def _is_known_rejection(execution: Mapping[str, Any]) -> bool:
+    status = str(execution.get("status", "")).strip().lower()
+    if status in {"rejected", "reject", "failed", "error"}:
+        return True
+    return execution.get("accepted") is False
 
 
 def _final_state(execution: Mapping[str, Any]) -> str:

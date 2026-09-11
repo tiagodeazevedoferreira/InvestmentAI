@@ -79,8 +79,15 @@ The Doto/MT5 adapter is DEMO-only and fail-closed. It verifies the DEMO server d
 - Regression tests were added in `backend/tests/test_settings.py` for both environment-variable names.
 - Commit `18a39412c312c29825299c5e637495c8cb0b0573` contains the settings fix and its tests in the same commit.
 
+## API integration checkpoint — 2026-09-11
+- The FastAPI application exposes the read-only endpoint `GET /api/broker/mt5/status`.
+- The endpoint was validated against the configured Doto MT5 terminal and returned `connected=true`, login `5344431`, server `DOTOGlobal-Real`, company `DOTO Global Ltd`, currency `BRL`, balance/equity `52000.0`, `trade_allowed=true` and `trade_expert=true`.
+- This confirms the application path `InvestmentAI → FastAPI → MT5 → DOTO` for read-only account state.
+- No execution endpoint is enabled by this validation and no `order_send()` was called.
+- Full automated test suite is green: `229 passed, 2 warnings`.
+
 ## Current execution target
-The Doto/MT5 DEMO connectivity and non-submitting order semantics have passed the required checkpoint, and the application settings layer is now aligned with the validator's terminal-path configuration. The immediate next step is to pull commit `18a39412c312c29825299c5e637495c8cb0b0573` locally and run the targeted settings tests, followed by the full test suite. If those pass, inspect the durable internal DEMO ledger and reconciliation gates before considering any single controlled DEMO order test. **Do not call `order_send()` during the current validation/integration stage.** Automatic scheduler-to-broker execution remains disconnected. Live execution remains disabled.
+Doto/MT5 DEMO connectivity, application configuration and non-submitting order semantics have passed the current integration checkpoint. The immediate next step is to inspect and validate the durable internal DEMO ledger, `OperationalReconciler` and `AuthorizedDemoExecutor` pre/post execution gates. Only after those controls are verified should a single explicitly authorized controlled DEMO order test be considered. **Do not call `order_send()` during the current validation/integration stage.** Automatic scheduler-to-broker execution remains disconnected. Live execution remains disabled.
 
 ## Recent commits / handoff checkpoint
 - `18a39412c312c29825299c5e637495c8cb0b0573` — `fix: align MT5 terminal environment configuration`

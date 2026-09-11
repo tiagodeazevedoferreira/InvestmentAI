@@ -1,6 +1,7 @@
 from enum import Enum
 from functools import lru_cache
 
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -33,7 +34,13 @@ class Settings(BaseSettings):
 
     # MT5/Doto connection settings. No password is stored here: the desktop
     # Doto Global MT5 terminal must already be authenticated.
-    mt5_terminal_path: str | None = None
+    # DOTO_MT5_TERMINAL_PATH is the canonical runtime variable used by the
+    # Doto/MT5 validation tooling; MT5_TERMINAL_PATH remains accepted for
+    # backwards compatibility.
+    mt5_terminal_path: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("DOTO_MT5_TERMINAL_PATH", "MT5_TERMINAL_PATH"),
+    )
     mt5_expected_login: int | None = None
     mt5_expected_server: str = "DOTOGlobal-Real"
 

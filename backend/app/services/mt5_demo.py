@@ -12,10 +12,17 @@ class DemoBrokerError(RuntimeError):
     """Raised when the MT5 demo adapter cannot safely complete an operation."""
 
 
+# Doto's InvestmentAI account is a broker-side DEMO account even though the
+# MT5 server name contains "Real". Keep this classification explicit rather
+# than inferring the environment from the server name.
+KNOWN_DOTO_DEMO_LOGINS = frozenset({"5344431"})
+
+
 def _configured_demo_logins() -> frozenset[str]:
-    """Return locally configured broker account IDs that Doto labels as DEMO."""
+    """Return configured broker account IDs plus known InvestmentAI Doto DEMO IDs."""
     raw = os.getenv("INVESTMENTAI_DOTO_DEMO_LOGINS", "")
-    return frozenset(item.strip() for item in raw.split(",") if item.strip())
+    configured = {item.strip() for item in raw.split(",") if item.strip()}
+    return frozenset(configured | set(KNOWN_DOTO_DEMO_LOGINS))
 
 
 class MT5Gateway(Protocol):
@@ -78,7 +85,7 @@ class MetaTrader5DemoGateway:
         return getattr(obj, name, default)
 
     def _is_configured_doto_demo(self, account: Any) -> bool:
-        """Recognize Doto's broker-side DEMO exception when MT5 reports a REAL mode."""
+        """Recognize the configured Doto DEMO account regardless of server naming."""
         login = str(self._value(account, "login", ""))
         server = str(self._value(account, "server", ""))
         company = str(self._value(account, "company", ""))

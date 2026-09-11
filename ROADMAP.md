@@ -31,6 +31,7 @@ Integrate the simulator with the signal engine, portfolio accounting, fees/slipp
 - [x] External broker confirmation of Order `29453207` → Deal `28862296` → Position `29453207`
 - [x] Restart/recovery validation using the persisted DEMO ledger, with no automatic resubmission
 - [x] Read-only broker-connected recovery validation using the confirmed Order `29453207` / Deal `28862296` and a separate ambiguous submission
+- [x] Fault-injected submission-interruption safety test without broker resubmission
 - [ ] Scheduler-to-DEMO integration after single-order validation
 - [ ] Complete DEMO failure-recovery validation for an actually interrupted broker submission (without deliberately creating another live/demo order)
 

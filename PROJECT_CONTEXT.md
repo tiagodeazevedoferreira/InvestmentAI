@@ -59,10 +59,29 @@ The internal paper engine is deterministic and broker-independent. It supports m
 ## DEMO broker boundary
 The Doto/MT5 adapter is DEMO-only and fail-closed. It verifies the DEMO server during initialization, normalizes account/positions/open orders/executions for reconciliation, uses bid/ask semantics for market orders, requires `order_check()` before `order_send()`, rejects unsupported limit intents and refuses cancellation until pending-order semantics are validated. `AuthorizedDemoExecutor` requires kill-switch clearance plus healthy/fresh pre-execution reconciliation and healthy post-execution reconciliation. The scheduler is intentionally disconnected from the DEMO broker.
 
-The controlled validation path now includes a non-submitting MT5 preflight: `scripts/validate_mt5_demo.py --check-order-symbol SYMBOL --side BUY|SELL --quantity N` connects only to the configured DEMO account, builds the market request using the executable bid/ask, runs `order_check()` and reports the result without calling `order_send()`. This is the required connectivity/order-semantics checkpoint before any controlled DEMO order test.
+### Doto/MT5 DEMO validation checkpoint — 2026-09-11
+- DEMO account: `5344431`
+- MT5 server: `DOTOGlobal-Real` (the server name does **not** mean LIVE; the connected account reports `trade_mode=0`, i.e. DEMO).
+- Correct Doto terminal executable: `C:\Users\tiago.ferreira\AppData\Roaming\DOTO Global MT5 Terminal\terminal64.exe`
+- Explicit MT5 initialization with that terminal path succeeds (`initialize=True`, `last_error=(1, 'Success')`).
+- Terminal state validated: connected, `trade_allowed=True`, `tradeapi_disabled=False`.
+- Account state validated: company `DOTO Global Ltd`, currency `BRL`, balance/equity `52000.0`, leverage `500`, `trade_allowed=True`, `trade_expert=True`.
+- `EURUSD` is confirmed as an available MT5 symbol; the terminal exposes 216 symbols in the tested session.
+- Non-submitting order preflight for `EURUSD BUY quantity=1` succeeded: `order_check()` returned `retcode=0`, `comment=Done`.
+- The preflight explicitly reported `submitted=false`; **no `order_send()` was called and no DEMO order was submitted**.
+- The validator now accepts `DOTO_MT5_TERMINAL_PATH` and passes the configured terminal path to `mt5.initialize()`.
+- GitHub commit `b262cc90b7a3f0cb0d219b2bf80f6ea8f55729fd` contains that terminal-path fix.
+- The current PowerShell session uses `DOTO_MT5_SERVER`, `DOTO_MT5_LOGIN`, `DOTO_MT5_PASSWORD` and `DOTO_MT5_TERMINAL_PATH`; the password must remain outside source control and must never be written to this file.
 
 ## Current execution target
-First validate the real Doto/MT5 DEMO account through the read-only snapshot and non-submitting order preflight. Then perform a single controlled DEMO order only after the external state and order semantics are confirmed. Automatic scheduler-to-broker execution remains disconnected until the application has a durable internal DEMO ledger capable of independent pre/post reconciliation. Live execution remains disabled.
+The real Doto/MT5 DEMO account connectivity and non-submitting order semantics have now passed the required checkpoint. The next application-level task is to make the FastAPI/settings layer consume the same configured MT5 terminal path (`DOTO_MT5_TERMINAL_PATH`) used by the validator, add regression coverage, and keep execution fail-closed. After that, review the durable internal DEMO ledger and reconciliation gates before considering any single controlled DEMO order test. **Do not call `order_send()` during the current validation/integration stage.** Automatic scheduler-to-broker execution remains disconnected. Live execution remains disabled.
+
+## Known configuration integration gap
+`backend/app/settings.py` currently exposes `mt5_terminal_path`, which Pydantic naturally maps to `MT5_TERMINAL_PATH`. The validator uses `DOTO_MT5_TERMINAL_PATH`. Therefore, unless alias support is added (or a second environment variable is manually maintained), FastAPI routes such as `/broker/mt5/status` and `/market/mt5/{symbol}` will not automatically see the same terminal-path variable used by the validator. This must be corrected in the application settings layer rather than by storing a terminal path in source code.
+
+## Recent commits / handoff checkpoint
+Latest verified `main` commit before this context update: `b262cc90b7a3f0cb0d219b2bf80f6ea8f55729fd` — `fix: use configured DOTO MT5 terminal in demo gateway`.
+Previous related commits: `b4700f4d924ff0c7702cbdb38c7d35dd31aeccd4` (tests) and `d2cc3e3776f05d933eff53689ff0e03681e9108e` (DOTO DEMO login recognition).
 
 ## Handoff rule
-A new conversation should read this file plus `DEVELOPMENT_STATUS.md`, `DECISIONS.md`, `ARCHITECTURE.md`, `ROADMAP.md`, `docs/OPENBB_B3_PROVIDER.md` and `docs/PAPER_SIGNAL_AUTOMATION.md`, then inspect current source/workflows before changing anything.
+A new conversation should read this file plus `DEVELOPMENT_STATUS.md`, `DECISIONS.md`, `ARCHITECTURE.md`, `ROADMAP.md`, `docs/OPENBB_B3_PROVIDER.md` and `docs/PAPER_SIGNAL_AUTOMATION.md`, then inspect current source/workflows before changing anything. The context files are part of the project's continuity mechanism: after every material change, update the relevant documentation so a new chat can resume from the recorded state without relying on an old conversation.

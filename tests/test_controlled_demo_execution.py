@@ -222,3 +222,26 @@ def test_recover_pending_after_restart_keeps_unconfirmed_submission_and_does_not
     assert recovered[0].state == "SUBMITTED"
     assert restarted_ledger.get("intent-1").state == "SUBMITTED"
     assert broker.submissions == []
+
+
+def test_submission_exception_after_authorization_becomes_recoverable_submitted(tmp_path):
+    before = state()
+    broker = Broker([snapshot(before)])
+
+    def failing_submit(intent):
+        broker.submissions.append(intent)
+        raise TimeoutError("MT5 submission timeout")
+
+    broker.submit = failing_submit
+    executor = AuthorizedDemoExecutor(broker, DemoAuthorizationGate(OperationalKillSwitch()), now=lambda: NOW)
+    ledger = DemoOrderLedger(tmp_path / "demo.sqlite3")
+    service = ControlledDemoExecutionService(executor, ledger, intent_id_factory=lambda: "intent-1", now=lambda: NOW)
+
+    with pytest.raises(TimeoutError, match="MT5 submission timeout"):
+        service.execute(OrderIntent("PETR4", "BUY", 0.01), internal_before=before,
+                        internal_after_provider=lambda: before)
+
+    record = ledger.get("intent-1")
+    assert record.state == "SUBMITTED"
+    assert record.error == "MT5 submission timeout"
+    assert broker.submissions

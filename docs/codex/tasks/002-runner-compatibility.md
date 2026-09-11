@@ -10,15 +10,17 @@ SCOPE:
 
 CONTEXT:
 - O runner chama `codex exec` com sandbox workspace-write, approval_policy on-request, JSON estruturado e output-schema.
+- O runner resolve o executável do Codex por PATH ou pela instalação do Codex App e expõe o caminho resolvido em `CODEX_CLI_PATH`.
+- A sessão do agente pode ter um PATH diferente da sessão PowerShell que iniciou o runner; por isso, a validação da CLI deve usar `CODEX_CLI_PATH` em vez de depender de `codex` no PATH.
 - O objetivo é confirmar que esses argumentos são aceitos pela versão instalada localmente.
 
 ACCEPTANCE_CRITERIA:
-- Informar a versão exata do Codex CLI.
-- Confirmar que `codex exec --help` expõe `--sandbox`.
-- Confirmar que `codex exec --help` expõe `--config`.
-- Confirmar que `codex exec --help` expõe `--json`.
-- Confirmar que `codex exec --help` expõe `--output-schema`.
-- Confirmar que `codex exec --help` expõe `--output-last-message`.
+- Informar a versão exata do Codex CLI usando `& $env:CODEX_CLI_PATH --version`.
+- Confirmar que `codex exec --help` expõe `--sandbox`, usando o executável em `CODEX_CLI_PATH`.
+- Confirmar que `codex exec --help` expõe `--config`, usando o executável em `CODEX_CLI_PATH`.
+- Confirmar que `codex exec --help` expõe `--json`, usando o executável em `CODEX_CLI_PATH`.
+- Confirmar que `codex exec --help` expõe `--output-schema`, usando o executável em `CODEX_CLI_PATH`.
+- Confirmar que `codex exec --help` expõe `--output-last-message`, usando o executável em `CODEX_CLI_PATH`.
 - Informar branch, commit atual e estado Git.
 - Não alterar arquivos.
 

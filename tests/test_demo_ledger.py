@@ -44,3 +44,28 @@ def test_ledger_rejects_duplicate_intent(tmp_path):
     ledger.create("intent-1", "EURUSD", "BUY", 0.01, now=NOW)
     with pytest.raises(DemoLedgerError, match="already exists"):
         ledger.create("intent-1", "EURUSD", "BUY", 0.01, now=NOW)
+
+
+def test_ledger_finds_filled_match_for_duplicate_guard(tmp_path):
+    ledger = DemoOrderLedger(tmp_path / "demo.sqlite3")
+    ledger.create("intent-1", "EURUSD", "BUY", 0.01, now=NOW)
+    ledger.transition("intent-1", "AUTHORIZED", now=NOW)
+    ledger.transition("intent-1", "SUBMITTED", now=NOW, order_id="order-1", deal_id="deal-1")
+    filled = ledger.transition("intent-1", "FILLED", now=NOW, order_id="order-1", deal_id="deal-1")
+
+    match = ledger.find_filled_match("eurusd", "buy", 0.01)
+    assert match == filled
+
+
+def test_ledger_does_not_treat_failed_or_rejected_as_duplicate(tmp_path):
+    ledger = DemoOrderLedger(tmp_path / "demo.sqlite3")
+
+    ledger.create("rejected", "EURUSD", "BUY", 0.01, now=NOW)
+    ledger.transition("rejected", "AUTHORIZED", now=NOW)
+    ledger.transition("rejected", "REJECTED", now=NOW)
+
+    ledger.create("failed", "EURUSD", "BUY", 0.01, now=NOW)
+    ledger.transition("failed", "AUTHORIZED", now=NOW)
+    ledger.transition("failed", "FAILED", now=NOW)
+
+    assert ledger.find_filled_match("EURUSD", "BUY", 0.01) is None

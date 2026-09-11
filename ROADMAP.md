@@ -30,8 +30,9 @@ Integrate the simulator with the signal engine, portfolio accounting, fees/slipp
 - [x] Targeted post-execution reconciliation by broker execution/order/position identifiers
 - [x] External broker confirmation of Order `29453207` → Deal `28862296` → Position `29453207`
 - [x] Restart/recovery validation using the persisted DEMO ledger, with no automatic resubmission
+- [x] Read-only broker-connected recovery validation using the confirmed Order `29453207` / Deal `28862296` and a separate ambiguous submission
 - [ ] Scheduler-to-DEMO integration after single-order validation
-- [ ] Complete DEMO order lifecycle and failure-recovery validation against the broker
+- [ ] Complete DEMO failure-recovery validation for an actually interrupted broker submission (without deliberately creating another live/demo order)
 
 ## Live promotion
 Only after empirical evidence across backtest, paper and demo. Require explicit model approval, risk limits, kill switch, reconciliation and separate live credentials. Live remains disabled until then.

@@ -99,6 +99,32 @@ def test_blocks_when_post_execution_reconciliation_fails():
     assert len(broker.submissions) == 1
 
 
+def test_targeted_post_execution_snapshot_recovers_deal_when_time_window_misses_it():
+    post_state = _state(cash=900.0, quantity=10.01, executions=[{"execution_id": "e-demo-1"}])
+
+    class TargetedBroker(FakeDemoBroker):
+        def __init__(self):
+            super().__init__([_snapshot(_state()), _snapshot(_state(cash=900.0, quantity=10.01))])
+            self.targeted_calls = []
+
+        def reconciliation_snapshot_after_execution(self, execution):
+            self.targeted_calls.append(execution)
+            return _snapshot(post_state)
+
+    broker = TargetedBroker()
+    executor = AuthorizedDemoExecutor(broker, DemoAuthorizationGate(OperationalKillSwitch()), now=lambda: NOW)
+
+    result = executor.execute(
+        OrderIntent("PETR4", "BUY", 0.01),
+        internal_before=_state(),
+        internal_after_provider=lambda: _state(cash=900.0, quantity=10.01),
+    )
+
+    assert result.post_reconciliation.healthy is True
+    assert len(broker.targeted_calls) == 1
+    assert broker.targeted_calls[0]["deal_id"] == "e-demo-1"
+
+
 def test_stale_pre_snapshot_blocks_before_submit():
     stale = NOW - timedelta(seconds=121)
     broker = FakeDemoBroker([_snapshot(_state(), stale)])

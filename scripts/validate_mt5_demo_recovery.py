@@ -10,6 +10,7 @@ remains SUBMITTED.
 from __future__ import annotations
 
 import argparse
+import gc
 from datetime import datetime, timezone
 from pathlib import Path
 import tempfile
@@ -101,6 +102,13 @@ def main() -> int:
             print(f"recovered_records: {len(recovered)}")
             print("order_send: NOT CALLED")
             print("temporary ledger: discarded")
+
+            # The ledger intentionally opens short-lived sqlite connections.
+            # Release all local references before TemporaryDirectory cleanup;
+            # this avoids a Windows file-lock race when sqlite objects are
+            # finalized after the temporary directory cleanup starts.
+            del recovered, confirmed, ambiguous, service, executor, ledger
+            gc.collect()
             return 0
     finally:
         broker.close()

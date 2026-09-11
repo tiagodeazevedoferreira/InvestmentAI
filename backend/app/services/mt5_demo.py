@@ -185,6 +185,15 @@ class MT5DemoBroker:
             raise DemoBrokerError("Refusing MT5 real/live trade mode")
         return account
 
+    @property
+    def is_demo_environment(self) -> bool:
+        """Return whether the currently connected account passes demo classification."""
+        try:
+            self._ensure_demo_account()
+        except DemoBrokerError:
+            return False
+        return True
+
     def initialize(self) -> bool:
         """Initialize the gateway and immediately verify that the account is DEMO."""
         return bool(self.gateway.initialize())

@@ -113,12 +113,11 @@ class DemoOrderLedger:
             order_id=row["order_id"], deal_id=row["deal_id"], error=row["error"], execution=execution,
         )
 
-    def find_terminal_match(self, symbol: str, side: str, quantity: float) -> DemoOrderRecord | None:
-        """Return the newest terminal record with the exact controlled intent shape.
+    def find_filled_match(self, symbol: str, side: str, quantity: float) -> DemoOrderRecord | None:
+        """Return the newest filled record matching a controlled intent shape.
 
-        This is a conservative duplicate guard for explicitly controlled DEMO
-        runs. It prevents a rerun of the same symbol/side/quantity from blindly
-        submitting a second order after a prior successful execution.
+        Only FILLED orders are treated as duplicates. Known REJECTED/FAILED
+        outcomes remain retryable because no successful broker execution exists.
         """
         symbol = symbol.strip().upper()
         side = side.strip().upper()
@@ -126,8 +125,7 @@ class DemoOrderLedger:
         with self._connect() as connection:
             row = connection.execute(
                 """SELECT intent_id FROM demo_orders
-                   WHERE symbol=? AND side=? AND quantity=?
-                     AND state IN ('FILLED','REJECTED','FAILED')
+                   WHERE symbol=? AND side=? AND quantity=? AND state='FILLED'
                    ORDER BY updated_at DESC LIMIT 1""",
                 (symbol, side, quantity),
             ).fetchone()

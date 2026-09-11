@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 import os
 import sys
 from datetime import datetime, timezone
@@ -71,26 +70,25 @@ def main() -> int:
         intent = OrderIntent(args.symbol.upper(), args.side, args.volume)
         DemoOrderPreflight().validate(intent, environment="demo")
 
-        intent_id = None
         try:
-            result = service.execute(
+            service.execute(
                 intent,
                 internal_before=snapshot,
                 internal_after=snapshot,
             )
-            intent_id = result.record.intent_id
-            print("CONTROLLED DEMO PREFLIGHT: UNEXPECTED SUCCESS")
-            print(json.dumps({"record": result.record.state}, indent=2))
+            print("CONTROLLED DEMO PREFLIGHT: UNEXPECTED SUCCESS", file=sys.stderr)
             return 2
-        except Exception as exc:
+        except Exception:
             # With execution_enabled=False, authorization must pass and broker.submit
             # must be the first blocking point. No MT5 order_send can occur here.
-            records = ledger.list_recent(limit=1)
-            record = records[0] if records else None
-            intent_id = record.intent_id if record else None
+            pending = ledger.pending()
+            record = pending[-1] if pending else None
             if record is None or record.state != "AUTHORIZED":
                 print("CONTROLLED DEMO PREFLIGHT: FAILED", file=sys.stderr)
-                print(f"expected ledger state AUTHORIZED before blocked submit; got {record}", file=sys.stderr)
+                print(
+                    f"expected ledger state AUTHORIZED before blocked submit; got {record}",
+                    file=sys.stderr,
+                )
                 return 1
             if "DEMO execution is disabled" not in (record.error or ""):
                 print("CONTROLLED DEMO PREFLIGHT: FAILED", file=sys.stderr)
@@ -108,7 +106,7 @@ def main() -> int:
             print("ledger_state: AUTHORIZED")
             print("execution_enabled: False")
             print("order_send: NOT CALLED")
-            print(f"intent_id: {intent_id}")
+            print(f"intent_id: {record.intent_id}")
             return 0
     finally:
         broker.close()

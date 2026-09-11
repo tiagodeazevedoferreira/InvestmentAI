@@ -36,7 +36,11 @@ def test_oversized_order_never_reaches_broker(tmp_path):
 
     state = {"cash": 1000.0, "positions": {}, "open_orders": [], "executions": []}
     with pytest.raises(ValueError, match="preflight limit"):
-        service.execute(OrderIntent("EURUSD", "BUY", 0.010001), internal_before=state, internal_after=state)
+        service.execute(
+            OrderIntent("EURUSD", "BUY", 0.010001),
+            internal_before=state,
+            internal_after_provider=lambda: state,
+        )
 
     assert broker.snapshots == 0
     assert broker.submissions == 0

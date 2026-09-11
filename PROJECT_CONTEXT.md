@@ -70,7 +70,8 @@ The Doto/MT5 adapter is DEMO-only and fail-closed. It verifies the DEMO server d
 - Non-submitting order preflight for `EURUSD BUY quantity=1` succeeded: `order_check()` returned `retcode=0`, `comment=Done`.
 - The preflight explicitly reported `submitted=false`; **no `order_send()` was called and no DEMO order was submitted**.
 - The validator accepts `DOTO_MT5_TERMINAL_PATH` and passes the configured terminal path to `mt5.initialize()`.
-- GitHub commit `b262cc90b7a3f0cb0d219b2bf80f6ea8f55729fd` contains that terminal-path fix.
+- The validator now accepts decimal lot volume for order preflight, including the intended `0.01` EURUSD test volume.
+- GitHub commits `b262cc90b7a3f0cb0d219b2bf80f6ea8f55729fd` and `6f9c85643e3a679a61698d5cbea64b49daa7f8bd` contain the terminal-path and decimal-volume fixes.
 - The current PowerShell session uses `DOTO_MT5_SERVER`, `DOTO_MT5_LOGIN`, `DOTO_MT5_PASSWORD` and `DOTO_MT5_TERMINAL_PATH`; the password must remain outside source control and must never be written to this file.
 
 ## Application configuration checkpoint — 2026-09-11
@@ -84,17 +85,18 @@ The Doto/MT5 adapter is DEMO-only and fail-closed. It verifies the DEMO server d
 - The endpoint was validated against the configured Doto MT5 terminal and returned `connected=true`, login `5344431`, server `DOTOGlobal-Real`, company `DOTO Global Ltd`, currency `BRL`, balance/equity `52000.0`, `trade_allowed=true` and `trade_expert=true`.
 - This confirms the application path `InvestmentAI → FastAPI → MT5 → DOTO` for read-only account state.
 - No execution endpoint is enabled by this validation and no `order_send()` was called.
-- Full automated test suite is green: `229 passed, 2 warnings`.
+- Full automated test suite was green at the last local checkpoint: `229 passed, 2 warnings`.
 
 ## Current execution target
-Doto/MT5 DEMO connectivity, application configuration and non-submitting order semantics have passed the current integration checkpoint. The immediate next step is to inspect and validate the durable internal DEMO ledger, `OperationalReconciler` and `AuthorizedDemoExecutor` pre/post execution gates. Only after those controls are verified should a single explicitly authorized controlled DEMO order test be considered. **Do not call `order_send()` during the current validation/integration stage.** Automatic scheduler-to-broker execution remains disconnected. Live execution remains disabled.
+Doto/MT5 DEMO connectivity, application configuration, controlled runner semantics and non-submitting order semantics have passed the current integration checkpoint. The controlled runner defaults to `execution_enabled=False` and explicitly reports `order_send: NOT CALLED`; the intended first test is `EURUSD BUY 0.01`. The validator now supports decimal volumes so that the exact intended test can be preflighted without changing the production execution boundary. The immediate next step is to pull these GitHub changes locally, run the full test suite again, and then run the non-submitting `order_check` for `EURUSD BUY 0.01`. After that, validate the durable internal DEMO ledger, `OperationalReconciler` and `AuthorizedDemoExecutor` pre/post execution gates. Only after those controls are verified should a single explicitly authorized controlled DEMO order test be considered. **Do not call `order_send()` during the current validation/integration stage.** Automatic scheduler-to-broker execution remains disconnected. Live execution remains disabled.
 
 ## Recent commits / handoff checkpoint
+- `6f9c85643e3a679a61698d5cbea64b49daa7f8bd` — `fix: support decimal DEMO order preflight volume`
+- `ff90035e8cc6becb0c5d9a68ecac8fef3db93ae5` — `test: cover decimal DEMO preflight volume`
+- `6949dbf` — `fix: configure pytest backend pythonpath`
 - `18a39412c312c29825299c5e637495c8cb0b0573` — `fix: align MT5 terminal environment configuration`
 - `eb01b016641edd7b46a41c74f71fc43656a93b57` — `docs: update project context with Doto MT5 demo validation checkpoint`
 - `b262cc90b7a3f0cb0d219b2bf80f6ea8f55729fd` — `fix: use configured DOTO MT5 terminal in demo gateway`
-- `b4700f4d924ff0c7702cbdb38c7d35dd31aeccd4` — related tests
-- `d2cc3e3776f05d933eff53689ff0e03681e9108e` — DOTO DEMO login recognition
 
 ## Handoff rule
 A new conversation should read this file plus `DEVELOPMENT_STATUS.md`, `DECISIONS.md`, `ARCHITECTURE.md`, `ROADMAP.md`, `docs/OPENBB_B3_PROVIDER.md` and `docs/PAPER_SIGNAL_AUTOMATION.md`, then inspect current source/workflows before changing anything. The context files are part of the project's continuity mechanism: after every material change, update the relevant documentation so a new chat can resume from the recorded state without relying on an old conversation.

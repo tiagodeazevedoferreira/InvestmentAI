@@ -76,6 +76,23 @@ class ControlledDemoExecutionService:
                 record = self.ledger.record_error(intent_id, str(exc), now=self._now())
             raise
 
+    def recover_pending(self, external_provider: Callable[[DemoOrderRecord], Mapping[str, Any]]) -> tuple[DemoOrderRecord, ...]:
+        """Recover durable pending DEMO orders after an application restart.
+
+        Recovery is read-only with respect to the broker: it only inspects
+        persisted SUBMITTED records and broker evidence supplied by the caller.
+        A record becomes FILLED only when its exact deal ID is externally
+        confirmed. No pending record is resubmitted automatically.
+        """
+        recovered: list[DemoOrderRecord] = []
+        for record in self.ledger.pending():
+            if record.state != "SUBMITTED":
+                recovered.append(record)
+                continue
+            external = external_provider(record)
+            recovered.append(self.ledger.recover_submitted(record.intent_id, external, now=self._now()))
+        return tuple(recovered)
+
 
 def _first_value(data: Mapping[str, Any], *keys: str) -> str | None:
     for key in keys:

@@ -25,7 +25,7 @@ def main() -> int:
     parser.add_argument("--hours", type=int, default=24, help="Execution history window in hours (default: 24)")
     parser.add_argument("--check-order-symbol", help="Optional symbol for a non-submitting MT5 order_check preflight")
     parser.add_argument("--side", choices=("BUY", "SELL"), help="Side for --check-order-symbol")
-    parser.add_argument("--quantity", type=int, help="Quantity for --check-order-symbol")
+    parser.add_argument("--quantity", type=float, help="Volume for --check-order-symbol (decimal lots supported)")
     args = parser.parse_args()
     if args.hours <= 0:
         parser.error("--hours must be positive")

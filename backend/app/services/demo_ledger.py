@@ -131,6 +131,29 @@ class DemoOrderLedger:
             ).fetchone()
         return self.get(row["intent_id"]) if row is not None else None
 
+    def recover_submitted(self, intent_id: str, external: Mapping[str, Any], *, now: datetime | None = None) -> DemoOrderRecord:
+        """Recover a SUBMITTED order only when broker deal evidence is explicit.
+
+        A matching deal ID is sufficient to promote SUBMITTED -> FILLED. An
+        open order or a position alone is intentionally insufficient because it
+        does not prove that this exact intent was executed. Missing evidence
+        leaves the order SUBMITTED and therefore non-retryable by this method.
+        """
+        current = self.get(intent_id)
+        if current.state != "SUBMITTED":
+            return current
+
+        executions = external.get("executions", [])
+        execution_ids = {
+            str(item.get("execution_id"))
+            for item in executions
+            if isinstance(item, Mapping) and item.get("execution_id")
+        }
+        if current.deal_id and str(current.deal_id) in execution_ids:
+            return self.transition(intent_id, "FILLED", now=now, execution=current.execution)
+
+        return current
+
     def pending(self) -> tuple[DemoOrderRecord, ...]:
         with self._connect() as connection:
             rows = connection.execute("SELECT intent_id FROM demo_orders WHERE state NOT IN ('FILLED','REJECTED','FAILED') ORDER BY created_at").fetchall()

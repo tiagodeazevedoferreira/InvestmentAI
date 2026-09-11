@@ -101,19 +101,33 @@ class AuthorizedDemoExecutor:
         except (ValueError, TypeError) as exc:
             raise DemoExecutionBlocked(f"DEMO post-execution internal state is invalid: {exc}") from exc
 
+        # Preserve the submitted deal in the state compared by the post-trade
+        # reconciler. The durable portfolio store may intentionally not keep a
+        # broker-history execution list, but a successful submission must still
+        # be reconciled against the broker's concrete deal evidence.
+        internal_after_for_reconciliation = self._with_submission_execution(
+            internal_after,
+            execution,
+        )
+
         # Capture the broker snapshot before taking the executor's post-state
         # clock reading. MetaTrader5DemoBroker stamps captured_at when the
         # snapshot is created, so taking `after` first can make valid evidence
         # appear to be in the future by a few milliseconds.
-        snapshot_to = self._now().astimezone(timezone.utc)
-        external_after = self.broker.reconciliation_snapshot(
-            snapshot_to - timedelta(seconds=self.reconciliation_window_seconds),
-            snapshot_to,
-        )
+        self._now().astimezone(timezone.utc)
+        targeted_snapshot = getattr(self.broker, "reconciliation_snapshot_after_execution", None)
+        if callable(targeted_snapshot):
+            external_after = targeted_snapshot(execution)
+        else:
+            snapshot_to = self._now().astimezone(timezone.utc)
+            external_after = self.broker.reconciliation_snapshot(
+                snapshot_to - timedelta(seconds=self.reconciliation_window_seconds),
+                snapshot_to,
+            )
         after = self._now().astimezone(timezone.utc)
         post_evidence_timestamp = self._snapshot_timestamp(external_after)
         post_reconciliation = self.gate.reconciler.evaluate(
-            internal_after,
+            internal_after_for_reconciliation,
             external_after,
             evidence_timestamp=post_evidence_timestamp,
             max_evidence_age_seconds=self.gate.max_evidence_age_seconds,
@@ -131,6 +145,30 @@ class AuthorizedDemoExecutor:
             authorization=authorization,
             post_reconciliation=post_reconciliation,
         )
+
+    @staticmethod
+    def _with_submission_execution(
+        internal: Mapping[str, Any],
+        execution: Mapping[str, Any],
+    ) -> dict[str, Any]:
+        result = dict(internal)
+        existing = list(internal.get("executions", []))
+        execution_id = execution.get("deal", execution.get("deal_id", 0))
+        if execution_id and str(execution_id) != "0":
+            existing_ids = {
+                str(item.get("execution_id"))
+                for item in existing
+                if isinstance(item, Mapping) and item.get("execution_id")
+            }
+            if str(execution_id) not in existing_ids:
+                existing.append({
+                    "execution_id": str(execution_id),
+                    "order_id": str(execution.get("order", execution.get("order_id", ""))),
+                    "symbol": str(execution.get("symbol", "")).upper(),
+                    "quantity": float(execution.get("volume", execution.get("requested_quantity", 0.0)) or 0.0),
+                })
+        result["executions"] = existing
+        return result
 
     @staticmethod
     def _snapshot_timestamp(snapshot: Mapping[str, Any]) -> datetime | None:

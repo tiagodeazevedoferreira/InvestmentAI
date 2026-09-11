@@ -114,7 +114,6 @@ class AuthorizedDemoExecutor:
         # clock reading. MetaTrader5DemoBroker stamps captured_at when the
         # snapshot is created, so taking `after` first can make valid evidence
         # appear to be in the future by a few milliseconds.
-        self._now().astimezone(timezone.utc)
         targeted_snapshot = getattr(self.broker, "reconciliation_snapshot_after_execution", None)
         if callable(targeted_snapshot):
             external_after = targeted_snapshot(execution)

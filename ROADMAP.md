@@ -32,7 +32,8 @@ Integrate the simulator with the signal engine, portfolio accounting, fees/slipp
 - [x] Restart/recovery validation using the persisted DEMO ledger, with no automatic resubmission
 - [x] Read-only broker-connected recovery validation using the confirmed Order `29453207` / Deal `28862296` and a separate ambiguous submission
 - [x] Fault-injected submission-interruption safety test without broker resubmission
-- [ ] Scheduler-to-DEMO integration after single-order validation
+- [x] Scheduler-to-DEMO fail-closed promotion boundary (plan-only; broker submission disconnected)
+- [ ] Scheduler-to-DEMO broker integration after the plan-only boundary is validated
 - [ ] Complete DEMO failure-recovery validation for an actually interrupted broker submission (without deliberately creating another live/demo order)
 
 ## Live promotion

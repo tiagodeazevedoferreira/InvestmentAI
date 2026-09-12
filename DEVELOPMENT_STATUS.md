@@ -111,7 +111,7 @@ Last updated: 2026-09-11
 - [x] Deterministic technical signal → risk → sizing → paper execution path
 - [x] Signal automation scheduler
 - [x] Idempotent decision ledger
-- [ ] Shadow decision ledger
+- [x] Shadow decision ledger (deterministic, idempotent and observational; no execution authority)
 - [x] Outcome attribution primitives for forward-return observation and hit-rate summaries
 - [x] Persisted paper outcomes with resumable horizons
 - [x] Descriptive calibration statistics with confidence intervals and explicit cost assumptions

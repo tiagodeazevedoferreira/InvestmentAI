@@ -12,6 +12,7 @@ from .paper_ledger import PaperDecisionLedger
 from .paper_store import PaperAccountStore
 from .providers import MarketDataProvider, get_provider
 from .scheduler_demo_bridge import DemoPromotionPlan, SchedulerDemoBridge
+from .shadow_decision_ledger import ShadowDecisionLedger
 
 B3_TZ = ZoneInfo("America/Sao_Paulo")
 DEFAULT_SYMBOLS = ("PETR4", "VALE3", "ITUB4")
@@ -31,6 +32,7 @@ class SchedulerResult:
     order: dict | None = None
     reason: str | None = None
     demo_plan: DemoPromotionPlan | None = None
+    shadow_id: str | None = None
 
 
 def yahoo_symbol(symbol: str) -> str:
@@ -83,6 +85,7 @@ def run_symbol(
     period: str = "3mo",
     execute: bool = True,
     demo_bridge: SchedulerDemoBridge | None = None,
+    shadow_ledger: ShadowDecisionLedger | None = None,
 ) -> SchedulerResult:
     display_symbol = symbol.strip().upper().removesuffix(".SA")
     frame = provider.history(yahoo_symbol(display_symbol), period=period)
@@ -102,6 +105,26 @@ def run_symbol(
     )
     action = preview["decision"]["action"]
     sid = signal_id(display_symbol, timestamp, action)
+    shadow_id = None
+    if shadow_ledger is not None:
+        _, shadow_record = shadow_ledger.record(
+            source="paper_scheduler",
+            policy="rsi14_threshold",
+            symbol=display_symbol,
+            event_timestamp=timestamp,
+            action=action,
+            quantity=preview["decision"].get("quantity"),
+            reference_price=preview["decision"].get("reference_price"),
+            signal={
+                "action": action,
+                "reason": preview["decision"].get("reason"),
+            },
+            risk={
+                "allowed": bool(preview["decision"].get("risk_allowed")),
+                "reason": preview["decision"].get("reason"),
+            },
+        )
+        shadow_id = str(shadow_record["shadow_id"])
     created, existing = ledger.claim(
         sid,
         symbol=display_symbol,
@@ -118,6 +141,7 @@ def run_symbol(
             executed=bool(existing.get("executed")),
             order=existing.get("order"),
             reason="decision already completed in Firebase ledger",
+            shadow_id=shadow_id,
         )
         return duplicate
 
@@ -151,6 +175,7 @@ def run_symbol(
         executed=bool(result.get("executed")),
         order=result.get("order"),
         reason=decision.get("reason") or result.get("error"),
+        shadow_id=shadow_id,
     )
     if demo_bridge is not None:
         return SchedulerResult(
@@ -170,6 +195,7 @@ def run_scheduler(
     execute: bool = True,
     force: bool = False,
     demo_bridge: SchedulerDemoBridge | None = None,
+    shadow_ledger: ShadowDecisionLedger | None = None,
 ) -> list[SchedulerResult]:
     allowed, guard_reason = b3_session_allowed()
     if not force and not allowed:
@@ -179,6 +205,7 @@ def run_scheduler(
     if not store.firebase.enabled:
         raise RuntimeError("Firebase must be configured for scheduled paper execution")
     decision_ledger = ledger or PaperDecisionLedger(firebase=store.firebase)
+    decision_shadow_ledger = shadow_ledger or ShadowDecisionLedger(firebase=store.firebase)
     data_provider = provider or get_provider("openbb")
 
     results: list[SchedulerResult] = []
@@ -194,6 +221,7 @@ def run_scheduler(
                     period=period,
                     execute=execute,
                     demo_bridge=demo_bridge,
+                    shadow_ledger=decision_shadow_ledger,
                 )
             )
         except Exception as exc:

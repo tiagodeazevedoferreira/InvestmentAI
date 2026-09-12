@@ -190,3 +190,54 @@ def test_scheduler_records_shadow_decision_without_paper_execution():
     assert record["execution_authority"] == "none"
     assert account_store.account.orders == []
     assert account_store.save_calls == 0
+
+
+def test_scheduler_repetition_keeps_one_shadow_record_and_preserves_paper_idempotency():
+    close = [100 - number for number in range(40)]
+    frame = pd.DataFrame(
+        {
+            "Open": close,
+            "High": close,
+            "Low": close,
+            "Close": close,
+            "Volume": [1_000] * len(close),
+        },
+        index=pd.date_range("2026-07-01", periods=40, tz="UTC"),
+    )
+    firebase = InMemoryFirebase()
+    account_store = AccountStore()
+    shadow_ledger = ShadowDecisionLedger(firebase=firebase)
+    paper_ledger = PaperDecisionLedger(firebase=firebase)
+
+    first = run_symbol(
+        StaticProvider(frame),
+        account_store,
+        paper_ledger,
+        "PETR4",
+        execute=False,
+        shadow_ledger=shadow_ledger,
+    )
+    second = run_symbol(
+        StaticProvider(frame),
+        account_store,
+        paper_ledger,
+        "PETR4",
+        execute=False,
+        shadow_ledger=shadow_ledger,
+    )
+
+    assert first.status == "decided"
+    assert second.status == "duplicate_skipped"
+    assert second.signal_id == first.signal_id
+    assert second.shadow_id == first.shadow_id
+    records = shadow_ledger.list_records(symbol="PETR4")
+    assert len(records) == 1
+    assert records[0]["shadow_id"] == first.shadow_id
+    assert records[0]["execution_authority"] == "none"
+    assert records[0]["state"] == "recorded"
+    paper_record = paper_ledger.get(first.signal_id)
+    assert paper_record is not None
+    assert paper_record["status"] == "completed"
+    assert paper_record["executed"] is False
+    assert account_store.account.orders == []
+    assert account_store.save_calls == 0

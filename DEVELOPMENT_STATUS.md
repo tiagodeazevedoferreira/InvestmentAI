@@ -1,6 +1,6 @@
 # Development Status
 
-Last updated: 2026-09-11
+Last updated: 2026-09-14
 
 ## Foundation
 - [x] Repository and persistent handoff context
@@ -13,6 +13,7 @@ Last updated: 2026-09-11
 - [x] OpenBB provider boundary
 - [x] Yahoo fallback provider
 - [x] OpenBB/yfinance B3 proof-of-concept adapter
+- [x] Historical OHLCV normalization and quality-gate contract
 
 ## Value Investing
 - [x] Fundamental data service boundary
@@ -155,6 +156,7 @@ Last updated: 2026-09-11
 - [x] DEMO restart/recovery tests
 - [x] Fault-injected DEMO submission-interruption test
 - [x] Scheduler → DEMO promotion-boundary unit tests
+- [x] Historical OHLCV pipeline and temporal-purge tests
 - [ ] Full integration test suite against provider mocks
 - [ ] End-to-end training/backtest test
 - [ ] Security/dependency scan
@@ -162,6 +164,11 @@ Last updated: 2026-09-11
 
 ## Current ML validation gate
 The causal ML trading backtest, robustness audit and model diagnosis are complete. The robustness gate is not yet passed because performance is not stable across all evaluated assets and assumptions. A causal pooled cross-asset model experiment is implemented to test whether normalized technical features transfer across PETR4, VALE3 and ITUB4 without changing execution policy. The experiment remains research-only until its out-of-sample evidence is reviewed.
+
+## Current historical-data validation gate
+Task 008 is complete and validated offline. The historical OHLCV contract is now canonicalized at the provider boundary as `Open`, `High`, `Low`, `Close`, `Volume` with a datetime index. The shared `validate_market_data()` quality gate rejects missing columns, duplicate or non-monotonic timestamps, null/non-numeric or non-finite required values, invalid OHLC relationships and negative volume. Large calendar gaps remain observable metadata rather than automatic failures. Deterministic tests validate the normalized adapter output through the quality gate, technical indicators and `build_features(..., horizon=5)`, plus `purged_walk_forward(..., horizon=5)` and its explicit five-observation temporal purge. The validation uses only synthetic data; no real historical dataset or external provider connection was used.
+
+This task does not mark real-dataset training, real historical-data validation, or the broader end-to-end training/backtest workflow as complete.
 
 ## Current execution gate
 The internal paper execution path is deterministic and broker-independent. Provider-backed scheduling obtains B3 history through the OpenBB/yfinance boundary, evaluates the existing RSI paper policy, persists a deterministic decision key, and skips duplicates. Completed decisions receive persisted 1/5/20-bar forward outcomes. The calibration layer reports directional hit rate, confidence intervals and return statistics under an explicit transaction-cost assumption, and the runner can partition results by a causal trailing-volatility regime. Paper decisions can also be reconciled against TradingView validator evidence using an explicit timestamp tolerance. The empirical gate evaluates predefined evidence criteria, but a passing result only permits human review and can never authorize promotion automatically. Operational kill-switch and broker-neutral reconciliation primitives are hardened. The Doto/MT5 demo-only adapter, read-only reconciliation harness, fail-closed authorization gate, and pre/post-reconciled DEMO execution coordinator are implemented. The adapter rejects unsupported limit intents, uses bid/ask semantics for market orders, requires a successful order_check result, and verifies DEMO status during initialization. A non-submitting preflight path builds the exact market request and runs order_check without order_send().

@@ -92,6 +92,16 @@ LIVE execution remains disabled.
 - Real-dataset training workflow: still pending.
 - LSTM and RL experiments: still pending.
 
+## Task 007 - leakage-safe ML temporal splitting
+
+- Completed leakage-safe temporal purge for the existing five-bar directional target.
+- `chronological_split()` now accepts an explicit `purge_bars` parameter.
+- The active XGBoost training path uses `purge_bars=5`.
+- Train and validation samples adjacent to temporal boundaries are purged so their future five-bar targets cannot depend on observations belonging to the next temporal set.
+- Chronological ordering remains deterministic; no shuffle was introduced.
+- Validation: 4/4 focused ML tests, 25/25 complete backend tests, and `compileall` passed.
+- This does not complete real-dataset training or the broader end-to-end training/backtest workflow.
+
 ## Important open quality items
 
 - Full integration suite against provider mocks.

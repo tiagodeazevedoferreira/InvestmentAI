@@ -51,9 +51,38 @@ def build_features(df: pd.DataFrame, horizon: int = 5) -> tuple[pd.DataFrame, pd
     return valid[feature_cols], y.loc[valid.index]
 
 
-def chronological_split(X: pd.DataFrame, y: pd.Series, train_fraction: float = .7, validation_fraction: float = .15):
-    if not 0 < train_fraction < 1 or not 0 <= validation_fraction < 1 or train_fraction + validation_fraction >= 1:
+def chronological_split(
+    X: pd.DataFrame,
+    y: pd.Series,
+    train_fraction: float = 0.7,
+    validation_fraction: float = 0.15,
+    purge_bars: int = 0,
+):
+    if (
+        not 0 < train_fraction < 1
+        or not 0 <= validation_fraction < 1
+        or train_fraction + validation_fraction >= 1
+    ):
         raise ValueError("invalid chronological split fractions")
+
+    if not isinstance(purge_bars, int) or isinstance(purge_bars, bool) or purge_bars < 0:
+        raise ValueError("purge_bars must be non-negative")
+
     n = len(X)
-    a, b = int(n * train_fraction), int(n * (train_fraction + validation_fraction))
-    return (X.iloc[:a], y.iloc[:a]), (X.iloc[a:b], y.iloc[a:b]), (X.iloc[b:], y.iloc[b:])
+    train_boundary = int(n * train_fraction)
+    validation_boundary = int(n * (train_fraction + validation_fraction))
+
+    train_end = max(train_boundary - purge_bars, 0)
+    validation_start = train_boundary
+    validation_end = max(validation_boundary - purge_bars, validation_start)
+
+    return (
+        X.iloc[:train_end],
+        y.iloc[:train_end],
+    ), (
+        X.iloc[validation_start:validation_end],
+        y.iloc[validation_start:validation_end],
+    ), (
+        X.iloc[validation_boundary:],
+        y.iloc[validation_boundary:],
+    )

@@ -18,7 +18,7 @@ def train_xgboost(X, y, model_path: str, params: dict | None = None) -> dict:
     if len(X) < 100:
         raise ValueError("at least 100 samples are required for training")
 
-    (X_train, y_train), (X_val, y_val), (X_test, y_test) = chronological_split(X, y)
+    (X_train, y_train), (X_val, y_val), (X_test, y_test) = chronological_split(X, y, purge_bars=5)
 
     if y_train.nunique() < 2:
         raise ValueError("training labels contain only one class")

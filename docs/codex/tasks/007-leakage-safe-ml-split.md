@@ -56,3 +56,24 @@ EXPECTED_OUTPUT:
 - Explicação objetiva das fronteiras temporais e do horizonte utilizado.
 - Riscos e pendências remanescentes, especialmente treinamento com dataset real.
 - Commit criado se houver alterações.
+## Implementation result
+
+- `backend/app/services/features.py` now supports an explicit `purge_bars` parameter in `chronological_split()`.
+- The purge is applied at the train/validation boundaries while preserving chronological ordering and leaving the test set after the validation boundary.
+- The active XGBoost training path in `backend/app/services/model_engine.py` uses `purge_bars=5`, matching the existing five-bar target horizon.
+- With 100 samples and the default 70%/15%/15% split, the leakage-safe boundaries are:
+  - train: samples 0-64;
+  - purge gap: samples 65-69;
+  - validation: samples 70-79;
+  - purge gap: samples 80-84;
+  - test: samples 85-99.
+- Added deterministic tests covering the original no-purge behavior, five-bar purge behavior, negative purge rejection, and integration of `train_xgboost()` with the five-bar purge.
+- Validation completed successfully:
+  - focused ML tests: 4/4 passed;
+  - complete backend suite: 25/25 passed;
+  - `compileall backend/app backend/tests`: passed.
+- No external data source, broker, MT5, DOTO or financial execution was used.
+- Real-dataset training remains pending.
+- The broader end-to-end training/backtest item remains pending.
+
+STATUS: DONE

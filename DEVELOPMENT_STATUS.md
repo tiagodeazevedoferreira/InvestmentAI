@@ -49,6 +49,7 @@ Last updated: 2026-09-11
 - [x] Technical feature engineering
 - [x] Five-day directional target
 - [x] Chronological train/validation/test split
+- [x] Leakage-safe temporal purge for five-bar target horizon
 - [x] XGBoost training interface
 - [x] Model metadata/registry artifact
 - [x] Financial evaluation metrics

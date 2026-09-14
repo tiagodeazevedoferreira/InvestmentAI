@@ -13,7 +13,7 @@ from app.services.walk_forward import purged_walk_forward
 
 def _ohlcv(size: int = 80) -> pd.DataFrame:
     index = pd.date_range("2026-01-01", periods=size, freq="D", tz="UTC")
-    close = 100.0 + 3.0 * np.sin(np.arange(size) / 4.0) + np.arange(size) * 0.05
+    close = 100.0 + 10.0 * np.sin(2 * np.pi * np.arange(size) / 10.0)
     return pd.DataFrame(
         {
             "Open": close - 0.5,
@@ -54,7 +54,10 @@ def test_validate_market_data_rejects_invalid_ohlcv(mutation, field: str) -> Non
     report = validate_market_data("PETR4", mutation(_ohlcv()))
 
     assert not report.valid
-    assert getattr(report, field) > 0
+    if field == "missing_columns":
+        assert report.missing_columns == ("Volume",)
+    else:
+        assert getattr(report, field) > 0
 
 
 def test_validate_market_data_reports_calendar_gaps_without_rejecting() -> None:
@@ -154,6 +157,5 @@ def test_purged_walk_forward_excludes_exact_five_bar_purge(monkeypatch) -> None:
     assert first.train_end == str(index[19])
     assert first.test_start == str(index[25])
     assert first.test_end == str(index[34])
-    assert set(index[20:25]).isdisjoint(set(pd.DatetimeIndex([first.test_start, first.test_end])))
     assert pd.Timestamp(first.train_end) < index[20]
     assert index[24] < pd.Timestamp(first.test_start)

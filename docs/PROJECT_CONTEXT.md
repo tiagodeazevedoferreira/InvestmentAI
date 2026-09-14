@@ -1,6 +1,6 @@
 # InvestmentAI — Project Context / Handoff
 
-Last updated: 2026-09-11
+Last updated: 2026-09-14
 
 ## Purpose
 
@@ -61,6 +61,44 @@ Validation results:
 - `compileall` for `backend/app` and `backend/tests`: passed.
 - Safety scan of the new Task 006 test: no `MetaTrader5`, `mt5.order_send`, `order_send`, `OrderIntent` or `DOTOGlobal-Real` references.
 
+### Task 007 — Leakage-safe ML temporal splitting
+
+Completed and validated.
+
+- `chronological_split()` now accepts an explicit `purge_bars` parameter.
+- The active XGBoost training path uses `purge_bars=5`.
+- Train and validation samples adjacent to temporal boundaries are purged so their future five-bar targets cannot depend on observations belonging to the next temporal set.
+- Chronological ordering remains deterministic; no shuffle was introduced.
+- Validation: 4/4 focused ML tests, 25/25 complete backend tests, and `compileall` passed.
+- This does not complete real-dataset training or the broader end-to-end training/backtest workflow.
+
+### Task 008 — Historical data pipeline validation
+
+Completed and validated offline on 2026-09-14.
+
+The historical OHLCV contract is now consistent across the provider boundary, quality gate, technical indicators, feature engineering and purged walk-forward validation.
+
+Validated behavior:
+
+- `OpenBBMarketDataProvider` normalizes historical frames to canonical `Open`, `High`, `Low`, `Close`, `Volume` columns with a datetime index.
+- `validate_market_data()` is the shared full quality gate for historical OHLCV.
+- The quality gate rejects missing columns, duplicate timestamps, non-monotonic timestamps, null/non-numeric or non-finite required values, invalid OHLC relationships and negative volume.
+- Large calendar gaps are reported as observability metadata and do not automatically invalidate otherwise consistent market data.
+- The normalized frame flows directly through `technical.indicators()` and `build_features(..., horizon=5)`.
+- `purged_walk_forward(..., horizon=5)` preserves the intended temporal separation, with the explicit five-observation purge between train and test.
+- `normalize_symbol()` remains deterministic (`PETR4` → `PETR4.SA`; blank symbols are rejected).
+- Tests use only deterministic synthetic DataFrames and do not initialize OpenBB, yfinance or MT5.
+- No financial execution path was modified.
+
+Validation results:
+
+- Task 008 focused tests: **14 passed**.
+- Complete `backend/tests` suite: **39 passed**.
+- `compileall -q backend`: passed.
+- Static scan found only pre-existing MT5/DOTO/execution references in unrelated backend components; Task 008 introduces no broker execution dependency.
+
+Important boundary: Task 008 validates the pipeline contract and temporal behavior with synthetic data only. It does **not** validate a real historical dataset, real-provider ingestion, real-dataset training, or the broader end-to-end training/backtest workflow.
+
 ## Current execution state
 
 The paper execution path is deterministic and broker-independent. Provider-backed scheduling obtains B3 history through the OpenBB/yfinance boundary, evaluates the existing RSI paper policy, persists deterministic decision keys and skips duplicates.
@@ -92,16 +130,6 @@ LIVE execution remains disabled.
 - Real-dataset training workflow: still pending.
 - LSTM and RL experiments: still pending.
 
-## Task 007 - leakage-safe ML temporal splitting
-
-- Completed leakage-safe temporal purge for the existing five-bar directional target.
-- `chronological_split()` now accepts an explicit `purge_bars` parameter.
-- The active XGBoost training path uses `purge_bars=5`.
-- Train and validation samples adjacent to temporal boundaries are purged so their future five-bar targets cannot depend on observations belonging to the next temporal set.
-- Chronological ordering remains deterministic; no shuffle was introduced.
-- Validation: 4/4 focused ML tests, 25/25 complete backend tests, and `compileall` passed.
-- This does not complete real-dataset training or the broader end-to-end training/backtest workflow.
-
 ## Important open quality items
 
 - Full integration suite against provider mocks.
@@ -109,20 +137,21 @@ LIVE execution remains disabled.
 - Security/dependency scan.
 - Production deployment.
 
-Task 006 does not close the broader `End-to-end training/backtest test` item because it validates backtesting only.
+Task 006 does not close the broader `End-to-end training/backtest test` item because it validates backtesting only. Task 008 does not close it either because its historical pipeline validation is synthetic and contract-focused.
 
 ## Immediate development direction
 
-The next candidate development stage is broker-independent validation of backtesting against realistic historical market data with:
+The next candidate development stage is broker-independent validation of the historical market pipeline against realistic or real historical datasets, subject to explicit data-source and reproducibility controls. That stage should consider:
 
 1. leakage-safe historical data handling;
 2. explicit train/test or evaluation boundaries where applicable;
 3. realistic transaction-cost and slippage assumptions;
 4. venue-specific cost calibration where data is available;
 5. deterministic reproducibility;
-6. no MT5, DOTO or broker submission.
+6. data-quality reporting and handling of calendar gaps;
+7. no MT5, DOTO or broker submission.
 
-This candidate stage must be scoped and inspected against the current repository before implementation. It must not be treated as complete merely because Task 006 passed.
+This candidate stage must be scoped and inspected against the current repository before implementation. It must not be treated as complete merely because Task 008 passed.
 
 ## Safety constraints
 

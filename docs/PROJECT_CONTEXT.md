@@ -99,6 +99,35 @@ Validation results:
 
 Important boundary: Task 008 validates the pipeline contract and temporal behavior with synthetic data only. It does **not** validate a real historical dataset, real-provider ingestion, real-dataset training, or the broader end-to-end training/backtest workflow.
 
+### Task 009 — Real historical data validation
+
+Completed and validated on 2026-09-14.
+
+The real OpenBB/yfinance B3 path was validated for `PETR4.SA`, `VALE3.SA` and `ITUB4.SA` using daily data from requested `2024-01-01` through `2025-03-31`.
+
+Validated behavior:
+
+- Each symbol returned 312 observations with effective coverage `2024-01-02` through `2025-03-31`.
+- All three datasets passed the shared market-data quality gate.
+- Each dataset reported two calendar gaps with a maximum gap of five days; these were retained as observability metadata.
+- Canonical OHLCV columns were present and the normalized index was `date`.
+- Provider-specific corporate-action-related fields were observable (`Dividend` for VALE3 and `Split_Ratio`/`Dividend` for ITUB4) without changing the canonical OHLCV contract.
+- Technical indicators and feature engineering executed successfully on real data.
+- The purged walk-forward pipeline executed with horizon `5`, train size `120`, test size `40` and step `40`, producing four folds per asset.
+- Aggregate model/baseline balanced accuracy: PETR4 `0.5895/0.3358`, VALE3 `0.5026/0.3773`, ITUB4 `0.4771/0.4671`.
+- These results are diagnostic only; they do not imply profitability or production readiness.
+
+Validation checks:
+
+- Complete `backend/tests`: **39 passed**.
+- `compileall -q backend`: passed.
+- Static scan: only pre-existing MT5/DOTO/execution references found.
+- No `mt5.order_send()` call and no financial transaction were performed during the task.
+
+Detailed results are recorded in `docs/validation/009-real-historical-data-validation-results.md`.
+
+Important boundary: Task 009 closes the real historical-data validation gate only. It does not mark real-dataset production training, venue-specific transaction-cost/slippage calibration, production readiness, live trading or MT5/DOTO execution validation as complete.
+
 ## Current execution state
 
 The paper execution path is deterministic and broker-independent. Provider-backed scheduling obtains B3 history through the OpenBB/yfinance boundary, evaluates the existing RSI paper policy, persists deterministic decision keys and skips duplicates.
@@ -137,21 +166,20 @@ LIVE execution remains disabled.
 - Security/dependency scan.
 - Production deployment.
 
-Task 006 does not close the broader `End-to-end training/backtest test` item because it validates backtesting only. Task 008 does not close it either because its historical pipeline validation is synthetic and contract-focused.
+Task 006 does not close the broader `End-to-end training/backtest test` item because it validates backtesting only. Task 008 does not close it because its historical pipeline validation is synthetic and contract-focused. Task 009 now validates the real provider/data path and evaluation pipeline, but it still does not establish production-grade training or economic performance.
 
 ## Immediate development direction
 
-The next candidate development stage is broker-independent validation of the historical market pipeline against realistic or real historical datasets, subject to explicit data-source and reproducibility controls. That stage should consider:
+With Task 009 complete, the next candidate development stage should be selected explicitly from the remaining research gates. The real historical-data path is now validated for the controlled B3 sample, but further work should still consider:
 
-1. leakage-safe historical data handling;
-2. explicit train/test or evaluation boundaries where applicable;
-3. realistic transaction-cost and slippage assumptions;
-4. venue-specific cost calibration where data is available;
-5. deterministic reproducibility;
-6. data-quality reporting and handling of calendar gaps;
-7. no MT5, DOTO or broker submission.
+1. explicit real-dataset training workflow design;
+2. realistic transaction-cost and slippage assumptions;
+3. venue-specific cost calibration where data is available;
+4. broader historical coverage and universe-selection controls where justified;
+5. deterministic reproducibility and versioned validation artifacts;
+6. no MT5, DOTO or broker submission unless a separate execution task is explicitly authorized.
 
-This candidate stage must be scoped and inspected against the current repository before implementation. It must not be treated as complete merely because Task 008 passed.
+Task 009 must not be treated as an approval for production training, strategy promotion or live execution.
 
 ## Safety constraints
 

@@ -1,41 +1,18 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Iterable
-
 import pandas as pd
+
+from .data_quality import MarketDataQualityReport, REQUIRED_OHLCV, validate_market_data
 
 
 B3_SYMBOLS = {"PETR4", "VALE3", "ITUB4"}
 
 
-@dataclass(frozen=True)
-class MarketDataQuality:
-    symbol: str
-    rows: int
-    required_columns: tuple[str, ...]
-    missing_columns: tuple[str, ...]
-    duplicate_timestamps: int
-    null_required_values: int
-    monotonic_timestamps: bool
-
-    @property
-    def valid(self) -> bool:
-        return (
-            self.rows > 0
-            and not self.missing_columns
-            and self.duplicate_timestamps == 0
-            and self.null_required_values == 0
-            and self.monotonic_timestamps
-        )
-
-
 class OpenBBMarketDataProvider:
     """Market-data adapter using OpenBB's standardized router.
 
-    For B3 equities, the selected OpenBB provider is Yahoo Finance because the
-    current official OpenBB provider catalog does not expose a dedicated B3
-    connector. The provider-specific symbol convention is normalized here.
+    Provider-specific conventions are normalized at the adapter boundary so the
+    rest of the application receives the canonical internal OHLCV contract.
     """
 
     provider = "yfinance"
@@ -46,6 +23,31 @@ class OpenBBMarketDataProvider:
         if not raw:
             raise ValueError("Symbol is required")
         return raw if raw.endswith(".SA") else f"{raw}.SA"
+
+    @staticmethod
+    def normalize_historical_frame(df: pd.DataFrame) -> pd.DataFrame:
+        """Normalize an adapter result to the canonical internal OHLCV schema."""
+        if df is None or df.empty:
+            raise ValueError("No historical market data available")
+
+        out = df.copy()
+        if "date" in out.columns:
+            out = out.set_index("date")
+        if not isinstance(out.index, pd.DatetimeIndex):
+            out.index = pd.to_datetime(out.index, utc=True)
+        out.index.name = "date"
+
+        column_map = {str(column).strip().lower(): column for column in out.columns}
+        missing = [column for column in ("open", "high", "low", "close", "volume") if column not in column_map]
+        if missing:
+            raise ValueError(f"Missing market columns: {missing}")
+
+        normalized = out.rename(columns={column_map[key]: key.title() for key in column_map})
+        duplicate_columns = normalized.columns[normalized.columns.duplicated()].tolist()
+        if duplicate_columns:
+            raise ValueError(f"Duplicate normalized market columns: {duplicate_columns}")
+
+        return normalized.sort_index()
 
     def historical(
         self,
@@ -72,44 +74,26 @@ class OpenBBMarketDataProvider:
 
         result = obb.equity.price.historical(normalized, **kwargs)
         df = result.to_df() if hasattr(result, "to_df") else pd.DataFrame(result)
-        if df.empty:
-            raise ValueError(f"No historical data returned for {symbol}")
-
-        df = df.copy()
-        if "date" in df.columns:
-            df = df.set_index("date")
-        if not isinstance(df.index, pd.DatetimeIndex):
-            df.index = pd.to_datetime(df.index, utc=True)
-        df.index.name = "date"
-        df.columns = [str(c).lower() for c in df.columns]
-        required = ["open", "high", "low", "close", "volume"]
-        missing = [c for c in required if c not in df.columns]
-        if missing:
-            raise ValueError(f"Missing market columns: {missing}")
-        return df.sort_index()
+        return self.normalize_historical_frame(df)
 
     @staticmethod
-    def quality(symbol: str, df: pd.DataFrame) -> MarketDataQuality:
-        required = ("open", "high", "low", "close", "volume")
-        missing = tuple(c for c in required if c not in df.columns)
-        duplicates = int(df.index.duplicated().sum())
-        nulls = int(df.loc[:, [c for c in required if c in df.columns]].isna().sum().sum())
-        return MarketDataQuality(
-            symbol=symbol,
-            rows=len(df),
-            required_columns=required,
-            missing_columns=missing,
-            duplicate_timestamps=duplicates,
-            null_required_values=nulls,
-            monotonic_timestamps=bool(df.index.is_monotonic_increasing),
-        )
+    def quality(symbol: str, df: pd.DataFrame, *, interval: str = "1d") -> MarketDataQualityReport:
+        return validate_market_data(symbol, df, interval=interval)
 
-    def historical_with_quality(self, symbol: str, **kwargs: object) -> tuple[pd.DataFrame, MarketDataQuality]:
+    def historical_with_quality(
+        self, symbol: str, **kwargs: object
+    ) -> tuple[pd.DataFrame, MarketDataQualityReport]:
+        interval = str(kwargs.get("interval", "1d"))
         df = self.historical(symbol, **kwargs)
-        quality = self.quality(symbol, df)
+        quality = validate_market_data(symbol, df, interval=interval)
         if not quality.valid:
             raise ValueError(f"Market data quality gate failed: {quality}")
         return df, quality
 
 
-__all__ = ["B3_SYMBOLS", "MarketDataQuality", "OpenBBMarketDataProvider"]
+__all__ = [
+    "B3_SYMBOLS",
+    "MarketDataQualityReport",
+    "OpenBBMarketDataProvider",
+    "REQUIRED_OHLCV",
+]

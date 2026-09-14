@@ -6,7 +6,7 @@ import math
 import pandas as pd
 
 
-REQUIRED_OHLCV = ("open", "high", "low", "close", "volume")
+REQUIRED_OHLCV = ("Open", "High", "Low", "Close", "Volume")
 
 
 @dataclass(frozen=True)
@@ -41,7 +41,7 @@ class MarketDataQualityReport:
 
 
 def validate_market_data(symbol: str, df: pd.DataFrame, *, interval: str = "1d") -> MarketDataQualityReport:
-    """Validate normalized OHLCV data without assuming weekends are trading days.
+    """Validate canonical OHLCV data without assuming weekends are trading days.
 
     Large gaps are reported for observability but do not by themselves fail the gate,
     because exchange holidays and corporate events can create legitimate gaps.
@@ -71,16 +71,15 @@ def validate_market_data(symbol: str, df: pd.DataFrame, *, interval: str = "1d")
     nonfinite = int((~finite & values.notna()).sum().sum())
 
     invalid_ohlc = (
-        (values["high"] < values[["open", "close", "low"]].max(axis=1))
-        | (values["low"] > values[["open", "close", "high"]].min(axis=1))
-        | (values[["open", "high", "low", "close"]] <= 0).any(axis=1)
+        (values["High"] < values[["Open", "Close", "Low"]].max(axis=1))
+        | (values["Low"] > values[["Open", "Close", "High"]].min(axis=1))
+        | (values[["Open", "High", "Low", "Close"]] <= 0).any(axis=1)
     )
     invalid_ohlc_rows = int(invalid_ohlc.fillna(False).sum())
-    negative_volume_rows = int((values["volume"] < 0).fillna(False).sum())
+    negative_volume_rows = int((values["Volume"] < 0).fillna(False).sum())
 
     gaps = index.sort_values().to_series().diff().dt.total_seconds().div(86400).dropna()
     max_gap = float(gaps.max()) if not gaps.empty else 0.0
-    # More than four calendar days is suspicious for daily equity data, but not fatal.
     large_gaps = int((gaps > 4).sum()) if interval == "1d" else 0
 
     return MarketDataQualityReport(
@@ -91,3 +90,6 @@ def validate_market_data(symbol: str, df: pd.DataFrame, *, interval: str = "1d")
         invalid_ohlc_rows=invalid_ohlc_rows, negative_volume_rows=negative_volume_rows,
         large_calendar_gaps=large_gaps, max_gap_days=max_gap,
     )
+
+
+__all__ = ["MarketDataQualityReport", "REQUIRED_OHLCV", "validate_market_data"]

@@ -35,7 +35,7 @@ Last updated: 2026-09-16
 - [ ] Transaction-cost calibration by venue
 - [x] Causal ML trading backtest
 - [x] ML robustness audit
-- [ ] ML cross-asset model diagnosis and improvement
+- [x] ML cross-asset model diagnosis and improvement
 
 ## Portfolio/Risk
 - [x] Markowitz optimization
@@ -139,7 +139,7 @@ Last updated: 2026-09-16
 - [x] ML robustness audit helper tests
 - [x] ML model diagnosis helper tests
 - [x] Causal pooled cross-asset ML experiment tests
-- [ ] Cross-asset diagnostic helper tests — implemented in Task 011, CI validation pending
+- [x] Cross-asset diagnostic helper tests
 - [x] Paper execution accounting tests
 - [x] Paper API lifecycle tests
 - [x] Paper signal automation tests
@@ -164,7 +164,7 @@ Last updated: 2026-09-16
 - [ ] Production deployment
 
 ## Current ML validation gate
-The causal ML trading backtest, robustness audit and model diagnosis are complete. The robustness gate is not yet passed because performance is not stable across all evaluated assets and assumptions. A causal pooled cross-asset model experiment is implemented to test whether normalized technical features transfer across PETR4, VALE3 and ITUB4 without changing execution policy. The experiment remains research-only until its out-of-sample evidence is reviewed.
+The causal ML trading backtest, robustness audit and model diagnosis are complete. The robustness gate is not yet passed because performance is not stable across all evaluated assets and assumptions. A causal pooled cross-asset model experiment is implemented to test whether normalized technical features transfer across PETR4, VALE3 and ITUB4 without changing execution policy. Task 011 diagnostics are now validated in CI and recorded as research/observability evidence. The pooled experiment remains research-only until its out-of-sample evidence is reviewed.
 
 ## Current historical-data validation gate
 Task 008 is complete and validated offline with deterministic synthetic data. Task 009 is also complete and validated against real daily B3 datasets for `PETR4.SA`, `VALE3.SA` and `ITUB4.SA` using the existing OpenBB/yfinance provider boundary.
@@ -193,11 +193,15 @@ Important boundary: Task 010 is diagnostic only. It does not establish profitabi
 
 ### Task 011 — Cross-asset ML diagnostic harness
 
-Implementation started on 2026-09-16 on branch `task-011-cross-asset-diagnostics`.
+Completed and validated on 2026-09-16.
 
-The existing causal pooled-vs-asset-specific experiment now has a dedicated diagnostic layer that reports, for each model and asset, actual positive rate, predicted positive rate, mean predicted probability, probability/prediction bias, accuracy, Brier score, ECE, first-vs-last fold temporal deltas, and a causal reference-vs-OOS feature distribution shift summary. The workflow also runs the new diagnostic unit tests before executing the real-data experiment.
+The causal pooled-vs-asset-specific experiment now has a dedicated diagnostic layer reporting actual positive rate, predicted positive rate, mean predicted probability, probability/prediction bias, accuracy, Brier score, ECE, first-vs-last fold temporal deltas and causal reference-vs-OOS feature distribution shift. CI runs the diagnostic unit tests before the real-data experiment and report generation.
 
-This is a research/observability change only. It does not change model thresholds, execution policy, risk gates, broker integration or promotion authority. CI validation and review of the real-data artifact remain pending; no promotion decision is implied by this implementation.
+Workflow `.github/workflows/ml-cross-asset.yml` completed successfully in run `35131993552` on `main` commit `e17ddc0`. The `ml-cross-asset-experiment` artifact was generated with SHA-256 `cd1b20126b8f9e0c49f98295dbc9c933051c82e212100a191d17670f242781e6`. The experiment covered PETR4, VALE3 and ITUB4 with 8 paired OOS folds.
+
+Task 011 is research/observability only. It does not establish profitability or robustness, and it does not change model thresholds, execution policy, risk gates, broker integration or promotion authority.
+
+Dedicated task and validation records are published at `docs/codex/tasks/011-cross-asset-ml-diagnostics.md` and `docs/validation/011-cross-asset-ml-diagnostics-results.md`.
 
 ## Current execution gate
 The internal paper execution path is deterministic and broker-independent. Provider-backed scheduling obtains B3 history through the OpenBB/yfinance boundary, evaluates the existing RSI paper policy, persists a deterministic decision key, and skips duplicates. Completed decisions receive persisted 1/5/20-bar forward outcomes. The calibration layer reports directional hit rate, confidence intervals and return statistics under an explicit transaction-cost assumption, and the runner can partition results by a causal trailing-volatility regime. Paper decisions can also be reconciled against TradingView validator evidence using an explicit timestamp tolerance. The empirical gate evaluates predefined evidence criteria, but a passing result only permits human review and can never authorize promotion automatically. Operational kill-switch and broker-neutral reconciliation primitives are hardened. The Doto/MT5 demo-only adapter, read-only reconciliation harness, fail-closed authorization gate, and pre/post-reconciled DEMO execution coordinator are implemented. The adapter rejects unsupported limit intents, uses bid/ask semantics for market orders, requires a successful order_check result, and verifies DEMO status during initialization. A non-submitting preflight path builds the exact market request and runs order_check without order_send().

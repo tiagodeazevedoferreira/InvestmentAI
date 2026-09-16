@@ -169,6 +169,18 @@ Detailed results are recorded in `docs/validation/010-real-dataset-training-work
 
 Important boundary: Task 010 is diagnostic only. It does not establish profitability, production readiness, model superiority, live-trading readiness, complete-universe robustness or permission to execute trades.
 
+### Task 011 — Cross-asset ML diagnostics
+
+Completed and validated on 2026-09-16.
+
+The causal pooled-vs-asset-specific experiment now has a dedicated diagnostic layer reporting actual positive rate, predicted positive rate, mean predicted probability, probability/prediction bias, accuracy, Brier score, ECE, first-vs-last fold temporal deltas and causal reference-vs-OOS feature distribution shift.
+
+CI workflow `.github/workflows/ml-cross-asset.yml` completed successfully in run `35131993552` on `main` commit `e17ddc0`. The workflow runs diagnostic unit tests before the real-data experiment, report generation and artifact upload. The `ml-cross-asset-experiment` artifact was generated with SHA-256 `cd1b20126b8f9e0c49f98295dbc9c933051c82e212100a191d17670f242781e6`. The experiment covered PETR4, VALE3 and ITUB4 with 8 paired OOS folds.
+
+Dedicated Task 011 task and validation records are now published at `docs/codex/tasks/011-cross-asset-ml-diagnostics.md` and `docs/validation/011-cross-asset-ml-diagnostics-results.md`.
+
+Important boundary: Task 011 is research/observability only. It does not establish profitability, robustness, production readiness or model superiority, and it does not change model thresholds, execution policy, risk gates, broker integration or promotion authority.
+
 ## Current execution state
 
 The paper execution path is deterministic and broker-independent. Provider-backed scheduling obtains B3 history through the OpenBB/yfinance boundary, evaluates the existing RSI paper policy, persists deterministic decision keys and skips duplicates.
@@ -197,6 +209,7 @@ LIVE execution remains disabled.
 - Robustness audit: complete.
 - Robustness gate: **not passed** because performance is not stable across all evaluated assets and assumptions.
 - Causal pooled cross-asset experiment: implemented, research-only.
+- Cross-asset diagnostic harness: complete and CI-validated, research-only.
 - Real-dataset training workflow: complete for the controlled B3 validation sample; diagnostic only.
 - LSTM and RL experiments: still pending.
 
@@ -207,20 +220,23 @@ LIVE execution remains disabled.
 - Security/dependency scan.
 - Production deployment.
 
-Task 006 does not close the broader `End-to-end training/backtest test` item because it validates backtesting only. Task 008 does not close it because its historical pipeline validation is synthetic and contract-focused. Task 009 validated the real provider/data path and evaluation pipeline. Task 010 now validates the first reproducible real-dataset XGBoost training workflow for the controlled B3 sample, but neither task establishes production-grade economic performance.
+Task 006 does not close the broader `End-to-end training/backtest test` item because it validates backtesting only. Task 008 does not close it because its historical pipeline validation is synthetic and contract-focused. Task 009 validated the real provider/data path and evaluation pipeline. Task 010 validates the first reproducible real-dataset XGBoost training workflow for the controlled B3 sample. Task 011 validates diagnostics around the causal cross-asset experiment. Neither establishes production-grade economic performance.
 
 ## Immediate development direction
 
-With Tasks 009 and 010 complete, the next candidate development stage should be selected explicitly from the remaining research gates. The controlled B3 real-data training path is now reproducible and quality-gated, but further work should still consider:
+Task 012 should be the next narrow offline validation stage: connect the existing real-dataset training/evaluation path to the existing cost/slippage-aware backtest in one deterministic, auditable workflow, without changing execution authority. The goal is to validate the broader training → OOS evaluation → backtest contract and expose any interface, leakage, timestamp, signal-alignment or accounting defects before broader robustness work.
+
+The Task 012 scope should remain offline and broker-independent. It should reuse existing quality-gate, feature, temporal-purge, model, MarketReplay/Backtester and cost/slippage components rather than introducing a new parallel pipeline.
+
+Subsequent research can then address:
 
 1. broader real-dataset training coverage and robustness controls;
 2. realistic transaction-cost and slippage assumptions;
 3. venue-specific cost calibration where data is available;
 4. broader historical coverage and universe-selection controls where justified;
-5. deterministic reproducibility and versioned validation artifacts;
-6. no MT5, DOTO or broker submission unless a separate execution task is explicitly authorized.
+5. deterministic reproducibility and versioned validation artifacts.
 
-Task 010 must not be treated as an approval for production training, strategy promotion or live execution.
+No MT5, DOTO or broker submission is part of Task 012 unless a separate execution task is explicitly authorized.
 
 ## Safety constraints
 
@@ -239,15 +255,7 @@ Task 010 must not be treated as an approval for production training, strategy pr
 
 ## Local repository state known at the last validation
 
-The working tree was clean except for these intentionally preserved local untracked items:
-
-```text
-.runtime/
-AGENTS.md
-scripts/diagnose_first_demo_attempt.py
-```
-
-These files are not project defects and must be preserved.
+The working tree was clean except for the intentionally preserved local untracked `.runtime/` operational state. `AGENTS.md` and `scripts/diagnose_first_demo_attempt.py` are tracked project files and must also be preserved.
 
 ## Handoff rule
 

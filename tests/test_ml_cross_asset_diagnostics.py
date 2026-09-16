@@ -65,7 +65,7 @@ def test_feature_distribution_shift_is_causal_and_per_feature() -> None:
 
 
 def test_diagnostics_reject_invalid_probabilities() -> None:
-    with pytest.raises(ValueError, match="probabilities must be in \[0, 1\]"):
+    with pytest.raises(ValueError, match=r"probabilities must be in \[0, 1\]"):
         diagnose_predictions(_series([-0.1, 0.5]), _series([0, 1]))
 
 

@@ -7,6 +7,10 @@ import pandas as pd
 
 from app.services.features import build_features
 from app.services.ml_cross_asset import purged_cross_asset_walk_forward_predictions
+from app.services.ml_cross_asset_diagnostics import (
+    diagnose_predictions,
+    feature_distribution_shift,
+)
 from app.services.ml_trading import purged_walk_forward_predictions
 from app.services.openbb_market_data import OpenBBMarketDataProvider
 from app.services.probability_evaluation import paired_fold_summary
@@ -20,27 +24,24 @@ TEST_SIZE = 100
 STEP = 100
 
 
-def _brier(probability: pd.Series, target: pd.Series) -> float:
-    return float(((probability - target.astype(float)) ** 2).mean())
+def _fold_metrics(
+    probability: pd.Series,
+    target: pd.Series,
+) -> tuple[list[float], list[float]]:
+    brier: list[float] = []
+    ece: list[float] = []
+    for start in range(0, len(probability), TEST_SIZE):
+        probability_fold = probability.iloc[start : start + TEST_SIZE]
+        target_fold = target.iloc[start : start + TEST_SIZE]
+        if len(probability_fold) != TEST_SIZE or len(target_fold) != TEST_SIZE:
+            break
+        diagnostics = diagnose_predictions(probability_fold, target_fold)
+        brier.append(diagnostics.brier)
+        ece.append(diagnostics.ece)
+    return brier, ece
 
 
-def _ece(probability: pd.Series, target: pd.Series, bins: int = 10) -> float:
-    bucket = pd.cut(
-        probability,
-        bins=[i / bins for i in range(bins + 1)],
-        include_lowest=True,
-    )
-    total = len(target)
-    error = 0.0
-    for _, group in target.groupby(bucket, observed=True):
-        if len(group) == 0:
-            continue
-        p = probability.loc[group.index]
-        error += len(group) / total * abs(float(p.mean()) - float(group.mean()))
-    return float(error)
-
-
-def _evaluate(symbol: str, frame: pd.DataFrame, pooled_probability: pd.Series) -> dict:
+def _evaluate(symbol: str, frame: pd.DataFrame, pooled_run) -> dict:
     baseline = purged_walk_forward_predictions(
         frame.rename(columns=str.title),
         horizon=HORIZON,
@@ -48,55 +49,60 @@ def _evaluate(symbol: str, frame: pd.DataFrame, pooled_probability: pd.Series) -
         test_size=TEST_SIZE,
         step=STEP,
     )
+    pooled_probability = pooled_run.probabilities
+    pooled_prediction = pooled_run.predictions
     if not baseline.probabilities.index.equals(pooled_probability.index):
         raise ValueError(f"baseline and pooled test windows differ for {symbol}")
 
-    _, target = build_features(frame.rename(columns=str.title), horizon=HORIZON)
+    features, target = build_features(frame.rename(columns=str.title), horizon=HORIZON)
     target = target.reindex(pooled_probability.index)
 
-    fold_brier_baseline: list[float] = []
-    fold_brier_pooled: list[float] = []
-    fold_ece_baseline: list[float] = []
-    fold_ece_pooled: list[float] = []
-    for start in range(0, len(target), TEST_SIZE):
-        target_fold = target.iloc[start : start + TEST_SIZE]
-        if len(target_fold) != TEST_SIZE:
-            break
-        base_prob = baseline.probabilities.iloc[start : start + TEST_SIZE]
-        pooled_prob = pooled_probability.iloc[start : start + TEST_SIZE]
-        fold_brier_baseline.append(_brier(base_prob, target_fold))
-        fold_brier_pooled.append(_brier(pooled_prob, target_fold))
-        fold_ece_baseline.append(_ece(base_prob, target_fold))
-        fold_ece_pooled.append(_ece(pooled_prob, target_fold))
+    baseline_brier, baseline_ece = _fold_metrics(baseline.probabilities, target)
+    pooled_brier, pooled_ece = _fold_metrics(pooled_probability, target)
+
+    first_oos = pooled_probability.index.min()
+    reference = features.loc[features.index < first_oos].tail(TRAIN_SIZE)
+    observed = features.loc[pooled_probability.index]
 
     return {
         "symbol": symbol,
         "baseline": {
             "folds": baseline.folds,
             "prediction_rows": baseline.test_rows,
-            "brier_by_fold": fold_brier_baseline,
-            "ece_by_fold": fold_ece_baseline,
-            "brier_mean": _brier(baseline.probabilities, target),
-            "ece_mean": _ece(baseline.probabilities, target),
+            "brier_by_fold": baseline_brier,
+            "ece_by_fold": baseline_ece,
+            "diagnostics": diagnose_predictions(
+                baseline.probabilities,
+                target,
+                prediction=baseline.predictions,
+                fold_brier=baseline_brier,
+                fold_ece=baseline_ece,
+            ).to_dict(),
         },
         "pooled": {
-            "folds": len(fold_brier_pooled),
-            "prediction_rows": len(pooled_probability),
-            "brier_by_fold": fold_brier_pooled,
-            "ece_by_fold": fold_ece_pooled,
-            "brier_mean": _brier(pooled_probability, target),
-            "ece_mean": _ece(pooled_probability, target),
+            "folds": pooled_run.folds,
+            "prediction_rows": pooled_run.test_rows,
+            "brier_by_fold": pooled_brier,
+            "ece_by_fold": pooled_ece,
+            "diagnostics": diagnose_predictions(
+                pooled_probability,
+                target,
+                prediction=pooled_prediction,
+                fold_brier=pooled_brier,
+                fold_ece=pooled_ece,
+            ).to_dict(),
         },
+        "feature_distribution_shift": feature_distribution_shift(reference, observed),
         "paired_statistics": [
             paired_fold_summary(
-                fold_brier_baseline,
-                fold_brier_pooled,
+                baseline_brier,
+                pooled_brier,
                 metric="brier",
                 comparison="pooled_vs_asset_specific",
             ).__dict__,
             paired_fold_summary(
-                fold_ece_baseline,
-                fold_ece_pooled,
+                baseline_ece,
+                pooled_ece,
                 metric="ece",
                 comparison="pooled_vs_asset_specific",
             ).__dict__,
@@ -119,7 +125,7 @@ def main() -> None:
     )
 
     reports = [
-        _evaluate(symbol, frames[symbol], pooled.by_symbol[symbol].probabilities)
+        _evaluate(symbol, frames[symbol], pooled.by_symbol[symbol])
         for symbol in SYMBOLS
     ]
     output = Path("artifacts/ml-cross-asset-experiment.json")

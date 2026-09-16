@@ -15,6 +15,16 @@ START = "2021-01-01"
 END = "2026-09-01"
 
 
+def _canonical_frame(frame: pd.DataFrame) -> pd.DataFrame:
+    """Convert provider OHLCV names to the internal lowercase replay contract."""
+    column_map = {str(column).strip().lower(): column for column in frame.columns}
+    required = ("open", "high", "low", "close", "volume")
+    missing = [column for column in required if column not in column_map]
+    if missing:
+        raise ValueError(f"missing required columns: {missing}")
+    return frame.rename(columns={column_map[column]: column for column in required})
+
+
 def ema_cross_signal(frame: pd.DataFrame):
     close = frame["close"].astype(float)
     ema9 = close.ewm(span=9, adjust=False).mean()
@@ -28,7 +38,8 @@ def ema_cross_signal(frame: pd.DataFrame):
 
 
 def run_symbol(provider: OpenBBMarketDataProvider, symbol: str) -> dict:
-    frame, quality = provider.historical_with_quality(symbol, start=START, end=END, interval="1d")
+    raw_frame, quality = provider.historical_with_quality(symbol, start=START, end=END, interval="1d")
+    frame = _canonical_frame(raw_frame)
     replay = MarketReplay(symbol, frame)
     signals = ema_cross_signal(frame)
     signal_iter = iter(signals.tolist())
@@ -50,7 +61,7 @@ def run_symbol(provider: OpenBBMarketDataProvider, symbol: str) -> dict:
     return {
         "symbol": symbol,
         "rows": quality.rows,
-        "start": quality.symbol and frame.index[0].isoformat(),
+        "start": frame.index[0].isoformat(),
         "end": frame.index[-1].isoformat(),
         "strategy": {
             **strategy_metrics,

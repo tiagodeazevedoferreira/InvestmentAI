@@ -6,7 +6,7 @@ import math
 import pandas as pd
 
 
-REQUIRED_OHLCV = ("Open", "High", "Low", "Close", "Volume")
+REQUIRED_OHLCV = ("open", "high", "low", "close", "volume")
 
 
 @dataclass(frozen=True)
@@ -41,12 +41,9 @@ class MarketDataQualityReport:
 
 
 def validate_market_data(symbol: str, df: pd.DataFrame, *, interval: str = "1d") -> MarketDataQualityReport:
-    """Validate canonical OHLCV data without assuming weekends are trading days.
-
-    Large gaps are reported for observability but do not by themselves fail the gate,
-    because exchange holidays and corporate events can create legitimate gaps.
-    """
-    missing = tuple(c for c in REQUIRED_OHLCV if c not in df.columns)
+    """Validate OHLCV data while accepting provider column-name casing."""
+    column_map = {str(column).strip().lower(): column for column in df.columns}
+    missing = tuple(column for column in REQUIRED_OHLCV if column not in column_map)
     index = pd.DatetimeIndex(df.index) if isinstance(df.index, pd.DatetimeIndex) else pd.to_datetime(df.index, utc=True)
     rows = len(df)
     duplicate_count = int(index.duplicated().sum())
@@ -65,18 +62,20 @@ def validate_market_data(symbol: str, df: pd.DataFrame, *, interval: str = "1d")
             large_calendar_gaps=0, max_gap_days=0.0,
         )
 
-    values = df.loc[:, REQUIRED_OHLCV].apply(pd.to_numeric, errors="coerce")
+    values = df.loc[:, [column_map[column] for column in REQUIRED_OHLCV]].copy()
+    values.columns = REQUIRED_OHLCV
+    values = values.apply(pd.to_numeric, errors="coerce")
     nulls = int(values.isna().sum().sum())
     finite = values.map(lambda x: math.isfinite(float(x)) if pd.notna(x) else False)
     nonfinite = int((~finite & values.notna()).sum().sum())
 
     invalid_ohlc = (
-        (values["High"] < values[["Open", "Close", "Low"]].max(axis=1))
-        | (values["Low"] > values[["Open", "Close", "High"]].min(axis=1))
-        | (values[["Open", "High", "Low", "Close"]] <= 0).any(axis=1)
+        (values["high"] < values[["open", "close", "low"]].max(axis=1))
+        | (values["low"] > values[["open", "close", "high"]].min(axis=1))
+        | (values[["open", "high", "low", "close"]] <= 0).any(axis=1)
     )
     invalid_ohlc_rows = int(invalid_ohlc.fillna(False).sum())
-    negative_volume_rows = int((values["Volume"] < 0).fillna(False).sum())
+    negative_volume_rows = int((values["volume"] < 0).fillna(False).sum())
 
     gaps = index.sort_values().to_series().diff().dt.total_seconds().div(86400).dropna()
     max_gap = float(gaps.max()) if not gaps.empty else 0.0

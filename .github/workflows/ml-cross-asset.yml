@@ -19,7 +19,7 @@ jobs:
       - name: Run cross-asset unit tests
         env:
           PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/backend
-        run: pytest -q tests/test_ml_cross_asset.py
+        run: pytest -q tests/test_ml_cross_asset.py tests/test_ml_cross_asset_diagnostics.py
       - name: Run causal cross-asset experiment
         env:
           PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/backend

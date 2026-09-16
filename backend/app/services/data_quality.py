@@ -43,7 +43,21 @@ class MarketDataQualityReport:
 def validate_market_data(symbol: str, df: pd.DataFrame, *, interval: str = "1d") -> MarketDataQualityReport:
     """Validate OHLCV data while accepting provider column-name casing."""
     column_map = {str(column).strip().lower(): column for column in df.columns}
-    missing = tuple(column for column in REQUIRED_OHLCV if column not in column_map)
+    missing_keys = tuple(column for column in REQUIRED_OHLCV if column not in column_map)
+
+    # Preserve the input column naming convention in diagnostics. This keeps
+    # reports useful to callers while the validation logic itself stays
+    # case-insensitive and canonical internally.
+    if df.columns.size:
+        title_case = sum(str(column).strip() == str(column).strip().title() for column in df.columns)
+        lower_case = sum(str(column).strip() == str(column).strip().lower() for column in df.columns)
+        if title_case > lower_case:
+            missing = tuple(column.title() for column in missing_keys)
+        else:
+            missing = missing_keys
+    else:
+        missing = missing_keys
+
     index = pd.DatetimeIndex(df.index) if isinstance(df.index, pd.DatetimeIndex) else pd.to_datetime(df.index, utc=True)
     rows = len(df)
     duplicate_count = int(index.duplicated().sum())
@@ -72,7 +86,7 @@ def validate_market_data(symbol: str, df: pd.DataFrame, *, interval: str = "1d")
     invalid_ohlc = (
         (values["high"] < values[["open", "close", "low"]].max(axis=1))
         | (values["low"] > values[["open", "close", "high"]].min(axis=1))
-        | (values[["open", "high", "low", "close"]] <= 0).any(axis=1)
+        | (values[["open", "high", "low", "close"]] < 0).any(axis=1)
     )
     invalid_ohlc_rows = int(invalid_ohlc.fillna(False).sum())
     negative_volume_rows = int((values["volume"] < 0).fillna(False).sum())

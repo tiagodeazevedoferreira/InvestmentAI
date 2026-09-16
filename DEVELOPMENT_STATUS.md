@@ -1,6 +1,6 @@
 # Development Status
 
-Last updated: 2026-09-14
+Last updated: 2026-09-16
 
 ## Foundation
 - [x] Repository and persistent handoff context
@@ -54,7 +54,7 @@ Last updated: 2026-09-14
 - [x] XGBoost training interface
 - [x] Model metadata/registry artifact
 - [x] Financial evaluation metrics
-- [ ] Training workflow on real datasets
+- [x] Training workflow on real datasets
 - [x] Out-of-sample ML evaluation
 - [x] Empirical financial promotion gate evaluator (human-review only)
 - [ ] LSTM experiment
@@ -166,7 +166,7 @@ Last updated: 2026-09-14
 The causal ML trading backtest, robustness audit and model diagnosis are complete. The robustness gate is not yet passed because performance is not stable across all evaluated assets and assumptions. A causal pooled cross-asset model experiment is implemented to test whether normalized technical features transfer across PETR4, VALE3 and ITUB4 without changing execution policy. The experiment remains research-only until its out-of-sample evidence is reviewed.
 
 ## Current historical-data validation gate
-Task 008 is complete and validated offline with deterministic synthetic data. Task 009 is now also complete and validated against real daily B3 datasets for `PETR4.SA`, `VALE3.SA` and `ITUB4.SA` using the existing OpenBB/yfinance provider boundary.
+Task 008 is complete and validated offline with deterministic synthetic data. Task 009 is also complete and validated against real daily B3 datasets for `PETR4.SA`, `VALE3.SA` and `ITUB4.SA` using the existing OpenBB/yfinance provider boundary.
 
 Task 009 validation used `2024-01-01` through `2025-03-31`, interval `1d`. Each symbol returned 312 observations covering `2024-01-02` through `2025-03-31` and passed the shared quality gate for required columns, duplicates, nulls, non-finite values, timestamp monotonicity, OHLC consistency and negative volume. Two calendar gaps were reported per dataset, with a maximum gap of five days; these remained observability metadata rather than automatic failures. VALE3 returned an additional `Dividend` field, and ITUB4 returned `Split_Ratio` and `Dividend`; these were not required OHLCV fields and were not independently used to reconstruct corporate-action adjustments.
 
@@ -177,6 +177,18 @@ Task 009 validation completed with 39/39 backend tests passing and `compileall -
 Detailed reproducible results are recorded in `docs/validation/009-real-historical-data-validation-results.md`.
 
 This task closes the real historical-data validation gate only. It does not mark real-dataset production training, venue-specific cost/slippage calibration, production readiness, live trading or MT5/DOTO execution validation as complete.
+
+### Task 010 — Real dataset training workflow
+
+Completed and validated on 2026-09-16.
+
+The first reproducible real-dataset training workflow is complete for the controlled B3 sample. PETR4.SA, VALE3.SA and ITUB4.SA were trained using OpenBB with yfinance, interval `1d`, period `5y` and horizon `5`.
+
+The canonical `validate_market_data()` gate executes before feature engineering and invalid datasets fail closed. The existing feature pipeline, XGBoost engine and five-bar temporal purge were preserved.
+
+Validation completed with `43 passed` backend tests and clean `compileall -q backend`.
+
+Important boundary: Task 010 is diagnostic only. It does not establish profitability, production readiness, model superiority, live-trading readiness, complete-universe robustness or permission to execute trades.
 
 ## Current execution gate
 The internal paper execution path is deterministic and broker-independent. Provider-backed scheduling obtains B3 history through the OpenBB/yfinance boundary, evaluates the existing RSI paper policy, persists a deterministic decision key, and skips duplicates. Completed decisions receive persisted 1/5/20-bar forward outcomes. The calibration layer reports directional hit rate, confidence intervals and return statistics under an explicit transaction-cost assumption, and the runner can partition results by a causal trailing-volatility regime. Paper decisions can also be reconciled against TradingView validator evidence using an explicit timestamp tolerance. The empirical gate evaluates predefined evidence criteria, but a passing result only permits human review and can never authorize promotion automatically. Operational kill-switch and broker-neutral reconciliation primitives are hardened. The Doto/MT5 demo-only adapter, read-only reconciliation harness, fail-closed authorization gate, and pre/post-reconciled DEMO execution coordinator are implemented. The adapter rejects unsupported limit intents, uses bid/ask semantics for market orders, requires a successful order_check result, and verifies DEMO status during initialization. A non-submitting preflight path builds the exact market request and runs order_check without order_send().

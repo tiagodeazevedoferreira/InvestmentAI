@@ -1,6 +1,6 @@
 # InvestmentAI — Project Context / Handoff
 
-Last updated: 2026-09-14
+Last updated: 2026-09-16
 
 ## Purpose
 
@@ -128,6 +128,47 @@ Detailed results are recorded in `docs/validation/009-real-historical-data-valid
 
 Important boundary: Task 009 closes the real historical-data validation gate only. It does not mark real-dataset production training, venue-specific transaction-cost/slippage calibration, production readiness, live trading or MT5/DOTO execution validation as complete.
 
+### Task 010 — Real dataset training workflow
+
+Completed and validated on 2026-09-16.
+
+The first reproducible real-dataset training workflow is complete for the controlled B3 sample. PETR4.SA, VALE3.SA and ITUB4.SA were trained using OpenBB with yfinance, interval `1d`, period `5y` and horizon `5`.
+
+Validated behavior:
+
+- `train_symbol_baseline()` applies `validate_market_data()` before `build_features()`.
+- Invalid market data fails closed before feature engineering.
+- The existing `build_features()` implementation and XGBoost engine remain unchanged as the training path.
+- The five-bar temporal purge remains enforced by `train_xgboost()`.
+- The provider contract `history(symbol, period)` remains compatible; OpenBB translates the requested period into explicit dates and requests daily data from yfinance.
+- Training metadata records provider, interval, period, horizon, feature configuration, parameters, metrics, sample counts and the canonical quality report.
+- Model and metadata artifacts are persisted separately.
+- No MT5/DOTO historical data or broker execution was used.
+
+Real-data validation used the same configuration for all three symbols:
+
+| Symbol | Samples | Positive labels | Accuracy | Precision | Recall | ROC AUC |
+|---|---:|---:|---:|---:|---:|---:|
+| PETR4.SA | 1223 | 651 | 0.4457 | 0.5182 | 0.5377 | 0.3990 |
+| VALE3.SA | 1222 | 633 | 0.4946 | 0.5250 | 0.4330 | 0.5069 |
+| ITUB4.SA | 1223 | 648 | 0.5543 | 0.5930 | 0.5204 | 0.6325 |
+
+Each dataset contained 1248 daily observations from `2021-09-15` through `2026-09-15` and passed the canonical quality gate. Calendar gaps were retained as observability metadata rather than automatic failures.
+
+Validation checks:
+
+- Dedicated XGBoost tests: **3 passed**.
+- Complete `backend/tests`: **43 passed**.
+- `compileall -q backend`: passed.
+- Static safety scan: clean.
+- No `mt5.order_send()` call.
+- No financial transaction submitted.
+- No model promoted to production.
+
+Detailed results are recorded in `docs/validation/010-real-dataset-training-workflow-results.md`.
+
+Important boundary: Task 010 is diagnostic only. It does not establish profitability, production readiness, model superiority, live-trading readiness, complete-universe robustness or permission to execute trades.
+
 ## Current execution state
 
 The paper execution path is deterministic and broker-independent. Provider-backed scheduling obtains B3 history through the OpenBB/yfinance boundary, evaluates the existing RSI paper policy, persists deterministic decision keys and skips duplicates.
@@ -156,7 +197,7 @@ LIVE execution remains disabled.
 - Robustness audit: complete.
 - Robustness gate: **not passed** because performance is not stable across all evaluated assets and assumptions.
 - Causal pooled cross-asset experiment: implemented, research-only.
-- Real-dataset training workflow: still pending.
+- Real-dataset training workflow: complete for the controlled B3 validation sample; diagnostic only.
 - LSTM and RL experiments: still pending.
 
 ## Important open quality items
@@ -166,20 +207,20 @@ LIVE execution remains disabled.
 - Security/dependency scan.
 - Production deployment.
 
-Task 006 does not close the broader `End-to-end training/backtest test` item because it validates backtesting only. Task 008 does not close it because its historical pipeline validation is synthetic and contract-focused. Task 009 now validates the real provider/data path and evaluation pipeline, but it still does not establish production-grade training or economic performance.
+Task 006 does not close the broader `End-to-end training/backtest test` item because it validates backtesting only. Task 008 does not close it because its historical pipeline validation is synthetic and contract-focused. Task 009 validated the real provider/data path and evaluation pipeline. Task 010 now validates the first reproducible real-dataset XGBoost training workflow for the controlled B3 sample, but neither task establishes production-grade economic performance.
 
 ## Immediate development direction
 
-With Task 009 complete, the next candidate development stage should be selected explicitly from the remaining research gates. The real historical-data path is now validated for the controlled B3 sample, but further work should still consider:
+With Tasks 009 and 010 complete, the next candidate development stage should be selected explicitly from the remaining research gates. The controlled B3 real-data training path is now reproducible and quality-gated, but further work should still consider:
 
-1. explicit real-dataset training workflow design;
+1. broader real-dataset training coverage and robustness controls;
 2. realistic transaction-cost and slippage assumptions;
 3. venue-specific cost calibration where data is available;
 4. broader historical coverage and universe-selection controls where justified;
 5. deterministic reproducibility and versioned validation artifacts;
 6. no MT5, DOTO or broker submission unless a separate execution task is explicitly authorized.
 
-Task 009 must not be treated as an approval for production training, strategy promotion or live execution.
+Task 010 must not be treated as an approval for production training, strategy promotion or live execution.
 
 ## Safety constraints
 

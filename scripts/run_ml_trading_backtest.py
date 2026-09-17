@@ -10,7 +10,6 @@ from app.services.backtesting import BacktestConfig, Backtester
 from app.services.ci_market_data import CI_SYMBOLS, MarketDataSource, load_market_history
 from app.services.evaluation import trading_metrics
 from app.services.market_replay import MarketReplay
-from app.services.ml_trading import predictions_to_long_only_signals, purged_walk_forward_predictions
 from app.services.xgboost_oos import run_xgboost_oos_backtest
 
 SYMBOLS = CI_SYMBOLS
@@ -45,9 +44,6 @@ def run_symbol(source: MarketDataSource, symbol: str) -> dict:
     frame, quality = load_market_history(symbol, source=source, start=START, end=END, interval="1d")
     assert quality is not None
 
-    # Keep the legacy logistic walk-forward available for model diagnostics,
-    # but use the actual XGBoost OOS pipeline for the economic backtest.
-    prediction_run = purged_walk_forward_predictions(frame.rename(columns=str.title))
     xgboost_oos, ml_result = run_xgboost_oos_backtest(
         frame,
         symbol=symbol,
@@ -71,8 +67,6 @@ def run_symbol(source: MarketDataSource, symbol: str) -> dict:
         "evaluation_end": ml_result.equity.index[-1].isoformat(),
         "ml_prediction_folds": xgboost_oos.folds,
         "ml_prediction_rows": xgboost_oos.test_rows,
-        "diagnostic_logreg_prediction_folds": prediction_run.folds,
-        "diagnostic_logreg_prediction_rows": prediction_run.test_rows,
         "ml": {
             **trading_metrics(ml_result.equity),
             "model": "xgboost",

@@ -11,6 +11,7 @@ from app.services.ci_market_data import CI_SYMBOLS, MarketDataSource, load_marke
 from app.services.evaluation import trading_metrics
 from app.services.market_replay import MarketReplay
 from app.services.ml_trading import predictions_to_long_only_signals, purged_walk_forward_predictions
+from app.services.xgboost_oos import run_xgboost_oos_backtest
 
 SYMBOLS = CI_SYMBOLS
 START = "2021-01-01"
@@ -43,11 +44,17 @@ def _run_backtest(frame: pd.DataFrame, signals: pd.Series):
 def run_symbol(source: MarketDataSource, symbol: str) -> dict:
     frame, quality = load_market_history(symbol, source=source, start=START, end=END, interval="1d")
     assert quality is not None
-    prediction_run = purged_walk_forward_predictions(frame.rename(columns=str.title))
-    ml_signals = predictions_to_long_only_signals(prediction_run.predictions)
-    eval_frame = frame.loc[prediction_run.predictions.index[0]:].copy()
 
-    ml_result = _run_backtest(eval_frame, ml_signals)
+    # Keep the legacy logistic walk-forward available for model diagnostics,
+    # but use the actual XGBoost OOS pipeline for the economic backtest.
+    prediction_run = purged_walk_forward_predictions(frame.rename(columns=str.title))
+    xgboost_oos, ml_result = run_xgboost_oos_backtest(
+        frame,
+        symbol=symbol,
+        backtest_config=CONFIG,
+    )
+
+    eval_frame = frame.loc[ml_result.equity.index[0] : ml_result.equity.index[-1]].copy()
     ema_result = _run_backtest(eval_frame, ema_cross_signal(eval_frame))
 
     buy_hold = pd.Series(
@@ -60,12 +67,15 @@ def run_symbol(source: MarketDataSource, symbol: str) -> dict:
         "symbol": symbol,
         "source": source,
         "rows": quality.rows,
-        "evaluation_start": eval_frame.index[0].isoformat(),
-        "evaluation_end": eval_frame.index[-1].isoformat(),
-        "ml_prediction_folds": prediction_run.folds,
-        "ml_prediction_rows": prediction_run.test_rows,
+        "evaluation_start": ml_result.equity.index[0].isoformat(),
+        "evaluation_end": ml_result.equity.index[-1].isoformat(),
+        "ml_prediction_folds": xgboost_oos.folds,
+        "ml_prediction_rows": xgboost_oos.test_rows,
+        "diagnostic_logreg_prediction_folds": prediction_run.folds,
+        "diagnostic_logreg_prediction_rows": prediction_run.test_rows,
         "ml": {
             **trading_metrics(ml_result.equity),
+            "model": "xgboost",
             "trades": ml_result.trades,
             "final_cash": ml_result.final_cash,
             "total_commission": ml_result.total_commission,

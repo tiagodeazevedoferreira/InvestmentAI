@@ -106,7 +106,8 @@ def run_symbol(source: MarketDataSource, symbol: str) -> dict:
         test_size=100,
         step=100,
     )
-    eval_frame = _oos_replay_window(frame, prediction_run.probabilities)
+    replay_frame = frame.rename(columns={column: str(column).lower() for column in frame.columns})
+    eval_frame = _oos_replay_window(replay_frame, prediction_run.probabilities)
     probabilities = prediction_run.probabilities
 
     threshold_results = []

@@ -1,18 +1,34 @@
 from __future__ import annotations
 
+import argparse
 import json
 from dataclasses import asdict
 from pathlib import Path
 
-from backend.app.services.openbb_market_data import B3_SYMBOLS, OpenBBMarketDataProvider
+from backend.app.services.ci_market_data import CI_SYMBOLS, MarketDataSource, load_market_history
 from backend.app.services.walk_forward import purged_walk_forward
 
 
 def main() -> None:
-    provider = OpenBBMarketDataProvider()
+    parser = argparse.ArgumentParser(description="Run walk-forward analysis.")
+    parser.add_argument(
+        "--source",
+        choices=("fixture", "provider"),
+        default="fixture",
+        help="Data source. The deterministic fixture is the CI default; provider is an explicit external-data mode.",
+    )
+    args = parser.parse_args()
+    source: MarketDataSource = args.source
+
     results = []
-    for symbol in sorted(B3_SYMBOLS):
-        frame = provider.historical(symbol, start="2021-01-04", end="2026-09-02", interval="1d")
+    for symbol in sorted(CI_SYMBOLS):
+        frame, _ = load_market_history(
+            symbol,
+            source=source,
+            start="2021-01-04",
+            end="2026-09-02",
+            interval="1d",
+        )
         results.append(purged_walk_forward(frame.rename(columns=str.title), symbol))
 
     payload = []

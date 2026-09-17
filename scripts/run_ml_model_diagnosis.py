@@ -1,16 +1,17 @@
 from __future__ import annotations
 
+import argparse
 import json
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
+from app.services.ci_market_data import CI_SYMBOLS, MarketDataSource, load_market_history
 from app.services.features import build_features
 from app.services.ml_trading import purged_walk_forward_predictions
-from app.services.openbb_market_data import OpenBBMarketDataProvider
 
-SYMBOLS = ("PETR4", "VALE3", "ITUB4")
+SYMBOLS = CI_SYMBOLS
 START = "2021-01-01"
 END = "2026-09-01"
 HORIZON = 5
@@ -52,8 +53,9 @@ def _calibration_buckets(probabilities: pd.Series, target: pd.Series) -> list[di
     return rows
 
 
-def diagnose_symbol(provider: OpenBBMarketDataProvider, symbol: str) -> dict:
-    frame, quality = provider.historical_with_quality(symbol, start=START, end=END, interval="1d")
+def diagnose_symbol(source: MarketDataSource, symbol: str) -> dict:
+    frame, quality = load_market_history(symbol, source=source, start=START, end=END, interval="1d")
+    assert quality is not None
     features, target = build_features(frame.rename(columns=str.title), horizon=HORIZON)
     prediction_run = purged_walk_forward_predictions(frame.rename(columns=str.title), horizon=HORIZON)
 
@@ -96,6 +98,7 @@ def diagnose_symbol(provider: OpenBBMarketDataProvider, symbol: str) -> dict:
 
     return {
         "symbol": symbol,
+        "source": source,
         "rows": quality.rows,
         "prediction_rows": prediction_run.test_rows,
         "folds": prediction_run.folds,
@@ -115,8 +118,17 @@ def diagnose_symbol(provider: OpenBBMarketDataProvider, symbol: str) -> dict:
 
 
 def main() -> None:
-    provider = OpenBBMarketDataProvider()
-    reports = [diagnose_symbol(provider, symbol) for symbol in SYMBOLS]
+    parser = argparse.ArgumentParser(description="Run ML model diagnosis.")
+    parser.add_argument(
+        "--source",
+        choices=("fixture", "provider"),
+        default="fixture",
+        help="Data source. The deterministic fixture is the CI default; provider is an explicit external-data mode.",
+    )
+    args = parser.parse_args()
+    source: MarketDataSource = args.source
+
+    reports = [diagnose_symbol(source, symbol) for symbol in SYMBOLS]
     output = Path("artifacts/ml-model-diagnosis.json")
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(reports, indent=2), encoding="utf-8")

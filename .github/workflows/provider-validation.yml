@@ -1,0 +1,43 @@
+name: Provider Validation
+
+on:
+  workflow_dispatch:
+
+jobs:
+  provider-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r backend/requirements.txt
+      - name: Run provider-backed walk-forward analysis
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/backend
+        run: python scripts/run_walk_forward.py --source provider > walk_forward_provider_output.txt
+      - name: Run provider-backed causal ML trading backtest
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/backend
+        run: python scripts/run_ml_trading_backtest.py --source provider > ml_trading_backtest_provider_output.txt
+      - name: Run provider-backed ML robustness audit
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/backend
+        run: python scripts/run_ml_robustness_audit.py --source provider > ml_robustness_audit_provider_output.txt
+      - name: Run provider-backed ML model diagnosis
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/backend
+        run: python scripts/run_ml_model_diagnosis.py --source provider > ml_model_diagnosis_provider_output.txt
+      - name: Upload provider validation reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: provider-validation-reports
+          path: |
+            walk_forward_provider_output.txt
+            walk_forward_report.json
+            ml_trading_backtest_provider_output.txt
+            artifacts/ml-trading-backtest-report.json
+            ml_robustness_audit_provider_output.txt
+            artifacts/ml-robustness-audit.json
+            ml_model_diagnosis_provider_output.txt
+            artifacts/ml-model-diagnosis.json

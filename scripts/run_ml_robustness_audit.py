@@ -1,17 +1,18 @@
 from __future__ import annotations
 
+import argparse
 import json
 from pathlib import Path
 
 import pandas as pd
 
 from app.services.backtesting import BacktestConfig, Backtester
+from app.services.ci_market_data import CI_SYMBOLS, MarketDataSource, load_market_history
 from app.services.evaluation import trading_metrics
 from app.services.market_replay import MarketReplay
 from app.services.ml_trading import purged_walk_forward_predictions
-from app.services.openbb_market_data import OpenBBMarketDataProvider
 
-SYMBOLS = ("PETR4", "VALE3", "ITUB4")
+SYMBOLS = CI_SYMBOLS
 START = "2021-01-01"
 END = "2026-09-01"
 BASE_COMMISSION = 0.001
@@ -46,9 +47,6 @@ def _run_backtest(frame: pd.DataFrame, signals: pd.Series, *, commission: float,
 
 def yearly_metrics(equity: pd.Series) -> dict:
     year_end = equity.groupby(equity.index.year).last()
-    # A calendar-year return must compare each year-end with the preceding
-    # observed year-end. The first year is the baseline and has no annual
-    # return because there is no prior year-end in the evaluation series.
     annual = year_end.pct_change().dropna()
     values = {str(year): float(value) for year, value in annual.items()}
     abs_total = sum(abs(value) for value in values.values())
@@ -65,13 +63,10 @@ def yearly_metrics(equity: pd.Series) -> dict:
     }
 
 
-def run_symbol(provider: OpenBBMarketDataProvider, symbol: str) -> dict:
-    frame, quality = provider.historical_with_quality(symbol, start=START, end=END, interval="1d")
+def run_symbol(source: MarketDataSource, symbol: str) -> dict:
+    frame, quality = load_market_history(symbol, source=source, start=START, end=END, interval="1d")
+    assert quality is not None
     prediction_run = purged_walk_forward_predictions(frame.rename(columns=str.title))
-    # The walk-forward model only produces predictions for its test windows.
-    # Keep the backtest frame aligned to those observed prediction timestamps;
-    # reindexing the full market history would introduce NaN probabilities for
-    # rows outside the walk-forward test windows.
     eval_frame = frame.loc[prediction_run.probabilities.index].copy()
     probabilities = prediction_run.probabilities.copy()
 
@@ -120,6 +115,7 @@ def run_symbol(provider: OpenBBMarketDataProvider, symbol: str) -> dict:
     base = threshold_results[0]
     return {
         "symbol": symbol,
+        "source": source,
         "rows": quality.rows,
         "evaluation_start": eval_frame.index[0].isoformat(),
         "evaluation_end": eval_frame.index[-1].isoformat(),
@@ -133,8 +129,17 @@ def run_symbol(provider: OpenBBMarketDataProvider, symbol: str) -> dict:
 
 
 def main() -> None:
-    provider = OpenBBMarketDataProvider()
-    reports = [run_symbol(provider, symbol) for symbol in SYMBOLS]
+    parser = argparse.ArgumentParser(description="Run ML robustness audit.")
+    parser.add_argument(
+        "--source",
+        choices=("fixture", "provider"),
+        default="fixture",
+        help="Data source. The deterministic fixture is the CI default; provider is an explicit external-data mode.",
+    )
+    args = parser.parse_args()
+    source: MarketDataSource = args.source
+
+    reports = [run_symbol(source, symbol) for symbol in SYMBOLS]
     output = Path("artifacts/ml-robustness-audit.json")
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(reports, indent=2), encoding="utf-8")

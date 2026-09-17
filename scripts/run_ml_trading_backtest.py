@@ -1,17 +1,18 @@
 from __future__ import annotations
 
+import argparse
 import json
 from pathlib import Path
 
 import pandas as pd
 
 from app.services.backtesting import BacktestConfig, Backtester
+from app.services.ci_market_data import CI_SYMBOLS, MarketDataSource, load_market_history
 from app.services.evaluation import trading_metrics
 from app.services.market_replay import MarketReplay
 from app.services.ml_trading import predictions_to_long_only_signals, purged_walk_forward_predictions
-from app.services.openbb_market_data import OpenBBMarketDataProvider
 
-SYMBOLS = ("PETR4", "VALE3", "ITUB4")
+SYMBOLS = CI_SYMBOLS
 START = "2021-01-01"
 END = "2026-09-01"
 CONFIG = BacktestConfig(initial_cash=100_000.0, commission_rate=0.001, slippage_bps=5.0)
@@ -39,8 +40,9 @@ def _run_backtest(frame: pd.DataFrame, signals: pd.Series):
     return Backtester(CONFIG).run(replay, signal_fn)
 
 
-def run_symbol(provider: OpenBBMarketDataProvider, symbol: str) -> dict:
-    frame, quality = provider.historical_with_quality(symbol, start=START, end=END, interval="1d")
+def run_symbol(source: MarketDataSource, symbol: str) -> dict:
+    frame, quality = load_market_history(symbol, source=source, start=START, end=END, interval="1d")
+    assert quality is not None
     prediction_run = purged_walk_forward_predictions(frame.rename(columns=str.title))
     ml_signals = predictions_to_long_only_signals(prediction_run.predictions)
     eval_frame = frame.loc[prediction_run.predictions.index[0]:].copy()
@@ -56,6 +58,7 @@ def run_symbol(provider: OpenBBMarketDataProvider, symbol: str) -> dict:
 
     return {
         "symbol": symbol,
+        "source": source,
         "rows": quality.rows,
         "evaluation_start": eval_frame.index[0].isoformat(),
         "evaluation_end": eval_frame.index[-1].isoformat(),
@@ -80,8 +83,17 @@ def run_symbol(provider: OpenBBMarketDataProvider, symbol: str) -> dict:
 
 
 def main() -> None:
-    provider = OpenBBMarketDataProvider()
-    reports = [run_symbol(provider, symbol) for symbol in SYMBOLS]
+    parser = argparse.ArgumentParser(description="Run causal ML trading backtests.")
+    parser.add_argument(
+        "--source",
+        choices=("fixture", "provider"),
+        default="fixture",
+        help="Data source. The deterministic fixture is the CI default; provider is an explicit external-data mode.",
+    )
+    args = parser.parse_args()
+    source: MarketDataSource = args.source
+
+    reports = [run_symbol(source, symbol) for symbol in SYMBOLS]
     output = Path("artifacts/ml-trading-backtest-report.json")
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(reports, indent=2), encoding="utf-8")

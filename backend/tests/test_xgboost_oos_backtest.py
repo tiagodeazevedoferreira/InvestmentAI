@@ -74,8 +74,10 @@ def test_xgboost_oos_runs_end_to_end_into_backtester():
     assert result.total_commission >= 0.0
     assert result.total_slippage >= 0.0
 
-    assert len(result.equity) == len(history)
-    assert result.equity.index.equals(history.index)
+    expected_replay_bars = history.index.get_loc(oos.probabilities.index.max()) + 2 - history.index.get_loc(oos.probabilities.index.min())
+    assert len(result.equity) == expected_replay_bars
+    assert result.equity.index[0] == oos.probabilities.index.min()
+    assert result.equity.index[-1] == history.index[history.index.get_loc(oos.probabilities.index.max()) + 1]
 
 
 def test_xgboost_oos_backtest_accepts_lowercase_ohlcv_columns():
@@ -101,3 +103,5 @@ def test_xgboost_oos_backtest_accepts_lowercase_ohlcv_columns():
     assert oos.test_rows > 0
     assert result.final_position == 0.0
     assert np.isfinite(result.final_cash)
+    assert result.equity.index[0] == oos.probabilities.index.min()
+    assert result.equity.index[-1] > oos.probabilities.index.max()

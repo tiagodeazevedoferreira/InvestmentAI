@@ -166,7 +166,12 @@ def run_xgboost_oos_backtest(
     backtest_config: BacktestConfig | None = None,
     params: dict | None = None,
 ) -> tuple[XGBoostOOSRun, BacktestResult]:
-    """Run the offline XGBoost OOS → signal → deterministic backtest contract."""
+    """Run the offline XGBoost OOS → signal → deterministic backtest contract.
+
+    The replay is restricted to the OOS prediction interval plus the first bar
+    needed to execute the final OOS signal at the next bar open. This prevents
+    pre-OOS and post-OOS market data from affecting economic backtest results.
+    """
     if not isinstance(history, pd.DataFrame):
         raise ValueError("history must be a pandas DataFrame")
 
@@ -212,6 +217,28 @@ def run_xgboost_oos_backtest(
             "Volume": "volume",
         }
     )
+
+    history_index = pd.DatetimeIndex(replay_data.index)
+    if not history_index.is_unique:
+        raise ValueError("history index must be unique")
+    if not history_index.is_monotonic_increasing:
+        raise ValueError("history index must be chronological")
+
+    first_oos = pd.Timestamp(oos.probabilities.index.min())
+    last_oos = pd.Timestamp(oos.probabilities.index.max())
+    if first_oos not in history_index or last_oos not in history_index:
+        raise ValueError("OOS prediction timestamps must be present in history")
+
+    first_position = history_index.get_loc(first_oos)
+    last_position = history_index.get_loc(last_oos)
+    if not isinstance(first_position, (int, np.integer)) or not isinstance(last_position, (int, np.integer)):
+        raise ValueError("history index lookup must resolve to unique positions")
+
+    replay_end = last_position + 1
+    if replay_end >= len(replay_data):
+        raise ValueError("history must contain a bar after the final OOS prediction")
+
+    replay_data = replay_data.iloc[first_position : replay_end + 1]
 
     replay = MarketReplay(
         symbol=normalized_symbol,

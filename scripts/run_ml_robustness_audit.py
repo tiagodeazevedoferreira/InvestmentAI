@@ -28,7 +28,9 @@ def probability_to_long_only_signals(
     *,
     threshold: float = 0.60,
 ) -> pd.Series:
-    """Backward-compatible wrapper for the centralized probability-to-signal helper."""
+    """Backward-compatible wrapper preserving the legacy threshold contract."""
+    if not 0.50 <= threshold <= 1.0:
+        raise ValueError("threshold must be between 0.50 and 1.0")
     return probabilities_to_signals(probabilities, threshold=threshold)
 
 

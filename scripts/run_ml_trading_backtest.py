@@ -43,6 +43,9 @@ def _run_backtest(frame: pd.DataFrame, signals: pd.Series):
 def run_symbol(source: MarketDataSource, symbol: str) -> dict:
     frame, quality = load_market_history(symbol, source=source, start=START, end=END, interval="1d")
     assert quality is not None
+    frame = frame.rename(
+        columns={column: str(column).lower() for column in frame.columns}
+    )
 
     xgboost_oos, ml_result = run_xgboost_oos_backtest(
         frame,

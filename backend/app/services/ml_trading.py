@@ -9,6 +9,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
 from .features import build_features
+from .market_replay import MarketBar
 
 
 @dataclass(frozen=True)
@@ -59,3 +60,71 @@ def predictions_to_long_only_signals(predictions: pd.Series) -> pd.Series:
     if not pred.isin([0, 1]).all():
         raise ValueError("predictions must contain only 0 or 1")
     return pred.map({0: -1, 1: 1}).astype(int).rename("signal")
+
+
+def probabilities_to_signals(
+    probabilities: pd.Series,
+    *,
+    threshold: float = 0.60,
+) -> pd.Series:
+    """Convert timestamped model probabilities into deterministic long-only signals."""
+    if not 0.0 <= threshold <= 1.0:
+        raise ValueError("threshold must be between 0 and 1")
+
+    if not isinstance(probabilities, pd.Series):
+        raise ValueError("probabilities must be a pandas Series")
+
+    if not probabilities.index.is_unique:
+        raise ValueError("probabilities index must be unique")
+
+    if not probabilities.index.is_monotonic_increasing:
+        raise ValueError("probabilities index must be chronological")
+
+    values = pd.to_numeric(probabilities, errors="coerce").to_numpy(dtype=float)
+
+    if not np.isfinite(values).all() or not ((values >= 0.0) & (values <= 1.0)).all():
+        raise ValueError("probabilities must be finite values in [0, 1]")
+
+    return pd.Series(
+        np.where(values >= threshold, 1, -1).astype(int),
+        index=probabilities.index,
+        name="signal",
+    )
+
+
+def signals_to_backtest_function(signals: pd.Series):
+    """Adapt timestamped signals to the Backtester signal callback contract."""
+    if not isinstance(signals, pd.Series):
+        raise ValueError("signals must be a pandas Series")
+
+    if not isinstance(signals.index, pd.DatetimeIndex):
+        raise ValueError("signals index must be a DatetimeIndex")
+
+    if not signals.index.is_unique:
+        raise ValueError("signals index must be unique")
+
+    if not signals.index.is_monotonic_increasing:
+        raise ValueError("signals index must be chronological")
+
+    values = pd.to_numeric(signals, errors="coerce")
+
+    if values.isna().any() or not values.isin([-1, 0, 1]).all():
+        raise ValueError("signals must contain only -1, 0, or 1")
+
+    normalized = values.astype(int).copy()
+    if normalized.index.tz is None:
+        normalized.index = normalized.index.tz_localize("UTC")
+    else:
+        normalized.index = normalized.index.tz_convert("UTC")
+
+    signal_map = normalized.to_dict()
+
+    def signal_fn(bar: MarketBar) -> int:
+        timestamp = pd.Timestamp(bar.timestamp)
+        if timestamp.tzinfo is None:
+            timestamp = timestamp.tz_localize("UTC")
+        else:
+            timestamp = timestamp.tz_convert("UTC")
+        return int(signal_map.get(timestamp, 0))
+
+    return signal_fn

@@ -23,6 +23,15 @@ THRESHOLDS = (0.50, 0.55, 0.60, 0.65)
 COST_GRID = ((0.0, 0.0), (0.001, 0.0), (0.001, 5.0), (0.001, 10.0), (0.002, 20.0))
 
 
+def probability_to_long_only_signals(
+    probabilities: pd.Series,
+    *,
+    threshold: float = 0.60,
+) -> pd.Series:
+    """Backward-compatible wrapper for the centralized probability-to-signal helper."""
+    return probabilities_to_signals(probabilities, threshold=threshold)
+
+
 def _run_backtest(
     frame: pd.DataFrame,
     probabilities: pd.Series,

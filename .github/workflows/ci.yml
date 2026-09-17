@@ -17,10 +17,10 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/backend
         run: pytest -q
-      - name: Run walk-forward analysis
+      - name: Run deterministic walk-forward analysis
         env:
           PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/backend
-        run: python scripts/run_walk_forward.py > walk_forward_output.txt
+        run: python scripts/run_walk_forward.py --source fixture > walk_forward_output.txt
       - name: Generate walk-forward stability summary
         env:
           PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/backend
@@ -44,18 +44,18 @@ jobs:
                   f"win rate F1={metrics['fold_win_rate_macro_f1']:.2%}"
               )
           PY
-      - name: Run causal ML trading backtest
+      - name: Run deterministic causal ML trading backtest
         env:
           PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/backend
-        run: python scripts/run_ml_trading_backtest.py > ml_trading_backtest_output.txt
-      - name: Run ML robustness audit
+        run: python scripts/run_ml_trading_backtest.py --source fixture > ml_trading_backtest_output.txt
+      - name: Run deterministic ML robustness audit
         env:
           PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/backend
-        run: python scripts/run_ml_robustness_audit.py > ml_robustness_audit_output.txt
-      - name: Run ML model diagnosis
+        run: python scripts/run_ml_robustness_audit.py --source fixture > ml_robustness_audit_output.txt
+      - name: Run deterministic ML model diagnosis
         env:
           PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/backend
-        run: python scripts/run_ml_model_diagnosis.py > ml_model_diagnosis_output.txt
+        run: python scripts/run_ml_model_diagnosis.py --source fixture > ml_model_diagnosis_output.txt
       - name: Upload trading backtest report
         uses: actions/upload-artifact@v4
         with:

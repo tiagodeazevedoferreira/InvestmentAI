@@ -9,10 +9,10 @@ import pandas as pd
 from app.services.backtesting import BacktestConfig, Backtester
 from app.services.ci_market_data import CI_SYMBOLS, MarketDataSource, load_market_history
 from app.services.evaluation import trading_metrics
+from app.services.features import build_features
 from app.services.market_replay import MarketReplay
 from app.services.ml_trading import probabilities_to_signals, signals_to_backtest_function
 from app.services.xgboost_oos import purged_xgboost_oos_predictions
-from app.services.features import build_features
 
 SYMBOLS = CI_SYMBOLS
 START = "2021-01-01"
@@ -54,11 +54,8 @@ def _oos_replay_window(frame: pd.DataFrame, probabilities: pd.Series) -> pd.Data
     if first_oos not in history_index or last_oos not in history_index:
         raise ValueError("OOS prediction timestamps must be present in history")
 
-    first_position = history_index.get_loc(first_oos)
-    last_position = history_index.get_loc(last_oos)
-    if not isinstance(first_position, int) or not isinstance(last_position, int):
-        raise ValueError("history index lookup must resolve to unique positions")
-
+    first_position = int(history_index.get_loc(first_oos))
+    last_position = int(history_index.get_loc(last_oos))
     replay_end = last_position + 1
     if replay_end >= len(frame):
         raise ValueError("history must contain a bar after the final OOS prediction")

@@ -1,0 +1,55 @@
+name: XGBoost OOS Cost Attribution
+
+on:
+  workflow_dispatch:
+
+jobs:
+  cost-attribution:
+    runs-on: [self-hosted, Windows, X64]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate designated runner
+        shell: pwsh
+        run: |
+          Write-Host "Runner: $env:RUNNER_NAME"
+          if ($env:RUNNER_NAME -ne "ECTIN8F38594") {
+            throw "Unexpected runner. Expected ECTIN8F38594."
+          }
+
+      - name: Prepare Python environment
+        shell: pwsh
+        run: |
+          py -3.12 --version
+          if (Test-Path ".venv-oos-cost") { Remove-Item ".venv-oos-cost" -Recurse -Force }
+          py -3.12 -m venv ".venv-oos-cost"
+          & ".\.venv-oos-cost\Scripts\python.exe" -m pip install --upgrade pip
+          & ".\.venv-oos-cost\Scripts\python.exe" -m pip install -r "backend\requirements.txt"
+
+      - name: Run cost attribution contract test
+        shell: pwsh
+        env:
+          PYTHONPATH: ${{ github.workspace }}\backend
+        run: |
+          & ".\.venv-oos-cost\Scripts\python.exe" -m pytest "tests\test_xgboost_oos_cost_attribution.py" -q
+
+      - name: Run real-data cost attribution
+        shell: pwsh
+        env:
+          PYTHONPATH: ${{ github.workspace }}\backend
+        run: |
+          & ".\.venv-oos-cost\Scripts\python.exe" "scripts\run_xgboost_oos_cost_attribution.py"
+
+      - name: Upload cost attribution report
+        uses: actions/upload-artifact@v4
+        with:
+          name: xgboost-oos-cost-attribution-${{ github.run_number }}
+          path: artifacts/xgboost-oos-cost-attribution/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Compile backend
+        shell: pwsh
+        run: |
+          & ".\.venv-oos-cost\Scripts\python.exe" -m compileall -q "backend"

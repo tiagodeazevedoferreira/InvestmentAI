@@ -6,12 +6,11 @@ from pathlib import Path
 
 from app.services.backtesting import BacktestConfig
 from app.services.ci_market_data import CI_SYMBOLS, load_market_history
-from app.services.xgboost_oos import (
-    backtest_xgboost_oos_run,
-    run_xgboost_oos_backtest,
+from app.services.xgboost_oos import backtest_xgboost_oos_run, run_xgboost_oos_backtest
+from app.services.xgboost_oos_artifact import (
+    load_xgboost_oos_artifact,
+    validate_xgboost_oos_artifact_configuration,
 )
-from app.services.xgboost_oos_artifact import load_xgboost_oos_artifact
-
 
 SCENARIOS = {
     "zero_cost": (0.0, 0.0),
@@ -40,15 +39,35 @@ def run_symbol(
     history, quality = load_market_history(
         symbol, source="provider", start="2021-09-15", end="2026-09-15", interval="1d"
     )
-
-    # In orchestrated mode, consume the immutable shared OOS artifact.
+    expected_oos_configuration = {
+        "requested_start": "2021-09-15",
+        "requested_end": "2026-09-15",
+        "horizon": horizon,
+        "train_size": train_size,
+        "test_size": test_size,
+        "step": step,
+        "threshold": threshold,
+        "initial_cash": initial_cash,
+    }
     if oos_artifact_dir:
-        oos, payload = load_xgboost_oos_artifact(Path(oos_artifact_dir) / f"{symbol.upper()}.json")
+        oos, payload = load_xgboost_oos_artifact(
+            Path(oos_artifact_dir) / f"{symbol.upper()}.json"
+        )
         if str(payload.get("symbol", "")).upper() != symbol.upper():
             raise ValueError(f"OOS artifact symbol mismatch for {symbol}")
+        validate_xgboost_oos_artifact_configuration(payload, expected_oos_configuration)
     else:
         baseline_config = BacktestConfig(initial_cash=initial_cash)
-        oos, _ = run_xgboost_oos_backtest(history, symbol=symbol, horizon=horizon, train_size=train_size, test_size=test_size, step=step, threshold=threshold, backtest_config=baseline_config)
+        oos, _ = run_xgboost_oos_backtest(
+            history,
+            symbol=symbol,
+            horizon=horizon,
+            train_size=train_size,
+            test_size=test_size,
+            step=step,
+            threshold=threshold,
+            backtest_config=baseline_config,
+        )
 
     rows = []
     for scenario, (commission_rate, slippage_bps) in SCENARIOS.items():

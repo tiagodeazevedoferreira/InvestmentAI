@@ -294,6 +294,8 @@ def verify_xgboost_oos_shared_manifest(
     *,
     expected_configuration: dict,
     expected_symbols: tuple[str, ...] | list[str],
+    expected_source_provider: str | None = None,
+    expected_source_interval: str | None = None,
 ) -> dict:
     root = Path(directory)
     manifest_path = root / "manifest.json"
@@ -346,6 +348,29 @@ def verify_xgboost_oos_shared_manifest(
         if str(payload.get("symbol", "")).upper() != symbol:
             raise ValueError(f"OOS artifact symbol mismatch for {symbol}")
         validate_xgboost_oos_artifact_configuration(payload, expected_configuration)
+        source = payload.get("source")
+        entry_source = entry.get("source_provenance")
+        if not isinstance(entry_source, dict):
+            raise ValueError(f"OOS manifest source provenance is missing for {symbol}")
+        if not isinstance(source, dict):
+            raise ValueError(f"OOS artifact source provenance is missing for {symbol}")
+        for key, value in entry_source.items():
+            if source.get(key) != value:
+                raise ValueError(f"OOS source provenance mismatch for {symbol}: {key}")
+        if expected_source_provider is not None and source.get("provider") != expected_source_provider:
+            raise ValueError(f"OOS source provider mismatch for {symbol}")
+        if expected_source_interval is not None and source.get("interval") != expected_source_interval:
+            raise ValueError(f"OOS source interval mismatch for {symbol}")
+        if source.get("symbol") != symbol:
+            raise ValueError(f"OOS source symbol mismatch for {symbol}")
+        required_source_keys = {
+            "provider", "symbol", "interval", "requested_start", "requested_end",
+            "rows", "data_start", "data_end", "data_sha256", "quality_valid", "quality_report",
+        }
+        if not required_source_keys.issubset(source):
+            raise ValueError(f"OOS source provenance is incomplete for {symbol}")
+        if int(source.get("rows", -1)) != int(entry.get("source_provenance", {}).get("rows", -2)):
+            raise ValueError(f"OOS source row metadata mismatch for {symbol}")
         if int(entry.get("oos_folds", -1)) != oos.folds or int(entry.get("oos_rows", -1)) != oos.test_rows:
             raise ValueError(f"OOS manifest size metadata mismatch for {symbol}")
         verified.append({"symbol": symbol, "artifact": artifact_name, "sha256": artifact_sha256(artifact_path)})

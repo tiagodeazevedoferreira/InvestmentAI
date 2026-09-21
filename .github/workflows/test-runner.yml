@@ -1,0 +1,13 @@
+name: Teste do Runner
+
+on:
+  workflow_dispatch:
+
+jobs:
+  testar-powershell:
+    runs-on: self-hosted
+    steps:
+      - name: Executar comando PowerShell
+        run: |
+          Get-Date
+          Write-Host "Runner funcionando!"

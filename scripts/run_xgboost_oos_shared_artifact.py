@@ -7,71 +7,25 @@ from pathlib import Path
 from app.services.backtesting import BacktestConfig
 from app.services.ci_market_data import CI_SYMBOLS, load_market_history
 from app.services.xgboost_oos import run_xgboost_oos_backtest
-from app.services.xgboost_oos_artifact import artifact_sha256, artifact_size, write_xgboost_oos_artifact
+from app.services.xgboost_oos_artifact import (
+    artifact_sha256,
+    artifact_size,
+    verify_xgboost_oos_shared_manifest,
+    write_xgboost_oos_artifact,
+)
 
 START = "2021-09-15"
 END = "2026-09-15"
 
-
-def run_symbol(
-    symbol: str,
-    *,
-    output_dir: Path,
-    horizon: int,
-    train_size: int,
-    test_size: int,
-    step: int,
-    threshold: float,
-    initial_cash: float,
-) -> dict:
-    history, quality = load_market_history(
-        symbol, source="provider", start=START, end=END, interval="1d"
-    )
-    oos, _ = run_xgboost_oos_backtest(
-        history,
-        symbol=symbol,
-        horizon=horizon,
-        train_size=train_size,
-        test_size=test_size,
-        step=step,
-        threshold=threshold,
-        backtest_config=BacktestConfig(initial_cash=initial_cash),
-    )
+def run_symbol(symbol: str, *, output_dir: Path, horizon: int, train_size: int, test_size: int, step: int, threshold: float, initial_cash: float) -> dict:
+    history, quality = load_market_history(symbol, source="provider", start=START, end=END, interval="1d")
+    oos, _ = run_xgboost_oos_backtest(history, symbol=symbol, horizon=horizon, train_size=train_size, test_size=test_size, step=step, threshold=threshold, backtest_config=BacktestConfig(initial_cash=initial_cash))
     path = write_xgboost_oos_artifact(
-        output_dir / f"{symbol.upper()}.json",
-        oos,
-        symbol=symbol,
-        configuration={
-            "requested_start": START,
-            "requested_end": END,
-            "horizon": horizon,
-            "train_size": train_size,
-            "test_size": test_size,
-            "step": step,
-            "threshold": threshold,
-            "initial_cash": initial_cash,
-        },
-        source={
-            "provider": "openbb/yfinance",
-            "interval": "1d",
-            "rows": int(len(history)),
-            "quality_valid": bool(quality.valid),
-            "quality_report": quality.__dict__ if quality is not None else None,
-        },
+        output_dir / f"{symbol.upper()}.json", oos, symbol=symbol,
+        configuration={"requested_start": START, "requested_end": END, "horizon": horizon, "train_size": train_size, "test_size": test_size, "step": step, "threshold": threshold, "initial_cash": initial_cash},
+        source={"provider": "openbb/yfinance", "interval": "1d", "rows": int(len(history)), "quality_valid": bool(quality.valid), "quality_report": quality.__dict__ if quality is not None else None},
     )
-    return {
-        "symbol": symbol,
-        "artifact": path.name,
-        "artifact_size": artifact_size(path),
-        "artifact_sha256": artifact_sha256(path),
-        "rows": int(len(history)),
-        "quality_valid": bool(quality.valid),
-        "oos_folds": oos.folds,
-        "oos_rows": oos.test_rows,
-        "oos_start": oos.probabilities.index.min().isoformat(),
-        "oos_end": oos.probabilities.index.max().isoformat(),
-    }
-
+    return {"symbol": symbol, "artifact": path.name, "artifact_size": artifact_size(path), "artifact_sha256": artifact_sha256(path), "rows": int(len(history)), "quality_valid": bool(quality.valid), "oos_folds": oos.folds, "oos_rows": oos.test_rows, "oos_start": oos.probabilities.index.min().isoformat(), "oos_end": oos.probabilities.index.max().isoformat()}
 
 def main() -> None:
     parser = argparse.ArgumentParser()
@@ -83,43 +37,13 @@ def main() -> None:
     parser.add_argument("--initial-cash", type=float, default=100000.0)
     parser.add_argument("--output-dir", default="artifacts/xgboost-oos-shared")
     args = parser.parse_args()
-
     output_dir = Path(args.output_dir)
-    reports = [
-        run_symbol(
-            symbol,
-            output_dir=output_dir,
-            horizon=args.horizon,
-            train_size=args.train_size,
-            test_size=args.test_size,
-            step=args.step,
-            threshold=args.threshold,
-            initial_cash=args.initial_cash,
-        )
-        for symbol in CI_SYMBOLS
-    ]
-    manifest = {
-        "schema_version": 1,
-        "configuration": {
-            "symbols": list(CI_SYMBOLS),
-            "requested_start": START,
-            "requested_end": END,
-            "horizon": args.horizon,
-            "train_size": args.train_size,
-            "test_size": args.test_size,
-            "step": args.step,
-            "threshold": args.threshold,
-            "initial_cash": args.initial_cash,
-        },
-        "symbols": reports,
-    }
+    reports = [run_symbol(symbol, output_dir=output_dir, horizon=args.horizon, train_size=args.train_size, test_size=args.test_size, step=args.step, threshold=args.threshold, initial_cash=args.initial_cash) for symbol in CI_SYMBOLS]
+    manifest = {"schema_version": 1, "configuration": {"symbols": list(CI_SYMBOLS), "requested_start": START, "requested_end": END, "horizon": args.horizon, "train_size": args.train_size, "test_size": args.test_size, "step": args.step, "threshold": args.threshold, "initial_cash": args.initial_cash}, "symbols": reports}
     output_dir.mkdir(parents=True, exist_ok=True)
-    (output_dir / "manifest.json").write_text(
-        json.dumps(manifest, indent=2),
-        encoding="utf-8",
-    )
+    (output_dir / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    verify_xgboost_oos_shared_manifest(output_dir, expected_configuration=manifest["configuration"] | {"symbols": list(CI_SYMBOLS)}, expected_symbols=CI_SYMBOLS)
     print(json.dumps(manifest, indent=2))
-
 
 if __name__ == "__main__":
     main()

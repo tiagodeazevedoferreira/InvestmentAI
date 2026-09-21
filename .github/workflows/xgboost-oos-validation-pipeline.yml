@@ -27,12 +27,12 @@ jobs:
           & ".\.venv-xgboost-oos-pipeline\Scripts\python.exe" -m pip install --upgrade pip
           & ".\.venv-xgboost-oos-pipeline\Scripts\python.exe" -m pip install -r "backend\requirements.txt"
 
-      - name: Run shared OOS artifact contract test
+      - name: Run shared OOS artifact provenance contract tests
         shell: pwsh
         env:
           PYTHONPATH: ${{ github.workspace }}\backend
         run: |
-          & ".\.venv-xgboost-oos-pipeline\Scripts\python.exe" -m pytest "tests\test_xgboost_oos_shared_artifact.py" -q
+          & ".\.venv-xgboost-oos-pipeline\Scripts\python.exe" -m pytest "tests\test_xgboost_oos_shared_artifact.py" "tests\test_xgboost_oos_artifact_provenance.py" -q
 
       - name: Run OOS contract tests
         shell: pwsh
@@ -62,12 +62,12 @@ jobs:
         run: |
           & ".\.venv-xgboost-oos-pipeline\Scripts\python.exe" -m pytest "tests\test_xgboost_oos_fold_stability.py" -q
 
-      - name: Generate shared OOS artifacts
+      - name: Generate shared OOS artifacts and verify provenance
         shell: pwsh
         env:
           PYTHONPATH: ${{ github.workspace }}\backend
         run: |
-          & ".\.venv-xgboost-oos-pipeline\Scripts\python.exe" "scripts\\run_xgboost_oos_shared_artifact.py"
+          & ".\.venv-xgboost-oos-pipeline\Scripts\python.exe" "scripts\run_xgboost_oos_shared_artifact.py"
 
       - name: Run real-data economic report
         shell: pwsh

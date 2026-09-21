@@ -29,12 +29,12 @@ jobs:
           & ".\.venv-oos-validation\Scripts\python.exe" -m pip install --upgrade pip
           & ".\.venv-oos-validation\Scripts\python.exe" -m pip install -r "backend\requirements.txt"
 
-      - name: Run XGBoost OOS contract test
+      - name: Run XGBoost OOS contract tests
         shell: pwsh
         env:
           PYTHONPATH: ${{ github.workspace }}\backend
         run: |
-          & ".\.venv-oos-validation\Scripts\python.exe" -m pytest -q "tests\test_xgboost_oos_contract.py"
+          & ".\.venv-oos-validation\Scripts\python.exe" -m pytest -q "tests\test_xgboost_oos_contract.py" "tests\test_xgboost_oos_economic_contract.py"
 
       - name: Run complete backend suite
         shell: pwsh

@@ -1,0 +1,100 @@
+name: XGBoost OOS Validation Pipeline
+
+on:
+  workflow_dispatch:
+
+jobs:
+  xgboost-oos-validation:
+    runs-on: [self-hosted, Windows, X64]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate designated runner
+        shell: pwsh
+        run: |
+          Write-Host "Runner: $env:RUNNER_NAME"
+          if ($env:RUNNER_NAME -ne "ECTIN8F38594") {
+            throw "Unexpected runner. Expected ECTIN8F38594."
+          }
+
+      - name: Prepare shared Python environment
+        shell: pwsh
+        run: |
+          py -3.12 --version
+          if (Test-Path ".venv-xgboost-oos-pipeline") { Remove-Item ".venv-xgboost-oos-pipeline" -Recurse -Force }
+          py -3.12 -m venv ".venv-xgboost-oos-pipeline"
+          & ".\.venv-xgboost-oos-pipeline\Scripts\python.exe" -m pip install --upgrade pip
+          & ".\.venv-xgboost-oos-pipeline\Scripts\python.exe" -m pip install -r "backend\requirements.txt"
+
+      - name: Run OOS contract tests
+        shell: pwsh
+        env:
+          PYTHONPATH: ${{ github.workspace }}\backend
+        run: |
+          & ".\.venv-xgboost-oos-pipeline\Scripts\python.exe" -m pytest "tests\test_xgboost_oos_contract.py" "tests\test_xgboost_oos_economic_contract.py" -q
+
+      - name: Run economic report contract test
+        shell: pwsh
+        env:
+          PYTHONPATH: ${{ github.workspace }}\backend
+        run: |
+          & ".\.venv-xgboost-oos-pipeline\Scripts\python.exe" -m pytest "tests\test_xgboost_oos_economic_report.py" -q
+
+      - name: Run cost attribution contract test
+        shell: pwsh
+        env:
+          PYTHONPATH: ${{ github.workspace }}\backend
+        run: |
+          & ".\.venv-xgboost-oos-pipeline\Scripts\python.exe" -m pytest "tests\test_xgboost_oos_cost_attribution.py" -q
+
+      - name: Run fold stability contract test
+        shell: pwsh
+        env:
+          PYTHONPATH: ${{ github.workspace }}\backend
+        run: |
+          & ".\.venv-xgboost-oos-pipeline\Scripts\python.exe" -m pytest "tests\test_xgboost_oos_fold_stability.py" -q
+
+      - name: Run real-data economic report
+        shell: pwsh
+        env:
+          PYTHONPATH: ${{ github.workspace }}\backend
+        run: |
+          & ".\.venv-xgboost-oos-pipeline\Scripts\python.exe" "scripts\run_xgboost_oos_economic_report.py"
+
+      - name: Run real-data cost attribution
+        shell: pwsh
+        env:
+          PYTHONPATH: ${{ github.workspace }}\backend
+        run: |
+          & ".\.venv-xgboost-oos-pipeline\Scripts\python.exe" "scripts\run_xgboost_oos_cost_attribution.py"
+
+      - name: Run real-data fold stability
+        shell: pwsh
+        env:
+          PYTHONPATH: ${{ github.workspace }}\backend
+        run: |
+          & ".\.venv-xgboost-oos-pipeline\Scripts\python.exe" "scripts\run_xgboost_oos_fold_stability.py"
+
+      - name: Run complete backend test suite
+        shell: pwsh
+        env:
+          PYTHONPATH: ${{ github.workspace }}\backend
+        run: |
+          & ".\.venv-xgboost-oos-pipeline\Scripts\python.exe" -m pytest "backend\tests" -q
+
+      - name: Compile backend
+        shell: pwsh
+        run: |
+          & ".\.venv-xgboost-oos-pipeline\Scripts\python.exe" -m compileall -q "backend"
+
+      - name: Upload validation artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: xgboost-oos-validation-pipeline-${{ github.run_number }}
+          path: |
+            artifacts/xgboost-oos-economic-report/
+            artifacts/xgboost-oos-cost-attribution/
+            artifacts/xgboost-oos-fold-stability/
+          if-no-files-found: error
+          retention-days: 30

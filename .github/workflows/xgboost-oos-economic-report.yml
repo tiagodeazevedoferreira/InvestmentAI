@@ -29,6 +29,13 @@ jobs:
           & ".\.venv-oos-economic\Scripts\python.exe" -m pip install --upgrade pip
           & ".\.venv-oos-economic\Scripts\python.exe" -m pip install -r "backend\requirements.txt"
 
+      - name: Run economic report contract test
+        shell: pwsh
+        env:
+          PYTHONPATH: ${{ github.workspace }}\backend
+        run: |
+          & ".\.venv-oos-economic\Scripts\python.exe" -m pytest "tests\test_xgboost_oos_economic_report.py" -q
+
       - name: Run real-data economic report
         shell: pwsh
         env:

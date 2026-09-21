@@ -38,7 +38,20 @@ def run_symbol(symbol: str, *, output_dir: Path, horizon: int, train_size: int, 
             "quality_report": quality.__dict__ if quality is not None else None,
         },
     )
-    return {"symbol": symbol, "artifact": path.name, "artifact_size": artifact_size(path), "artifact_sha256": artifact_sha256(path), "source_data_sha256": normalized_ohlcv_sha256(history), "source_data_start": history.index.min().isoformat(), "source_data_end": history.index.max().isoformat(), "source_rows": int(len(history)), "rows": int(len(history)), "quality_valid": bool(quality.valid), "oos_folds": oos.folds, "oos_rows": oos.test_rows, "oos_start": oos.probabilities.index.min().isoformat(), "oos_end": oos.probabilities.index.max().isoformat()}
+    source_provenance = {
+        "provider": "openbb/yfinance",
+        "symbol": symbol.upper(),
+        "interval": "1d",
+        "requested_start": START,
+        "requested_end": END,
+        "rows": int(len(history)),
+        "data_start": history.index.min().isoformat(),
+        "data_end": history.index.max().isoformat(),
+        "data_sha256": normalized_ohlcv_sha256(history),
+        "quality_valid": bool(quality.valid),
+        "quality_report": quality.__dict__ if quality is not None else None,
+    }
+    return {"symbol": symbol, "artifact": path.name, "artifact_size": artifact_size(path), "artifact_sha256": artifact_sha256(path), "source_provenance": source_provenance, "rows": int(len(history)), "quality_valid": bool(quality.valid), "oos_folds": oos.folds, "oos_rows": oos.test_rows, "oos_start": oos.probabilities.index.min().isoformat(), "oos_end": oos.probabilities.index.max().isoformat()}
 
 def main() -> None:
     parser = argparse.ArgumentParser()
@@ -55,7 +68,13 @@ def main() -> None:
     manifest = {"schema_version": 1, "configuration": {"symbols": list(CI_SYMBOLS), "requested_start": START, "requested_end": END, "horizon": args.horizon, "train_size": args.train_size, "test_size": args.test_size, "step": args.step, "threshold": args.threshold, "initial_cash": args.initial_cash}, "symbols": reports}
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
-    verify_xgboost_oos_shared_manifest(output_dir, expected_configuration=manifest["configuration"] | {"symbols": list(CI_SYMBOLS)}, expected_symbols=CI_SYMBOLS)
+    verify_xgboost_oos_shared_manifest(
+        output_dir,
+        expected_configuration=manifest["configuration"] | {"symbols": list(CI_SYMBOLS)},
+        expected_symbols=CI_SYMBOLS,
+        expected_source_provider="openbb/yfinance",
+        expected_source_interval="1d",
+    )
     print(json.dumps(manifest, indent=2))
 
 if __name__ == "__main__":

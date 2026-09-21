@@ -13,6 +13,7 @@ from app.services.xgboost_oos import (
     backtest_xgboost_oos_run,
     run_xgboost_oos_backtest,
 )
+from app.services.xgboost_oos_artifact import load_xgboost_oos_artifact
 
 
 ZERO_COST = "zero_cost"
@@ -114,19 +115,15 @@ def _summary(rows: list[dict]) -> dict:
     return summary
 
 
-def run_symbol(symbol: str, *, initial_cash: float, horizon: int, train_size: int, test_size: int, step: int, threshold: float) -> tuple[list[dict], dict]:
+def run_symbol(symbol: str, *, initial_cash: float, horizon: int, train_size: int, test_size: int, step: int, threshold: float, oos_artifact_dir: str | None = None) -> tuple[list[dict], dict]:
     history, quality = load_market_history(symbol, source="provider", start="2021-09-15", end="2026-09-15", interval="1d")
-    baseline_config = BacktestConfig(initial_cash=initial_cash)
-    oos, _ = run_xgboost_oos_backtest(
-        history,
-        symbol=symbol,
-        horizon=horizon,
-        train_size=train_size,
-        test_size=test_size,
-        step=step,
-        threshold=threshold,
-        backtest_config=baseline_config,
-    )
+    if oos_artifact_dir:
+        oos, payload = load_xgboost_oos_artifact(Path(oos_artifact_dir) / f"{symbol.upper()}.json")
+        if str(payload.get("symbol", "")).upper() != symbol.upper():
+            raise ValueError(f"OOS artifact symbol mismatch for {symbol}")
+    else:
+        baseline_config = BacktestConfig(initial_cash=initial_cash)
+        oos, _ = run_xgboost_oos_backtest(history, symbol=symbol, horizon=horizon, train_size=train_size, test_size=test_size, step=step, threshold=threshold, backtest_config=baseline_config)
     rows = _fold_rows(history, symbol=symbol, oos=oos, threshold=threshold, initial_cash=initial_cash)
     symbol_summary = _summary(rows)
     return rows, {
@@ -149,13 +146,14 @@ def main() -> None:
     parser.add_argument("--step", type=int, default=100)
     parser.add_argument("--threshold", type=float, default=0.60)
     parser.add_argument("--initial-cash", type=float, default=100000.0)
+    parser.add_argument("--oos-artifact-dir", default=None)
     parser.add_argument("--output", default="artifacts/xgboost-oos-fold-stability/report.json")
     args = parser.parse_args()
 
     all_rows: list[dict] = []
     summaries: list[dict] = []
     for symbol in CI_SYMBOLS:
-        rows, summary = run_symbol(symbol, initial_cash=args.initial_cash, horizon=args.horizon, train_size=args.train_size, test_size=args.test_size, step=args.step, threshold=args.threshold)
+        rows, summary = run_symbol(symbol, initial_cash=args.initial_cash, horizon=args.horizon, train_size=args.train_size, test_size=args.test_size, step=args.step, threshold=args.threshold, oos_artifact_dir=args.oos_artifact_dir)
         all_rows.extend(rows)
         summaries.append(summary)
 

@@ -62,18 +62,18 @@ jobs:
       - name: Run XGBoost baseline training
         shell: pwsh
         env:
-          PYTHONPATH: \${{ github.workspace }}\backend
-          SYMBOL: \${{ inputs.symbol }}
-          PERIOD: \${{ inputs.period }}
-          HORIZON: \${{ inputs.horizon }}
-          PROVIDER: \${{ inputs.provider }}
+          PYTHONPATH: ${{ github.workspace }}\backend
+          SYMBOL: ${{ inputs.symbol }}
+          PERIOD: ${{ inputs.period }}
+          HORIZON: ${{ inputs.horizon }}
+          PROVIDER: ${{ inputs.provider }}
         run: |
           & ".\.venv\Scripts\python.exe" "scripts\train_xgboost_baseline.py" "$env:SYMBOL" "--period" "$env:PERIOD" "--horizon" "$env:HORIZON" "--provider" "$env:PROVIDER"
 
       - name: Validate trained model and metadata
         shell: pwsh
         env:
-          SYMBOL: \${{ inputs.symbol }}
+          SYMBOL: ${{ inputs.symbol }}
         run: |
           $model = "models\xgboost\$($env:SYMBOL.ToUpper()).json"
           $metadata = "models\xgboost\$($env:SYMBOL.ToUpper()).meta.json"
@@ -86,11 +86,11 @@ jobs:
       - name: Build training report
         shell: pwsh
         env:
-          SYMBOL: \${{ inputs.symbol }}
-          PERIOD: \${{ inputs.period }}
-          HORIZON: \${{ inputs.horizon }}
-          PROVIDER: \${{ inputs.provider }}
-          COMMIT_SHA: \${{ github.sha }}
+          SYMBOL: ${{ inputs.symbol }}
+          PERIOD: ${{ inputs.period }}
+          HORIZON: ${{ inputs.horizon }}
+          PROVIDER: ${{ inputs.provider }}
+          COMMIT_SHA: ${{ github.sha }}
         run: |
           $model = "models\xgboost\$($env:SYMBOL.ToUpper()).json"
           $metadata = "models\xgboost\$($env:SYMBOL.ToUpper()).meta.json"
@@ -114,7 +114,7 @@ jobs:
       - name: Upload training artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: xgboost-training-\${{ inputs.symbol }}-\${{ github.run_number }}
+          name: xgboost-training-${{ inputs.symbol }}-${{ github.run_number }}
           path: artifacts/xgboost-training/
           if-no-files-found: error
           retention-days: 30

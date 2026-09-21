@@ -82,6 +82,9 @@ def deserialize_xgboost_oos_run(payload: dict) -> XGBoostOOSRun:
         folds.append(fold)
     if [fold.fold for fold in folds] != list(range(1, len(folds) + 1)):
         raise ValueError("OOS artifact fold numbering must be contiguous from 1")
+    for fold in folds:
+        if fold.test_start not in index or fold.test_end not in index:
+            raise ValueError("OOS artifact fold test range is outside prediction timestamps")
     for previous, current in zip(folds, folds[1:]):
         if previous.test_end >= current.test_start:
             raise ValueError("OOS artifact fold test windows overlap")

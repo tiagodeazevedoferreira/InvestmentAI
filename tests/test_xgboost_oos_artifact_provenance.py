@@ -67,11 +67,11 @@ def test_configuration_mismatch_is_rejected():
 
 
 def test_manifest_verifies_digest_and_size(tmp_path):
-    artifact = write_xgboost_oos_artifact(
-        tmp_path / "PETR4.json", fixture(), symbol="PETR4", configuration=CONFIG
-    )
     history = pd.DataFrame({"Open": [1.0, 2.0], "High": [1.1, 2.1], "Low": [0.9, 1.9], "Close": [1.0, 2.0], "Volume": [10.0, 20.0]}, index=pd.date_range("2025-01-01", periods=2, tz="UTC"))
     provenance = source_provenance(history)
+    artifact = write_xgboost_oos_artifact(
+        tmp_path / "PETR4.json", fixture(), symbol="PETR4", configuration=CONFIG, source=provenance
+    )
     manifest = {
         "schema_version": 1,
         "configuration": {"symbols": ["PETR4"], **CONFIG},
@@ -99,8 +99,10 @@ def test_manifest_verifies_digest_and_size(tmp_path):
 
 
 def test_manifest_rejects_modified_artifact(tmp_path):
+    history = pd.DataFrame({"Open": [1.0, 2.0], "High": [1.1, 2.1], "Low": [0.9, 1.9], "Close": [1.0, 2.0], "Volume": [10.0, 20.0]}, index=pd.date_range("2025-01-01", periods=2, tz="UTC"))
+    provenance = source_provenance(history)
     artifact = write_xgboost_oos_artifact(
-        tmp_path / "PETR4.json", fixture(), symbol="PETR4", configuration=CONFIG
+        tmp_path / "PETR4.json", fixture(), symbol="PETR4", configuration=CONFIG, source=provenance
     )
     manifest = {
         "schema_version": 1,
@@ -108,6 +110,7 @@ def test_manifest_rejects_modified_artifact(tmp_path):
         "symbols": [{
             "symbol": "PETR4",
             "artifact": "PETR4.json",
+            "source_provenance": provenance,
             "artifact_size": artifact_size(artifact),
             "artifact_sha256": artifact_sha256(artifact),
             "rows": 4,
@@ -125,7 +128,11 @@ def test_manifest_rejects_modified_artifact(tmp_path):
     assert artifact_size(artifact) == manifest["symbols"][0]["artifact_size"]
     with pytest.raises(ValueError, match="SHA-256 mismatch"):
         verify_xgboost_oos_shared_manifest(
-            tmp_path, expected_configuration=CONFIG, expected_symbols=("PETR4",)
+            tmp_path,
+            expected_configuration=CONFIG,
+            expected_symbols=("PETR4",),
+            expected_source_provider="openbb/yfinance",
+            expected_source_interval="1d",
         )
 
 

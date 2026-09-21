@@ -14,12 +14,12 @@ from scripts.run_xgboost_oos_fold_stability import (
 
 
 def _oos_fixture() -> XGBoostOOSRun:
-    index = pd.date_range("2025-01-01", periods=6, tz="UTC")
-    probabilities = pd.Series([0.6, 0.4, 0.7, 0.8, 0.3, 0.9], index=index)
-    predictions = pd.Series([1, 0, 1, 1, 0, 1], index=index)
+    index = pd.date_range("2025-01-01", periods=200, tz="UTC")
+    probabilities = pd.Series([0.6 if i % 2 == 0 else 0.4 for i in range(200)], index=index)
+    predictions = pd.Series([1 if i % 2 == 0 else 0 for i in range(200)], index=index)
     folds = (
-        XGBoostOOSFold(1, index[0], index[2], index[0], index[2]),
-        XGBoostOOSFold(2, index[3], index[5], index[3], index[5]),
+        XGBoostOOSFold(1, index[0], index[99], index[0], index[99]),
+        XGBoostOOSFold(2, index[100], index[199], index[100], index[199]),
     )
     return XGBoostOOSRun(
         predictions=predictions,
@@ -38,8 +38,8 @@ def test_build_fold_oos_preserves_only_requested_fold() -> None:
 
     assert sliced.folds == 1
     assert sliced.test_rows == 3
-    assert sliced.probabilities.index.equals(oos.probabilities.index[3:])
-    assert sliced.predictions.index.equals(oos.predictions.index[3:])
+    assert sliced.probabilities.index.equals(oos.probabilities.index[100:])
+    assert sliced.predictions.index.equals(oos.predictions.index[100:])
     assert sliced.fold_metadata == (fold,)
 
 
@@ -47,13 +47,13 @@ def test_fold_rows_reuses_same_source_oos_predictions() -> None:
     oos = _oos_fixture()
     history = pd.DataFrame(
         {
-            "Open": [10.0] * 7,
-            "High": [11.0] * 7,
-            "Low": [9.0] * 7,
-            "Close": [10.0, 10.0, 11.0, 10.0, 11.0, 12.0, 11.0],
-            "Volume": [100.0] * 7,
+            "Open": [10.0] * 201,
+            "High": [11.0] * 201,
+            "Low": [9.0] * 201,
+            "Close": [10.0 + (i % 3) for i in range(201)],
+            "Volume": [100.0] * 201,
         },
-        index=pd.date_range("2025-01-01", periods=7, tz="UTC"),
+        index=pd.date_range("2025-01-01", periods=201, tz="UTC"),
     )
     captured = []
 

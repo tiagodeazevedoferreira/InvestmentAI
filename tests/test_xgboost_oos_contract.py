@@ -45,7 +45,11 @@ def test_xgboost_oos_returns_non_overlapping_fold_metadata():
 
         assert fold.train_start <= fold.train_end
         assert fold.test_start <= fold.test_end
-        assert test_start_position - train_end_position == horizon
+
+        # train_end is the last row included in training. With a purge
+        # horizon of N rows, the test window begins at the position after
+        # those N intervening rows, hence a positional distance of N + 1.
+        assert test_start_position - train_end_position == horizon + 1
         assert test_end_position - test_start_position + 1 == test_size
 
     for previous, current in zip(result.fold_metadata, result.fold_metadata[1:]):

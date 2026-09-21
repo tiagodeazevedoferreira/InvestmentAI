@@ -248,6 +248,20 @@ Validated for PETR4, VALE3 and ITUB4:
 Detailed results are recorded in `docs/validation/016-shared-oos-validation-artifact-results.md`.
 
 Important boundary: Task 016 is an engineering/reproducibility improvement to the research validation pipeline. It does not establish profitability, robustness, production readiness or model promotion. No threshold optimization, hyperparameter tuning, MT5/DOTO execution or financial transaction occurred.
+### Task 017 — OOS artifact provenance and configuration integrity
+
+Completed and validated on 2026-09-21.
+
+The shared XGBoost OOS artifact contract now records and verifies per-symbol artifact size and SHA-256 digest, while downstream consumers validate the research configuration before replay. The orchestrated pipeline verifies the shared manifest before Economic Report, Cost Attribution and Fold Stability consume the artifacts.
+
+Validation run **35649061333** on runner `ECTIN8F38594` passed the provenance/configuration contracts, all existing OOS/economic contracts, shared-artifact generation and provenance verification, all three real-data downstream analyses, the complete backend suite (**64 passed**) and `compileall`.
+
+The validation artifact was `xgboost-oos-validation-pipeline-4`, artifact ID `10661990547`, ZIP SHA-256 `afd781781f977310eb87e52364e1d08e2443c1feb283675c53882cd388901bc5`.
+
+Detailed results are recorded in `docs/validation/017-oos-artifact-provenance-and-configuration-results.md`.
+
+Important boundary: Task 017 is an engineering/reproducibility hardening task. It does not establish profitability, robustness, model superiority, production readiness or permission to execute trades. No retraining, threshold optimization, hyperparameter tuning, backtest-semantic change, MT5/DOTO execution or broker transaction occurred.
+
 ## Current execution state
 
 The paper execution path is deterministic and broker-independent. Provider-backed scheduling obtains B3 history through the OpenBB/yfinance boundary, evaluates the existing RSI paper policy, persists deterministic decision keys and skips duplicates.
@@ -291,19 +305,15 @@ Task 006 does not close the broader `End-to-end training/backtest test` item bec
 
 ## Immediate development direction
 
-Task 016 is now complete. The next engineering stage is to strengthen research validity before any model-promotion discussion: consolidate reproducibility metadata and broaden validation coverage without changing thresholds, execution policy or broker controls.
+Task 017 is now complete. The next engineering stage should preserve the current immutable OOS validation architecture while strengthening **source-data provenance**: make the shared OOS artifacts auditable back to the exact provider dataset and quality-gate inputs that produced them.
 
-The next task should remain research-only and should focus on one narrowly scoped quality gate at a time. Individual focused workflows remain available for targeted reruns and debugging.
+### Task 018 — Source-data provenance for shared OOS artifacts
 
-Potential subsequent research areas:
+The next task should remain research-only and narrowly scoped to recording and validating source-data provenance for each shared OOS artifact. The intended gate is to bind each artifact to deterministic metadata such as provider identity, normalized symbol, requested/effective date range, row count and the canonical market-data quality report, with contract coverage proving that incompatible or altered provenance is rejected.
 
-1. deterministic artifact provenance and configuration/hash checks;
-2. broader real-dataset training coverage and robustness controls;
-3. realistic transaction-cost and slippage assumptions;
-4. venue-specific cost calibration where data is available;
-5. broader historical coverage and universe-selection controls where justified;
-6. LSTM and RL experiments after the current ML validation evidence is sufficiently mature.
+Non-goals remain unchanged: no threshold optimization, hyperparameter tuning, model promotion, profitability claim, execution-policy change, MT5/DOTO execution or broker transaction.
 
+After Task 018, broader real-dataset coverage, transaction-cost calibration and additional model families can be considered only as separate, evidence-driven tasks.
 
 ## Safety constraints
 

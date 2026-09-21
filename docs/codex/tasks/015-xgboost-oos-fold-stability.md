@@ -1,6 +1,6 @@
 # Task 015 — XGBoost OOS Fold-Level Economic Stability
 
-STATUS: IN PROGRESS
+STATUS: COMPLETE
 
 ## Objective
 
@@ -63,11 +63,11 @@ The report must also summarize:
 
 ## Acceptance criteria
 
-- [ ] One immutable OOS run is generated per symbol and reused across all fold replays.
-- [ ] Every OOS fold is replayed independently with the exact fold window plus the bar required for final signal execution.
-- [ ] Per-fold return, drawdown and trading activity are reported for zero-cost and combined-cost scenarios.
-- [ ] Aggregate descriptive dispersion statistics are reported without rankings or optimization.
-- [ ] Deterministic tests verify fold slicing and OOS reuse.
-- [ ] Self-hosted Windows workflow validates focused tests, real-data report and backend compilation.
-- [ ] Validation documentation records the observed results and limitations.
-- [ ] No financial execution occurs.
+- [x] One immutable OOS run is generated per symbol and reused across all fold replays.
+- [x] Every OOS fold is replayed independently with the exact fold window plus the bar required for final signal execution.
+- [x] Per-fold return, drawdown and trading activity are reported for zero-cost and combined-cost scenarios.
+- [x] Aggregate descriptive dispersion statistics are reported without rankings or optimization.
+- [x] Deterministic tests verify fold slicing and OOS reuse.
+- [x] Self-hosted Windows workflow validates focused tests, real-data report and backend compilation.
+- [x] Validation documentation records the observed results and limitations.
+- [x] No financial execution occurs.

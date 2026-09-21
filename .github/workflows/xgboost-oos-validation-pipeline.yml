@@ -27,6 +27,13 @@ jobs:
           & ".\.venv-xgboost-oos-pipeline\Scripts\python.exe" -m pip install --upgrade pip
           & ".\.venv-xgboost-oos-pipeline\Scripts\python.exe" -m pip install -r "backend\requirements.txt"
 
+      - name: Run shared OOS artifact contract test
+        shell: pwsh
+        env:
+          PYTHONPATH: ${{ github.workspace }}\backend
+        run: |
+          & ".\.venv-xgboost-oos-pipeline\Scripts\python.exe" -m pytest "tests\test_xgboost_oos_shared_artifact.py" -q
+
       - name: Run OOS contract tests
         shell: pwsh
         env:

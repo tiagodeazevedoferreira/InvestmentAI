@@ -134,6 +134,66 @@ def artifact_size(path: str | Path) -> int:
         raise ValueError(f"unable to stat OOS artifact: {artifact_path}") from exc
 
 
+def normalized_ohlcv_sha256(frame: pd.DataFrame) -> str:
+    """Return a deterministic digest for the normalized OHLCV input frame."""
+    if not isinstance(frame, pd.DataFrame):
+        raise ValueError("source market data must be a DataFrame")
+    if frame.index.empty:
+        raise ValueError("source market data cannot be empty")
+    normalized = frame.copy()
+    if not isinstance(normalized.index, pd.DatetimeIndex):
+        raise ValueError("source market data index must be DatetimeIndex")
+    index = normalized.index
+    if index.tz is None:
+        index = index.tz_localize("UTC")
+    else:
+        index = index.tz_convert("UTC")
+    normalized.index = index
+    normalized = normalized.sort_index()
+    hasher = hashlib.sha256()
+    hasher.update(json.dumps(list(map(str, normalized.columns)), separators=(",", ":")).encode("utf-8"))
+    hasher.update(json.dumps([str(dtype) for dtype in normalized.dtypes], separators=(",", ":")).encode("utf-8"))
+    hasher.update(pd.util.hash_pandas_object(normalized, index=True).to_numpy(dtype="uint64").tobytes())
+    return hasher.hexdigest()
+
+
+def validate_xgboost_oos_artifact_source(
+    payload: dict,
+    *,
+    expected_provider: str,
+    expected_symbol: str,
+    expected_requested_start: str,
+    expected_requested_end: str,
+    expected_rows: int,
+    expected_data_start: str,
+    expected_data_end: str,
+    expected_data_sha256: str,
+    expected_quality_report: dict,
+) -> None:
+    if not isinstance(payload, dict):
+        raise ValueError("OOS artifact payload must be a dictionary")
+    source = payload.get("source")
+    if not isinstance(source, dict):
+        raise ValueError("OOS artifact source provenance must be a dictionary")
+    expected = {
+        "provider": expected_provider,
+        "symbol": expected_symbol.strip().upper(),
+        "requested_start": expected_requested_start,
+        "requested_end": expected_requested_end,
+        "rows": int(expected_rows),
+        "data_start": expected_data_start,
+        "data_end": expected_data_end,
+        "data_sha256": expected_data_sha256,
+        "quality_report": expected_quality_report,
+    }
+    for key, value in expected.items():
+        if source.get(key) != value:
+            raise ValueError(
+                f"OOS artifact source provenance mismatch for {key}: "
+                f"artifact={source.get(key)!r}, expected={value!r}"
+            )
+
+
 def deserialize_xgboost_oos_run(payload: dict) -> XGBoostOOSRun:
     if not isinstance(payload, dict) or payload.get("schema_version") != SCHEMA_VERSION:
         raise ValueError("unsupported OOS artifact schema_version")

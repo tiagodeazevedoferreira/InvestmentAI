@@ -10,6 +10,7 @@ from app.services.xgboost_oos import (
     backtest_xgboost_oos_run,
     run_xgboost_oos_backtest,
 )
+from app.services.xgboost_oos_artifact import load_xgboost_oos_artifact
 
 
 SCENARIOS = {
@@ -34,24 +35,20 @@ def run_symbol(
     test_size: int,
     step: int,
     threshold: float,
+    oos_artifact_dir: str | None = None,
 ) -> list[dict]:
     history, quality = load_market_history(
         symbol, source="provider", start="2021-09-15", end="2026-09-15", interval="1d"
     )
 
-    # Generate the OOS predictions exactly once. Every economic scenario below
-    # reuses this immutable prediction set and changes only transaction costs.
-    baseline_config = BacktestConfig(initial_cash=initial_cash)
-    oos, _ = run_xgboost_oos_backtest(
-        history,
-        symbol=symbol,
-        horizon=horizon,
-        train_size=train_size,
-        test_size=test_size,
-        step=step,
-        threshold=threshold,
-        backtest_config=baseline_config,
-    )
+    # In orchestrated mode, consume the immutable shared OOS artifact.
+    if oos_artifact_dir:
+        oos, payload = load_xgboost_oos_artifact(Path(oos_artifact_dir) / f"{symbol.upper()}.json")
+        if str(payload.get("symbol", "")).upper() != symbol.upper():
+            raise ValueError(f"OOS artifact symbol mismatch for {symbol}")
+    else:
+        baseline_config = BacktestConfig(initial_cash=initial_cash)
+        oos, _ = run_xgboost_oos_backtest(history, symbol=symbol, horizon=horizon, train_size=train_size, test_size=test_size, step=step, threshold=threshold, backtest_config=baseline_config)
 
     rows = []
     for scenario, (commission_rate, slippage_bps) in SCENARIOS.items():
@@ -107,6 +104,7 @@ def main() -> None:
     parser.add_argument("--step", type=int, default=100)
     parser.add_argument("--threshold", type=float, default=0.60)
     parser.add_argument("--initial-cash", type=float, default=100000.0)
+    parser.add_argument("--oos-artifact-dir", default=None)
     parser.add_argument("--output", default="artifacts/xgboost-oos-cost-attribution/report.json")
     args = parser.parse_args()
 
@@ -121,6 +119,7 @@ def main() -> None:
                 test_size=args.test_size,
                 step=args.step,
                 threshold=args.threshold,
+                oos_artifact_dir=args.oos_artifact_dir,
             )
         )
 

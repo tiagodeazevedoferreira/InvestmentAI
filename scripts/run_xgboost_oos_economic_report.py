@@ -16,6 +16,21 @@ def _buy_and_hold_return(history: pd.DataFrame, initial_cash: float) -> float:
     close = history["close"] if "close" in history.columns else history["Close"]
     return float(initial_cash * (close.iloc[-1] / close.iloc[0]))
 
+def _oos_replay_window(history: pd.DataFrame, probabilities: pd.Series) -> pd.DataFrame:
+    """Return the exact market window used by the economic backtest."""
+    index = pd.DatetimeIndex(history.index)
+    first_oos = pd.Timestamp(probabilities.index.min())
+    last_oos = pd.Timestamp(probabilities.index.max())
+    first_position = index.get_loc(first_oos)
+    last_position = index.get_loc(last_oos)
+    if not isinstance(first_position, (int, np.integer)) or not isinstance(last_position, (int, np.integer)):
+        raise ValueError("history index lookup must resolve to unique positions")
+    replay_end = last_position + 1
+    if replay_end >= len(history):
+        raise ValueError("history must contain a bar after the final OOS prediction")
+    return history.iloc[first_position : replay_end + 1]
+
+
 
 def _max_drawdown(equity: pd.Series) -> float:
     peak = equity.cummax()
@@ -29,7 +44,8 @@ def run_symbol(symbol: str, *, period: str, horizon: int, train_size: int, test_
         history, symbol=symbol, horizon=horizon, train_size=train_size, test_size=test_size,
         step=step, threshold=threshold, backtest_config=config,
     )
-    benchmark_final = _buy_and_hold_return(history.loc[oos.probabilities.index.min(): oos.probabilities.index.max()], initial_cash)
+    benchmark_window = _oos_replay_window(history, oos.probabilities)
+    benchmark_final = _buy_and_hold_return(benchmark_window, initial_cash)
     strategy_return = result.final_cash / initial_cash - 1.0
     benchmark_return = benchmark_final / initial_cash - 1.0
     return {
@@ -38,6 +54,7 @@ def run_symbol(symbol: str, *, period: str, horizon: int, train_size: int, test_
         "quality_report": quality.__dict__ if quality is not None else None,
         "oos_folds": oos.folds, "oos_rows": oos.test_rows,
         "oos_start": oos.probabilities.index.min().isoformat(), "oos_end": oos.probabilities.index.max().isoformat(),
+        "benchmark_start": benchmark_window.index.min().isoformat(), "benchmark_end": benchmark_window.index.max().isoformat(),
         "threshold": threshold, "initial_cash": initial_cash, "final_cash": result.final_cash,
         "strategy_return": strategy_return, "benchmark_return": benchmark_return,
         "excess_return_vs_buy_hold": strategy_return - benchmark_return,

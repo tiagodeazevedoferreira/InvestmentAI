@@ -10,6 +10,7 @@ from app.services.xgboost_oos import run_xgboost_oos_backtest
 from app.services.xgboost_oos_artifact import (
     artifact_sha256,
     artifact_size,
+    normalized_ohlcv_sha256,
     verify_xgboost_oos_shared_manifest,
     write_xgboost_oos_artifact,
 )
@@ -23,9 +24,21 @@ def run_symbol(symbol: str, *, output_dir: Path, horizon: int, train_size: int, 
     path = write_xgboost_oos_artifact(
         output_dir / f"{symbol.upper()}.json", oos, symbol=symbol,
         configuration={"requested_start": START, "requested_end": END, "horizon": horizon, "train_size": train_size, "test_size": test_size, "step": step, "threshold": threshold, "initial_cash": initial_cash},
-        source={"provider": "openbb/yfinance", "interval": "1d", "rows": int(len(history)), "quality_valid": bool(quality.valid), "quality_report": quality.__dict__ if quality is not None else None},
+        source={
+            "provider": "openbb/yfinance",
+            "symbol": symbol.upper(),
+            "interval": "1d",
+            "requested_start": START,
+            "requested_end": END,
+            "rows": int(len(history)),
+            "data_start": history.index.min().isoformat(),
+            "data_end": history.index.max().isoformat(),
+            "data_sha256": normalized_ohlcv_sha256(history),
+            "quality_valid": bool(quality.valid),
+            "quality_report": quality.__dict__ if quality is not None else None,
+        },
     )
-    return {"symbol": symbol, "artifact": path.name, "artifact_size": artifact_size(path), "artifact_sha256": artifact_sha256(path), "rows": int(len(history)), "quality_valid": bool(quality.valid), "oos_folds": oos.folds, "oos_rows": oos.test_rows, "oos_start": oos.probabilities.index.min().isoformat(), "oos_end": oos.probabilities.index.max().isoformat()}
+    return {"symbol": symbol, "artifact": path.name, "artifact_size": artifact_size(path), "artifact_sha256": artifact_sha256(path), "source_data_sha256": normalized_ohlcv_sha256(history), "source_data_start": history.index.min().isoformat(), "source_data_end": history.index.max().isoformat(), "source_rows": int(len(history)), "rows": int(len(history)), "quality_valid": bool(quality.valid), "oos_folds": oos.folds, "oos_rows": oos.test_rows, "oos_start": oos.probabilities.index.min().isoformat(), "oos_end": oos.probabilities.index.max().isoformat()}
 
 def main() -> None:
     parser = argparse.ArgumentParser()

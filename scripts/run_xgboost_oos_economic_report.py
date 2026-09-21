@@ -23,7 +23,7 @@ def _max_drawdown(equity: pd.Series) -> float:
 
 
 def run_symbol(symbol: str, *, period: str, horizon: int, train_size: int, test_size: int, step: int, threshold: float, initial_cash: float, commission_rate: float, slippage_bps: float) -> dict:
-    history, quality = load_market_history(symbol, source="provider", start=None, end=None, interval="1d")
+    history, quality = load_market_history(symbol, source="provider", start="2021-09-15", end="2026-09-15", interval="1d")
     config = BacktestConfig(initial_cash=initial_cash, commission_rate=commission_rate, slippage_bps=slippage_bps)
     oos, result = run_xgboost_oos_backtest(
         history, symbol=symbol, horizon=horizon, train_size=train_size, test_size=test_size,

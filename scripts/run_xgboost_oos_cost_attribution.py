@@ -4,11 +4,12 @@ import argparse
 import json
 from pathlib import Path
 
-import numpy as np
-
 from app.services.backtesting import BacktestConfig
 from app.services.ci_market_data import CI_SYMBOLS, load_market_history
-from app.services.xgboost_oos import run_xgboost_oos_backtest
+from app.services.xgboost_oos import (
+    backtest_xgboost_oos_run,
+    run_xgboost_oos_backtest,
+)
 
 
 SCENARIOS = {
@@ -24,10 +25,34 @@ def _max_drawdown(equity) -> float:
     return float((equity / peak - 1.0).min())
 
 
-def run_symbol(symbol: str, *, initial_cash: float, horizon: int, train_size: int, test_size: int, step: int, threshold: float) -> list[dict]:
+def run_symbol(
+    symbol: str,
+    *,
+    initial_cash: float,
+    horizon: int,
+    train_size: int,
+    test_size: int,
+    step: int,
+    threshold: float,
+) -> list[dict]:
     history, quality = load_market_history(
         symbol, source="provider", start="2021-09-15", end="2026-09-15", interval="1d"
     )
+
+    # Generate the OOS predictions exactly once. Every economic scenario below
+    # reuses this immutable prediction set and changes only transaction costs.
+    baseline_config = BacktestConfig(initial_cash=initial_cash)
+    oos, _ = run_xgboost_oos_backtest(
+        history,
+        symbol=symbol,
+        horizon=horizon,
+        train_size=train_size,
+        test_size=test_size,
+        step=step,
+        threshold=threshold,
+        backtest_config=baseline_config,
+    )
+
     rows = []
     for scenario, (commission_rate, slippage_bps) in SCENARIOS.items():
         config = BacktestConfig(
@@ -35,13 +60,10 @@ def run_symbol(symbol: str, *, initial_cash: float, horizon: int, train_size: in
             commission_rate=commission_rate,
             slippage_bps=slippage_bps,
         )
-        oos, result = run_xgboost_oos_backtest(
+        result = backtest_xgboost_oos_run(
             history,
             symbol=symbol,
-            horizon=horizon,
-            train_size=train_size,
-            test_size=test_size,
-            step=step,
+            oos=oos,
             threshold=threshold,
             backtest_config=config,
         )
@@ -69,6 +91,7 @@ def run_symbol(symbol: str, *, initial_cash: float, horizon: int, train_size: in
                 "final_position": result.final_position,
             }
         )
+
     zero = next(row for row in rows if row["scenario"] == "zero_cost")
     for row in rows:
         row["cost_impact_vs_zero_cost"] = row["strategy_return"] - zero["strategy_return"]

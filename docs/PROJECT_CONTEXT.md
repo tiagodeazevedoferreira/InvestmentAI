@@ -228,6 +228,26 @@ No threshold optimization, parameter tuning, model promotion or financial execut
 
 Detailed results are recorded in `docs/validation/015-xgboost-oos-fold-stability-results.md`.
 
+
+### Task 016 — Shared XGBoost OOS validation artifact
+
+Completed and validated on 2026-09-21.
+
+The XGBoost OOS prediction set is now generated once per symbol in the orchestrated real-data validation pipeline and serialized into a versioned JSON artifact. Economic Report, Cost Attribution and Fold Stability consume that same artifact through an explicit `--oos-artifact-dir` argument. The standalone focused workflows remain usable without the argument.
+
+Validated for PETR4, VALE3 and ITUB4:
+
+- 1,248 provider rows per symbol with a valid quality gate.
+- 7 OOS folds and 700 OOS prediction rows per symbol.
+- Shared artifacts preserve timestamps, probabilities, predictions and fold metadata.
+- Artifact loading rejects duplicate/non-chronological timestamps and fold ranges outside the prediction set.
+- Complete backend suite: 64 passed.
+- Backend `compileall`: passed.
+- Final validation artifact: `xgboost-oos-validation-pipeline-2`, artifact ID `10659666493`.
+
+Detailed results are recorded in `docs/validation/016-shared-oos-validation-artifact-results.md`.
+
+Important boundary: Task 016 is an engineering/reproducibility improvement to the research validation pipeline. It does not establish profitability, robustness, production readiness or model promotion. No threshold optimization, hyperparameter tuning, MT5/DOTO execution or financial transaction occurred.
 ## Current execution state
 
 The paper execution path is deterministic and broker-independent. Provider-backed scheduling obtains B3 history through the OpenBB/yfinance boundary, evaluates the existing RSI paper policy, persists deterministic decision keys and skips duplicates.
@@ -271,17 +291,19 @@ Task 006 does not close the broader `End-to-end training/backtest test` item bec
 
 ## Immediate development direction
 
-Task 015 is now complete. The next engineering stage is validation-pipeline orchestration: reduce manual GitHub Actions launches by providing a single workflow entry point that executes the already validated XGBoost OOS contract, economic report, cost attribution and fold-stability validations in a controlled sequence.
+Task 016 is now complete. The next engineering stage is to strengthen research validity before any model-promotion discussion: consolidate reproducibility metadata and broaden validation coverage without changing thresholds, execution policy or broker controls.
 
-The orchestration layer must remain research-only. It must not retrain models, optimize thresholds, promote models or invoke MT5/DOTO execution. Individual focused workflows remain available for targeted reruns and debugging.
+The next task should remain research-only and should focus on one narrowly scoped quality gate at a time. Individual focused workflows remain available for targeted reruns and debugging.
 
-After orchestration is validated, subsequent research can address:
+Potential subsequent research areas:
 
-1. broader real-dataset training coverage and robustness controls;
-2. realistic transaction-cost and slippage assumptions;
-3. venue-specific cost calibration where data is available;
-4. broader historical coverage and universe-selection controls where justified;
-5. deterministic reproducibility and versioned validation artifacts.
+1. deterministic artifact provenance and configuration/hash checks;
+2. broader real-dataset training coverage and robustness controls;
+3. realistic transaction-cost and slippage assumptions;
+4. venue-specific cost calibration where data is available;
+5. broader historical coverage and universe-selection controls where justified;
+6. LSTM and RL experiments after the current ML validation evidence is sufficiently mature.
+
 
 ## Safety constraints
 

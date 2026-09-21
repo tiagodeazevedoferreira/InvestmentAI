@@ -1,0 +1,55 @@
+name: XGBoost OOS Fold Stability
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fold-stability:
+    runs-on: [self-hosted, Windows, X64]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate designated runner
+        shell: pwsh
+        run: |
+          Write-Host "Runner: $env:RUNNER_NAME"
+          if ($env:RUNNER_NAME -ne "ECTIN8F38594") {
+            throw "Unexpected runner. Expected ECTIN8F38594."
+          }
+
+      - name: Prepare Python environment
+        shell: pwsh
+        run: |
+          py -3.12 --version
+          if (Test-Path ".venv-oos-fold-stability") { Remove-Item ".venv-oos-fold-stability" -Recurse -Force }
+          py -3.12 -m venv ".venv-oos-fold-stability"
+          & ".\\.venv-oos-fold-stability\\Scripts\\python.exe" -m pip install --upgrade pip
+          & ".\\.venv-oos-fold-stability\\Scripts\\python.exe" -m pip install -r "backend\\requirements.txt"
+
+      - name: Run fold stability contract tests
+        shell: pwsh
+        env:
+          PYTHONPATH: ${{ github.workspace }}\\backend
+        run: |
+          & ".\\.venv-oos-fold-stability\\Scripts\\python.exe" -m pytest "tests\\test_xgboost_oos_fold_stability.py" -q
+
+      - name: Run real-data fold stability report
+        shell: pwsh
+        env:
+          PYTHONPATH: ${{ github.workspace }}\\backend
+        run: |
+          & ".\\.venv-oos-fold-stability\\Scripts\\python.exe" "scripts\\run_xgboost_oos_fold_stability.py"
+
+      - name: Upload fold stability report
+        uses: actions/upload-artifact@v4
+        with:
+          name: xgboost-oos-fold-stability-${{ github.run_number }}
+          path: artifacts/xgboost-oos-fold-stability/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Compile backend
+        shell: pwsh
+        run: |
+          & ".\\.venv-oos-fold-stability\\Scripts\\python.exe" -m compileall -q "backend"

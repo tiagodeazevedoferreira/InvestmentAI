@@ -1,0 +1,71 @@
+from __future__ import annotations
+
+import argparse
+import json
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+
+from app.services.backtesting import BacktestConfig
+from app.services.ci_market_data import CI_SYMBOLS, load_market_history
+from app.services.xgboost_oos import run_xgboost_oos_backtest
+
+
+def _buy_and_hold_return(history: pd.DataFrame, initial_cash: float) -> float:
+    close = history["close"] if "close" in history.columns else history["Close"]
+    return float(initial_cash * (close.iloc[-1] / close.iloc[0]))
+
+
+def _max_drawdown(equity: pd.Series) -> float:
+    peak = equity.cummax()
+    return float((equity / peak - 1.0).min())
+
+
+def run_symbol(symbol: str, *, period: str, horizon: int, train_size: int, test_size: int, step: int, threshold: float, initial_cash: float, commission_rate: float, slippage_bps: float) -> dict:
+    history, quality = load_market_history(symbol, source="provider", start=None, end=None, interval="1d")
+    config = BacktestConfig(initial_cash=initial_cash, commission_rate=commission_rate, slippage_bps=slippage_bps)
+    oos, result = run_xgboost_oos_backtest(
+        history, symbol=symbol, horizon=horizon, train_size=train_size, test_size=test_size,
+        step=step, threshold=threshold, backtest_config=config,
+    )
+    benchmark_final = _buy_and_hold_return(history.loc[oos.probabilities.index.min(): oos.probabilities.index.max()], initial_cash)
+    strategy_return = result.final_cash / initial_cash - 1.0
+    benchmark_return = benchmark_final / initial_cash - 1.0
+    return {
+        "symbol": symbol, "period": period, "rows": int(len(history)),
+        "quality_valid": bool(quality.valid) if quality is not None else None,
+        "quality_report": quality.__dict__ if quality is not None else None,
+        "oos_folds": oos.folds, "oos_rows": oos.test_rows,
+        "oos_start": oos.probabilities.index.min().isoformat(), "oos_end": oos.probabilities.index.max().isoformat(),
+        "threshold": threshold, "initial_cash": initial_cash, "final_cash": result.final_cash,
+        "strategy_return": strategy_return, "benchmark_return": benchmark_return,
+        "excess_return_vs_buy_hold": strategy_return - benchmark_return,
+        "max_drawdown": _max_drawdown(result.equity), "trades": result.trades,
+        "total_commission": result.total_commission, "total_slippage": result.total_slippage,
+        "final_position": result.final_position,
+    }
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--period", default="5y")
+    parser.add_argument("--horizon", type=int, default=5)
+    parser.add_argument("--train-size", type=int, default=500)
+    parser.add_argument("--test-size", type=int, default=100)
+    parser.add_argument("--step", type=int, default=100)
+    parser.add_argument("--threshold", type=float, default=0.60)
+    parser.add_argument("--initial-cash", type=float, default=100000.0)
+    parser.add_argument("--commission-rate", type=float, default=0.001)
+    parser.add_argument("--slippage-bps", type=float, default=5.0)
+    parser.add_argument("--output", default="artifacts/xgboost-oos-economic-report/report.json")
+    args = parser.parse_args()
+    reports = [run_symbol(s, period=args.period, horizon=args.horizon, train_size=args.train_size, test_size=args.test_size, step=args.step, threshold=args.threshold, initial_cash=args.initial_cash, commission_rate=args.commission_rate, slippage_bps=args.slippage_bps) for s in CI_SYMBOLS]
+    output = Path(args.output)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(reports, indent=2, default=str), encoding="utf-8")
+    print(json.dumps(reports, indent=2, default=str))
+
+
+if __name__ == "__main__":
+    main()

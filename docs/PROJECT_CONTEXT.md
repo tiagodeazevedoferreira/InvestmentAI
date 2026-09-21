@@ -218,6 +218,16 @@ Detailed results are recorded in docs/validation/014-xgboost-oos-economic-cost-a
 
 Important boundary: Task 014 is diagnostic only. It does not establish profitability, robustness, production readiness, venue-specific cost calibration or permission to execute trades.
 
+### Task 015 — XGBoost OOS fold-level economic stability
+
+Completed and validated on 2026-09-21.
+
+The fixed XGBoost OOS prediction set was analyzed fold by fold for PETR4, VALE3 and ITUB4 under zero-cost and combined 0.1% commission + 5 bps slippage scenarios. Each symbol produced 7 OOS folds and 700 OOS rows. The workflow validates deterministic fold slicing, reuse of the same source OOS predictions, independent fold replay and descriptive dispersion statistics.
+
+No threshold optimization, parameter tuning, model promotion or financial execution occurred.
+
+Detailed results are recorded in `docs/validation/015-xgboost-oos-fold-stability-results.md`.
+
 ## Current execution state
 
 The paper execution path is deterministic and broker-independent. Provider-backed scheduling obtains B3 history through the OpenBB/yfinance boundary, evaluates the existing RSI paper policy, persists deterministic decision keys and skips duplicates.
@@ -261,11 +271,11 @@ Task 006 does not close the broader `End-to-end training/backtest test` item bec
 
 ## Immediate development direction
 
-Task 014 is now complete. The next narrow offline stage is temporal/fold-level economic stability analysis using the already validated fixed OOS predictions and threshold, without threshold optimization or model-promotion changes.
+Task 015 is now complete. The next engineering stage is validation-pipeline orchestration: reduce manual GitHub Actions launches by providing a single workflow entry point that executes the already validated XGBoost OOS contract, economic report, cost attribution and fold-stability validations in a controlled sequence.
 
-Task 015 should examine fold-by-fold economic dispersion, including per-fold return, drawdown and trading activity under the fixed transaction-cost assumptions. The purpose is to determine whether aggregate economic results are concentrated in a small number of OOS windows or are distributed across time. The analysis must remain descriptive and must not rank assets, optimize parameters or select a preferred model.
+The orchestration layer must remain research-only. It must not retrain models, optimize thresholds, promote models or invoke MT5/DOTO execution. Individual focused workflows remain available for targeted reruns and debugging.
 
-Subsequent research can then address:
+After orchestration is validated, subsequent research can address:
 
 1. broader real-dataset training coverage and robustness controls;
 2. realistic transaction-cost and slippage assumptions;

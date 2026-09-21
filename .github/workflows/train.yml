@@ -1,0 +1,120 @@
+name: XGBoost Baseline Training
+
+on:
+  workflow_dispatch:
+    inputs:
+      symbol:
+        description: "Symbol to train"
+        required: true
+        type: choice
+        options:
+          - PETR4.SA
+          - VALE3.SA
+          - ITUB4.SA
+        default: PETR4.SA
+      period:
+        description: "Historical period"
+        required: true
+        type: string
+        default: "5y"
+      horizon:
+        description: "Prediction horizon"
+        required: true
+        type: number
+        default: 5
+      provider:
+        description: "Market data provider"
+        required: true
+        type: choice
+        options:
+          - openbb
+        default: openbb
+
+jobs:
+  train:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate runner and Python
+        shell: pwsh
+        run: |
+          Write-Host "Runner: $env:RUNNER_NAME"
+          Write-Host "OS: $env:RUNNER_OS"
+          Write-Host "Architecture: $env:RUNNER_ARCH"
+          py -3.12 --version
+
+      - name: Create virtual environment
+        shell: pwsh
+        run: |
+          if (Test-Path ".venv") {
+            Remove-Item ".venv" -Recurse -Force
+          }
+          py -3.12 -m venv .venv
+          & ".\.venv\Scripts\python.exe" -m pip install --upgrade pip
+
+      - name: Install project dependencies
+        shell: pwsh
+        run: |
+          & ".\.venv\Scripts\python.exe" -m pip install -r "backend\requirements.txt"
+
+      - name: Run XGBoost baseline training
+        shell: pwsh
+        env:
+          PYTHONPATH: \${{ github.workspace }}\backend
+          SYMBOL: \${{ inputs.symbol }}
+          PERIOD: \${{ inputs.period }}
+          HORIZON: \${{ inputs.horizon }}
+          PROVIDER: \${{ inputs.provider }}
+        run: |
+          & ".\.venv\Scripts\python.exe" "scripts\train_xgboost_baseline.py" "$env:SYMBOL" "--period" "$env:PERIOD" "--horizon" "$env:HORIZON" "--provider" "$env:PROVIDER"
+
+      - name: Validate trained model and metadata
+        shell: pwsh
+        env:
+          SYMBOL: \${{ inputs.symbol }}
+        run: |
+          $model = "models\xgboost\$($env:SYMBOL.ToUpper()).json"
+          $metadata = "models\xgboost\$($env:SYMBOL.ToUpper()).meta.json"
+          if (-not (Test-Path $model)) { throw "Model file not found: $model" }
+          if (-not (Test-Path $metadata)) { throw "Metadata file not found: $metadata" }
+          Write-Host "Model: $model"
+          Write-Host "Metadata: $metadata"
+          Get-Content $metadata
+
+      - name: Build training report
+        shell: pwsh
+        env:
+          SYMBOL: \${{ inputs.symbol }}
+          PERIOD: \${{ inputs.period }}
+          HORIZON: \${{ inputs.horizon }}
+          PROVIDER: \${{ inputs.provider }}
+          COMMIT_SHA: \${{ github.sha }}
+        run: |
+          $model = "models\xgboost\$($env:SYMBOL.ToUpper()).json"
+          $metadata = "models\xgboost\$($env:SYMBOL.ToUpper()).meta.json"
+          $report = [ordered]@{
+            symbol = $env:SYMBOL
+            period = $env:PERIOD
+            horizon = [int]$env:HORIZON
+            provider = $env:PROVIDER
+            commit_sha = $env:COMMIT_SHA
+            runner = $env:RUNNER_NAME
+            generated_at_utc = (Get-Date).ToUniversalTime().ToString("o")
+            model_path = $model
+            metadata_path = $metadata
+            metadata = Get-Content $metadata -Raw | ConvertFrom-Json
+          }
+          New-Item -ItemType Directory -Force -Path "artifacts\xgboost-training" | Out-Null
+          $report | ConvertTo-Json -Depth 10 | Set-Content "artifacts\xgboost-training\training-report.json" -Encoding UTF8
+          Copy-Item $model "artifacts\xgboost-training\"
+          Copy-Item $metadata "artifacts\xgboost-training\"
+
+      - name: Upload training artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: xgboost-training-\${{ inputs.symbol }}-\${{ github.run_number }}
+          path: artifacts/xgboost-training/
+          if-no-files-found: error
+          retention-days: 30

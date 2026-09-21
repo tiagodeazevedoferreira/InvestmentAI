@@ -10,6 +10,7 @@ import pandas as pd
 from app.services.backtesting import BacktestConfig
 from app.services.ci_market_data import CI_SYMBOLS, load_market_history
 from app.services.xgboost_oos import run_xgboost_oos_backtest
+from app.services.xgboost_oos_artifact import load_xgboost_oos_artifact
 
 
 def _buy_and_hold_return(history: pd.DataFrame, initial_cash: float) -> float:
@@ -37,13 +38,21 @@ def _max_drawdown(equity: pd.Series) -> float:
     return float((equity / peak - 1.0).min())
 
 
-def run_symbol(symbol: str, *, period: str, horizon: int, train_size: int, test_size: int, step: int, threshold: float, initial_cash: float, commission_rate: float, slippage_bps: float) -> dict:
+def run_symbol(symbol: str, *, period: str, horizon: int, train_size: int, test_size: int, step: int, threshold: float, initial_cash: float, commission_rate: float, slippage_bps: float, oos_artifact_dir: str | None = None) -> dict:
     history, quality = load_market_history(symbol, source="provider", start="2021-09-15", end="2026-09-15", interval="1d")
     config = BacktestConfig(initial_cash=initial_cash, commission_rate=commission_rate, slippage_bps=slippage_bps)
-    oos, result = run_xgboost_oos_backtest(
-        history, symbol=symbol, horizon=horizon, train_size=train_size, test_size=test_size,
-        step=step, threshold=threshold, backtest_config=config,
-    )
+    if oos_artifact_dir:
+        oos, payload = load_xgboost_oos_artifact(Path(oos_artifact_dir) / f"{symbol.upper()}.json")
+        artifact_symbol = str(payload.get("symbol", "")).upper()
+        if artifact_symbol != symbol.upper():
+            raise ValueError(f"OOS artifact symbol mismatch: expected {symbol}, got {artifact_symbol}")
+    else:
+        oos, _ = run_xgboost_oos_backtest(
+            history, symbol=symbol, horizon=horizon, train_size=train_size, test_size=test_size,
+            step=step, threshold=threshold, backtest_config=BacktestConfig(initial_cash=initial_cash),
+        )
+    from app.services.xgboost_oos import backtest_xgboost_oos_run
+    result = backtest_xgboost_oos_run(history, symbol=symbol, oos=oos, threshold=threshold, backtest_config=config)
     benchmark_window = _oos_replay_window(history, oos.probabilities)
     benchmark_final = _buy_and_hold_return(benchmark_window, initial_cash)
     strategy_return = result.final_cash / initial_cash - 1.0
@@ -75,9 +84,10 @@ def main() -> None:
     parser.add_argument("--initial-cash", type=float, default=100000.0)
     parser.add_argument("--commission-rate", type=float, default=0.001)
     parser.add_argument("--slippage-bps", type=float, default=5.0)
+    parser.add_argument("--oos-artifact-dir", default=None)
     parser.add_argument("--output", default="artifacts/xgboost-oos-economic-report/report.json")
     args = parser.parse_args()
-    reports = [run_symbol(s, period=args.period, horizon=args.horizon, train_size=args.train_size, test_size=args.test_size, step=args.step, threshold=args.threshold, initial_cash=args.initial_cash, commission_rate=args.commission_rate, slippage_bps=args.slippage_bps) for s in CI_SYMBOLS]
+    reports = [run_symbol(s, period=args.period, horizon=args.horizon, train_size=args.train_size, test_size=args.test_size, step=args.step, threshold=args.threshold, initial_cash=args.initial_cash, commission_rate=args.commission_rate, slippage_bps=args.slippage_bps, oos_artifact_dir=args.oos_artifact_dir) for s in CI_SYMBOLS]
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(reports, indent=2, default=str), encoding="utf-8")

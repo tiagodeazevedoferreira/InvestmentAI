@@ -1,6 +1,6 @@
 # Task 017 — OOS Artifact Provenance and Configuration Integrity
 
-**Status:** IN PROGRESS
+**Status:** COMPLETE
 
 ## Objective
 
@@ -36,4 +36,19 @@ Strengthen the provenance and configuration integrity of the shared XGBoost OOS 
 
 ## Validation
 
-The task is complete only after the full XGBoost OOS validation pipeline is green on runner ECTIN8F38594, including the new provenance checks.
+Completed on 2026-09-21 through GitHub Actions run **35649061333** on commit `8213f6cbb0a6ecab2ef60ca95ab8b2f244c24b48`, using runner `ECTIN8F38594` (Windows/X64).
+
+Validated:
+
+- provenance/configuration contract tests: **5 passed**;
+- XGBoost OOS contract tests: passed;
+- economic report contract: passed;
+- cost attribution contract: passed;
+- fold stability contract: passed;
+- shared OOS generation plus manifest provenance verification: passed;
+- real-data Economic Report, Cost Attribution and Fold Stability: passed using the same shared OOS artifacts;
+- complete backend suite: **64 passed**;
+- backend `compileall`: passed;
+- validation artifact: `xgboost-oos-validation-pipeline-4`, artifact ID `10661990547`, ZIP SHA-256 `afd781781f977310eb87e52364e1d08e2443c1feb283675c53882cd388901bc5`.
+
+The digest-specific contract now mutates a byte while preserving file size, isolating SHA-256 mismatch detection from size mismatch detection. Configuration mismatch validation also passed. No model parameters, thresholds, backtest semantics, execution policy, MT5/DOTO integration or broker controls were changed.

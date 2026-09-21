@@ -1,0 +1,49 @@
+name: XGBoost OOS Contract Validation
+
+on:
+  workflow_dispatch:
+
+jobs:
+  xgboost-oos-contract:
+    runs-on: [self-hosted, Windows, X64]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate designated runner
+        shell: pwsh
+        run: |
+          Write-Host "Runner: $env:RUNNER_NAME"
+          if ($env:RUNNER_NAME -ne "ECTIN8F38594") {
+            throw "Unexpected runner. Expected ECTIN8F38594."
+          }
+
+      - name: Prepare Python environment
+        shell: pwsh
+        run: |
+          py -3.12 --version
+          if (Test-Path ".venv-oos-validation") {
+            Remove-Item ".venv-oos-validation" -Recurse -Force
+          }
+          py -3.12 -m venv ".venv-oos-validation"
+          & ".\.venv-oos-validation\Scripts\python.exe" -m pip install --upgrade pip
+          & ".\.venv-oos-validation\Scripts\python.exe" -m pip install -r "backend\requirements.txt"
+
+      - name: Run XGBoost OOS contract test
+        shell: pwsh
+        env:
+          PYTHONPATH: ${{ github.workspace }}\backend
+        run: |
+          & ".\.venv-oos-validation\Scripts\python.exe" -m pytest -q "tests\test_xgboost_oos_contract.py"
+
+      - name: Run complete backend suite
+        shell: pwsh
+        env:
+          PYTHONPATH: ${{ github.workspace }}\backend
+        run: |
+          & ".\.venv-oos-validation\Scripts\python.exe" -m pytest -q
+
+      - name: Compile backend
+        shell: pwsh
+        run: |
+          & ".\.venv-oos-validation\Scripts\python.exe" -m compileall -q "backend"

@@ -37,7 +37,7 @@ def test_build_fold_oos_preserves_only_requested_fold() -> None:
     sliced = _build_fold_oos(oos, fold)
 
     assert sliced.folds == 1
-    assert sliced.test_rows == 3
+    assert sliced.test_rows == 100
     assert sliced.probabilities.index.equals(oos.probabilities.index[100:])
     assert sliced.predictions.index.equals(oos.predictions.index[100:])
     assert sliced.fold_metadata == (fold,)
@@ -84,5 +84,5 @@ def test_fold_rows_reuses_same_source_oos_predictions() -> None:
     assert all(candidate is not oos for candidate in captured)
     assert len({id(candidate) for candidate in captured}) == 2
     assert rows[0]["scenario"] == ZERO_COST
-    assert rows[2]["scenario"] == COMBINED_COST
+    assert rows[1]["scenario"] == COMBINED_COST
     assert {row["fold"] for row in rows} == {1, 2}

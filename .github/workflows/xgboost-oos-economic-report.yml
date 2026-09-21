@@ -1,0 +1,50 @@
+name: XGBoost OOS Economic Report
+
+on:
+  workflow_dispatch:
+
+jobs:
+  economic-report:
+    runs-on: [self-hosted, Windows, X64]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate designated runner
+        shell: pwsh
+        run: |
+          Write-Host "Runner: $env:RUNNER_NAME"
+          if ($env:RUNNER_NAME -ne "ECTIN8F38594") {
+            throw "Unexpected runner. Expected ECTIN8F38594."
+          }
+
+      - name: Prepare Python environment
+        shell: pwsh
+        run: |
+          py -3.12 --version
+          if (Test-Path ".venv-oos-economic") {
+            Remove-Item ".venv-oos-economic" -Recurse -Force
+          }
+          py -3.12 -m venv ".venv-oos-economic"
+          & ".\.venv-oos-economic\Scripts\python.exe" -m pip install --upgrade pip
+          & ".\.venv-oos-economic\Scripts\python.exe" -m pip install -r "backend\requirements.txt"
+
+      - name: Run real-data economic report
+        shell: pwsh
+        env:
+          PYTHONPATH: ${{ github.workspace }}\backend
+        run: |
+          & ".\.venv-oos-economic\Scripts\python.exe" "scripts\run_xgboost_oos_economic_report.py"
+
+      - name: Upload economic report
+        uses: actions/upload-artifact@v4
+        with:
+          name: xgboost-oos-economic-report-${{ github.run_number }}
+          path: artifacts/xgboost-oos-economic-report/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Compile backend
+        shell: pwsh
+        run: |
+          & ".\.venv-oos-economic\Scripts\python.exe" -m compileall -q "backend"

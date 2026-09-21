@@ -55,26 +55,33 @@ jobs:
         run: |
           & ".\.venv-xgboost-oos-pipeline\Scripts\python.exe" -m pytest "tests\test_xgboost_oos_fold_stability.py" -q
 
+      - name: Generate shared OOS artifacts
+        shell: pwsh
+        env:
+          PYTHONPATH: ${{ github.workspace }}\\backend
+        run: |
+          & ".\\.venv-xgboost-oos-pipeline\\Scripts\\python.exe" "scripts\\run_xgboost_oos_shared_artifact.py"
+
       - name: Run real-data economic report
         shell: pwsh
         env:
           PYTHONPATH: ${{ github.workspace }}\backend
         run: |
-          & ".\.venv-xgboost-oos-pipeline\Scripts\python.exe" "scripts\run_xgboost_oos_economic_report.py"
+          & ".\.venv-xgboost-oos-pipeline\Scripts\python.exe" "scripts\run_xgboost_oos_economic_report.py" --oos-artifact-dir "artifacts/xgboost-oos-shared"
 
       - name: Run real-data cost attribution
         shell: pwsh
         env:
           PYTHONPATH: ${{ github.workspace }}\backend
         run: |
-          & ".\.venv-xgboost-oos-pipeline\Scripts\python.exe" "scripts\run_xgboost_oos_cost_attribution.py"
+          & ".\.venv-xgboost-oos-pipeline\Scripts\python.exe" "scripts\run_xgboost_oos_cost_attribution.py" --oos-artifact-dir "artifacts/xgboost-oos-shared"
 
       - name: Run real-data fold stability
         shell: pwsh
         env:
           PYTHONPATH: ${{ github.workspace }}\backend
         run: |
-          & ".\.venv-xgboost-oos-pipeline\Scripts\python.exe" "scripts\run_xgboost_oos_fold_stability.py"
+          & ".\.venv-xgboost-oos-pipeline\Scripts\python.exe" "scripts\run_xgboost_oos_fold_stability.py" --oos-artifact-dir "artifacts/xgboost-oos-shared"
 
       - name: Run complete backend test suite
         shell: pwsh
@@ -93,6 +100,7 @@ jobs:
         with:
           name: xgboost-oos-validation-pipeline-${{ github.run_number }}
           path: |
+            artifacts/xgboost-oos-shared/
             artifacts/xgboost-oos-economic-report/
             artifacts/xgboost-oos-cost-attribution/
             artifacts/xgboost-oos-fold-stability/

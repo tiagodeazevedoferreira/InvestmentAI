@@ -1,6 +1,6 @@
 # InvestmentAI — Project Context / Handoff
 
-Last updated: 2026-09-16
+Last updated: 2026-09-21
 
 ## Purpose
 
@@ -181,6 +181,18 @@ Dedicated Task 011 task and validation records are now published at `docs/codex/
 
 Important boundary: Task 011 is research/observability only. It does not establish profitability, robustness, production readiness or model superiority, and it does not change model thresholds, execution policy, risk gates, broker integration or promotion authority.
 
+### Task 012 — XGBoost OOS → economic backtest contract
+
+Completed and validated on 2026-09-21.
+
+The existing XGBoost OOS pipeline was hardened with explicit per-fold metadata and non-overlap validation. A deterministic contract test validates the five-observation purge, exact test-window size and non-overlapping OOS windows. A second deterministic integration contract validates the existing OOS → signal → MarketReplay → Backtester path, including replay boundaries, flat final position, finite final cash and non-negative transaction costs.
+
+The self-hosted Windows CI workflow passed the OOS contract, economic replay contract, complete backend suite and backend compilation.
+
+Important boundary: Task 012 is offline/research validation only. It does not establish profitability, robustness, production readiness or permission to execute trades. No MT5/DOTO order submission is part of the task.
+
+Detailed task definition: `docs/codex/tasks/012-xgboost-oos-economic-backtest-contract.md`.
+
 ## Current execution state
 
 The paper execution path is deterministic and broker-independent. Provider-backed scheduling obtains B3 history through the OpenBB/yfinance boundary, evaluates the existing RSI paper policy, persists deterministic decision keys and skips duplicates.
@@ -224,9 +236,11 @@ Task 006 does not close the broader `End-to-end training/backtest test` item bec
 
 ## Immediate development direction
 
-Task 012 should be the next narrow offline validation stage: connect the existing real-dataset training/evaluation path to the existing cost/slippage-aware backtest in one deterministic, auditable workflow, without changing execution authority. The goal is to validate the broader training → OOS evaluation → backtest contract and expose any interface, leakage, timestamp, signal-alignment or accounting defects before broader robustness work.
+Task 012 is now complete. The next narrow offline stage is a reproducible real-data economic report for the controlled B3 sample, using the existing provider, feature, purged XGBoost OOS and cost/slippage-aware Backtester components without introducing a parallel trading pipeline.
 
-The Task 012 scope should remain offline and broker-independent. It should reuse existing quality-gate, feature, temporal-purge, model, MarketReplay/Backtester and cost/slippage components rather than introducing a new parallel pipeline.
+The report workflow is `.github/workflows/xgboost-oos-economic-report.yml` and the report script is `scripts/run_xgboost_oos_economic_report.py`. It uses the controlled 2021-09-15 through 2026-09-15 B3 sample for PETR4, VALE3 and ITUB4, horizon 5, train size 500, test size 100, step 100, threshold 0.60, commission 0.1% and slippage 5 bps. The output is diagnostic and must remain separate from model-promotion or execution decisions.
+
+Task 013 should record the resulting real-data economic metrics, benchmark comparison, drawdown and transaction-cost observations. It must not optimize the threshold based on the observed results.
 
 Subsequent research can then address:
 

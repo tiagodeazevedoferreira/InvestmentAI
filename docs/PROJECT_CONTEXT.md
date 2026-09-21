@@ -193,6 +193,31 @@ Important boundary: Task 012 is offline/research validation only. It does not es
 
 Detailed task definition: `docs/codex/tasks/012-xgboost-oos-economic-backtest-contract.md`.
 
+
+### Task 013 — Real-data XGBoost OOS economic report
+
+Completed and validated on 2026-09-21.
+
+A reproducible real-data economic report was generated for PETR4, VALE3 and ITUB4 using the existing provider, feature, purged XGBoost OOS and cost-aware Backtester paths. The benchmark was hardened to use the exact economic replay window, including the bar required to execute the final OOS signal. A deterministic benchmark-window contract test was added.
+
+Configuration: 2021-09-15 through 2026-09-15, horizon 5, train 500, test 100, step 100, threshold 0.60, initial cash 100,000, commission 0.1%, slippage 5 bps.
+
+Detailed results are recorded in the corresponding Task 013 validation documentation.
+
+Important boundary: Task 013 is diagnostic only. It does not establish profitability, robustness, production readiness or permission to execute trades.
+
+### Task 014 — XGBoost OOS economic cost attribution
+
+Completed and validated on 2026-09-21.
+
+The real-data economic result was decomposed into four fixed transaction-cost scenarios for PETR4, VALE3 and ITUB4: zero cost, 0.1% commission only, 5 bps slippage only, and 0.1% commission plus 5 bps slippage. The implementation now generates one immutable OOS prediction set per asset and reuses it across all scenarios, so cost sensitivity does not retrain or regenerate the model signal.
+
+All 12 symbol/scenario observations were produced successfully. The provider quality gate was valid for all three assets; each asset produced 7 OOS folds and 700 OOS rows. Under the combined 0.1% commission + 5 bps slippage scenario, final returns were PETR4 -0.21%, VALE3 -7.90% and ITUB4 -13.35%. The corresponding zero-cost returns were +26.48%, +19.57% and +22.72%.
+
+Detailed results are recorded in docs/validation/014-xgboost-oos-economic-cost-attribution-results.md.
+
+Important boundary: Task 014 is diagnostic only. It does not establish profitability, robustness, production readiness, venue-specific cost calibration or permission to execute trades.
+
 ## Current execution state
 
 The paper execution path is deterministic and broker-independent. Provider-backed scheduling obtains B3 history through the OpenBB/yfinance boundary, evaluates the existing RSI paper policy, persists deterministic decision keys and skips duplicates.
@@ -236,11 +261,9 @@ Task 006 does not close the broader `End-to-end training/backtest test` item bec
 
 ## Immediate development direction
 
-Task 012 is now complete. The next narrow offline stage is a reproducible real-data economic report for the controlled B3 sample, using the existing provider, feature, purged XGBoost OOS and cost/slippage-aware Backtester components without introducing a parallel trading pipeline.
+Task 014 is now complete. The next narrow offline stage is temporal/fold-level economic stability analysis using the already validated fixed OOS predictions and threshold, without threshold optimization or model-promotion changes.
 
-The report workflow is `.github/workflows/xgboost-oos-economic-report.yml` and the report script is `scripts/run_xgboost_oos_economic_report.py`. It uses the controlled 2021-09-15 through 2026-09-15 B3 sample for PETR4, VALE3 and ITUB4, horizon 5, train size 500, test size 100, step 100, threshold 0.60, commission 0.1% and slippage 5 bps. The output is diagnostic and must remain separate from model-promotion or execution decisions.
-
-Task 013 should record the resulting real-data economic metrics, benchmark comparison, drawdown and transaction-cost observations. It must not optimize the threshold based on the observed results.
+Task 015 should examine fold-by-fold economic dispersion, including per-fold return, drawdown and trading activity under the fixed transaction-cost assumptions. The purpose is to determine whether aggregate economic results are concentrated in a small number of OOS windows or are distributed across time. The analysis must remain descriptive and must not rank assets, optimize parameters or select a preferred model.
 
 Subsequent research can then address:
 
@@ -249,8 +272,6 @@ Subsequent research can then address:
 3. venue-specific cost calibration where data is available;
 4. broader historical coverage and universe-selection controls where justified;
 5. deterministic reproducibility and versioned validation artifacts.
-
-No MT5, DOTO or broker submission is part of Task 012 unless a separate execution task is explicitly authorized.
 
 ## Safety constraints
 

@@ -1,6 +1,6 @@
 # Task 014 — XGBoost OOS Economic Cost Attribution
 
-STATUS: IN PROGRESS
+STATUS: COMPLETE
 
 ## Objective
 
@@ -27,12 +27,28 @@ Cost scenarios:
 
 ## Acceptance criteria
 
-- Reuse the existing provider, feature, purged XGBoost OOS and Backtester paths.
-- Keep model parameters and threshold unchanged across scenarios.
-- Use the exact OOS replay window for every scenario.
-- Report final cash, return, drawdown, trades, commission and slippage for every symbol/scenario.
-- Report incremental impact attributable to commission and slippage relative to the zero-cost scenario.
-- Do not optimize or select a threshold from the OOS results.
-- Add deterministic contract tests for scenario consistency.
-- Run the report through the self-hosted Windows runner.
-- Keep the task research-only; no MT5/DOTO execution or model-promotion changes.
+- Reuse the existing provider, feature, purged XGBoost OOS and Backtester paths. **PASS**
+- Keep model parameters and threshold unchanged across scenarios. **PASS**
+- Use the exact OOS replay window for every scenario. **PASS**
+- Report final cash, return, drawdown, trades, commission and slippage for every symbol/scenario. **PASS**
+- Report incremental impact attributable to commission and slippage relative to the zero-cost scenario. **PASS**
+- Do not optimize or select a threshold from the OOS results. **PASS**
+- Add deterministic contract tests for scenario consistency. **PASS**
+- Run the report through the self-hosted Windows runner. **PASS**
+- Keep the task research-only; no MT5/DOTO execution or model-promotion changes. **PASS**
+
+## Implementation hardening
+
+The cost-attribution implementation was refactored so each symbol generates its XGBoost OOS predictions exactly once. The resulting immutable OOS run is reused across all four economic scenarios. Only the BacktestConfig transaction-cost parameters vary.
+
+This separates model/signal generation from economic replay and prevents cost scenarios from implicitly retraining or regenerating the OOS predictions.
+
+## Validation
+
+The self-hosted Windows workflow completed successfully on runner ECTIN8F38594.
+
+The deterministic cost-attribution contract test passed, the real-data report completed, the report artifact was generated, and backend compilation passed.
+
+No MT5/DOTO execution or broker order submission was performed.
+
+Detailed results: docs/validation/014-xgboost-oos-economic-cost-attribution-results.md.

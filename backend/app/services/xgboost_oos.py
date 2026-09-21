@@ -183,6 +183,82 @@ def purged_xgboost_oos_predictions(
     )
 
 
+def backtest_xgboost_oos_run(
+    history: pd.DataFrame,
+    *,
+    symbol: str,
+    oos: XGBoostOOSRun,
+    threshold: float = 0.60,
+    backtest_config: BacktestConfig | None = None,
+) -> BacktestResult:
+    """Replay an existing XGBoost OOS run with a deterministic cost configuration.
+
+    This helper deliberately does not retrain the model. It reuses the exact
+    OOS probabilities and applies only the threshold and economic backtest
+    configuration, which is required for controlled transaction-cost studies.
+    """
+    if not isinstance(history, pd.DataFrame):
+        raise ValueError("history must be a pandas DataFrame")
+    if not isinstance(oos, XGBoostOOSRun):
+        raise ValueError("oos must be an XGBoostOOSRun")
+
+    normalized_symbol = symbol.strip().upper()
+    if not normalized_symbol:
+        raise ValueError("symbol cannot be empty")
+
+    column_map = {str(column).lower(): column for column in history.columns}
+    required = ("open", "high", "low", "close", "volume")
+    missing = [column for column in required if column not in column_map]
+    if missing:
+        raise ValueError(f"history is missing required OHLCV columns: {missing}")
+
+    normalized_history = history.rename(
+        columns={column_map[name]: name.title() for name in required}
+    ).copy()
+    signals = probabilities_to_signals(oos.probabilities, threshold=threshold)
+    signal_fn = signals_to_backtest_function(signals)
+
+    replay_data = normalized_history.rename(
+        columns={
+            "Open": "open",
+            "High": "high",
+            "Low": "low",
+            "Close": "close",
+            "Volume": "volume",
+        }
+    )
+    history_index = pd.DatetimeIndex(replay_data.index)
+    if not history_index.is_unique:
+        raise ValueError("history index must be unique")
+    if not history_index.is_monotonic_increasing:
+        raise ValueError("history index must be chronological")
+
+    first_oos = pd.Timestamp(oos.probabilities.index.min())
+    last_oos = pd.Timestamp(oos.probabilities.index.max())
+    if first_oos not in history_index or last_oos not in history_index:
+        raise ValueError("OOS prediction timestamps must be present in history")
+
+    first_position = history_index.get_loc(first_oos)
+    last_position = history_index.get_loc(last_oos)
+    if not isinstance(first_position, (int, np.integer)) or not isinstance(last_position, (int, np.integer)):
+        raise ValueError("history index lookup must resolve to unique positions")
+
+    replay_end = last_position + 1
+    if replay_end >= len(replay_data):
+        raise ValueError("history must contain a bar after the final OOS prediction")
+    replay_data = replay_data.iloc[first_position : replay_end + 1]
+
+    replay = MarketReplay(symbol=normalized_symbol, data=replay_data)
+    result = Backtester(backtest_config).run(replay, signal_fn)
+
+    if result.final_position != 0.0:
+        raise ValueError("backtest must finish with no open position")
+    if not np.isfinite(result.final_cash):
+        raise ValueError("backtest final cash must be finite")
+    if result.total_commission < 0 or result.total_slippage < 0:
+        raise ValueError("backtest costs cannot be negative")
+    return result
+
 def run_xgboost_oos_backtest(
     history: pd.DataFrame,
     *,
@@ -217,9 +293,7 @@ def run_xgboost_oos_backtest(
     normalized_history = history.rename(
         columns={column_map[name]: name.title() for name in required}
     ).copy()
-
     X, y = build_features(normalized_history, horizon=horizon)
-
     oos = purged_xgboost_oos_predictions(
         X,
         y,
@@ -229,63 +303,11 @@ def run_xgboost_oos_backtest(
         step=step,
         params=params,
     )
-
-    signals = probabilities_to_signals(
-        oos.probabilities,
-        threshold=threshold,
-    )
-
-    signal_fn = signals_to_backtest_function(signals)
-
-    replay_data = normalized_history.rename(
-        columns={
-            "Open": "open",
-            "High": "high",
-            "Low": "low",
-            "Close": "close",
-            "Volume": "volume",
-        }
-    )
-
-    history_index = pd.DatetimeIndex(replay_data.index)
-    if not history_index.is_unique:
-        raise ValueError("history index must be unique")
-    if not history_index.is_monotonic_increasing:
-        raise ValueError("history index must be chronological")
-
-    first_oos = pd.Timestamp(oos.probabilities.index.min())
-    last_oos = pd.Timestamp(oos.probabilities.index.max())
-    if first_oos not in history_index or last_oos not in history_index:
-        raise ValueError("OOS prediction timestamps must be present in history")
-
-    first_position = history_index.get_loc(first_oos)
-    last_position = history_index.get_loc(last_oos)
-    if not isinstance(first_position, (int, np.integer)) or not isinstance(last_position, (int, np.integer)):
-        raise ValueError("history index lookup must resolve to unique positions")
-
-    replay_end = last_position + 1
-    if replay_end >= len(replay_data):
-        raise ValueError("history must contain a bar after the final OOS prediction")
-
-    replay_data = replay_data.iloc[first_position : replay_end + 1]
-
-    replay = MarketReplay(
+    result = backtest_xgboost_oos_run(
+        normalized_history,
         symbol=normalized_symbol,
-        data=replay_data,
+        oos=oos,
+        threshold=threshold,
+        backtest_config=backtest_config,
     )
-
-    result = Backtester(backtest_config).run(
-        replay,
-        signal_fn,
-    )
-
-    if result.final_position != 0.0:
-        raise ValueError("backtest must finish with no open position")
-
-    if not np.isfinite(result.final_cash):
-        raise ValueError("backtest final cash must be finite")
-
-    if result.total_commission < 0 or result.total_slippage < 0:
-        raise ValueError("backtest costs cannot be negative")
-
     return oos, result

@@ -58,9 +58,9 @@ jobs:
       - name: Generate shared OOS artifacts
         shell: pwsh
         env:
-          PYTHONPATH: ${{ github.workspace }}\\backend
+          PYTHONPATH: ${{ github.workspace }}\backend
         run: |
-          & ".\\.venv-xgboost-oos-pipeline\\Scripts\\python.exe" "scripts\\run_xgboost_oos_shared_artifact.py"
+          & ".\.venv-xgboost-oos-pipeline\Scripts\python.exe" "scripts\\run_xgboost_oos_shared_artifact.py"
 
       - name: Run real-data economic report
         shell: pwsh

@@ -39,6 +39,7 @@ class InMemoryFirebase:
 
 class AccountStore:
     def __init__(self) -> None:
+        self.firebase = InMemoryFirebase()
         self.account = PaperAccount(initial_cash=100_000)
         self.settings = SimpleNamespace(paper_max_order_notional=10_000)
         self.save_calls = 0

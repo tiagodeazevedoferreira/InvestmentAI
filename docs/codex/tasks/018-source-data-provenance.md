@@ -1,6 +1,6 @@
 # Task 018 — Source-Data Provenance for Shared XGBoost OOS Artifacts
 
-**Status:** IN PROGRESS
+**Status:** COMPLETED
 
 ## Objective
 
@@ -42,4 +42,20 @@ Bind each shared XGBoost OOS artifact to deterministic provenance for the exact 
 
 ## Validation
 
-The task is complete only after the XGBoost OOS validation pipeline is green on runner `ECTIN8F38594` with the new source-provenance contracts.
+Completed on 2026-09-21 through the XGBoost OOS validation pipeline on runner `ECTIN8F38594`.
+
+- Workflow run: `35650687196`
+- Commit: `a5939792a673bdbf47263cfbdd0ad978d4bb6544`
+- Result: **success**
+- Shared OOS provenance contract tests: **passed**
+- Shared OOS artifact generation and provenance verification: **passed**
+- Real-data economic report: **passed**
+- Real-data cost attribution: **passed**
+- Real-data fold stability: **passed**
+- Complete backend test suite: **passed**
+- Backend compileall: **passed**
+- Validation artifact: `xgboost-oos-validation-pipeline-5`
+- Artifact ID: `10662546139`
+- Artifact ZIP SHA-256: `9ffa87b2441b5096e24bf20b614a9cafa1f1570558dc1496d224d1205f8566c4`
+
+Task 018 is therefore closed as an engineering/reproducibility task. It does not establish profitability, robustness, model superiority, production readiness or permission to execute trades.

@@ -1,6 +1,6 @@
 # InvestmentAI — Project Context / Handoff
 
-Last updated: 2026-09-21
+Last updated: 2026-09-22
 
 ## Purpose
 
@@ -305,15 +305,21 @@ Task 006 does not close the broader `End-to-end training/backtest test` item bec
 
 ## Immediate development direction
 
-Task 017 is now complete. The next engineering stage should preserve the current immutable OOS validation architecture while strengthening **source-data provenance**: make the shared OOS artifacts auditable back to the exact provider dataset and quality-gate inputs that produced them.
+Task 018 is now complete. The shared XGBoost OOS validation artifacts are bound to deterministic source-data provenance and the provenance contract is validated in the self-hosted CI pipeline.
 
-### Task 018 — Source-data provenance for shared OOS artifacts
+### Task 018 — Source-data provenance for shared XGBoost OOS artifacts
 
-The next task should remain research-only and narrowly scoped to recording and validating source-data provenance for each shared OOS artifact. The intended gate is to bind each artifact to deterministic metadata such as provider identity, normalized symbol, requested/effective date range, row count and the canonical market-data quality report, with contract coverage proving that incompatible or altered provenance is rejected.
+Completed and validated on 2026-09-21.
 
-Non-goals remain unchanged: no threshold optimization, hyperparameter tuning, model promotion, profitability claim, execution-policy change, MT5/DOTO execution or broker transaction.
+Validation run **35650687196** on runner `ECTIN8F38594` passed the focused source-provenance contracts, shared artifact generation and provenance verification, all downstream real-data analyses, the complete backend suite and backend compilation.
 
-After Task 018, broader real-dataset coverage, transaction-cost calibration and additional model families can be considered only as separate, evidence-driven tasks.
+The validation artifact was `xgboost-oos-validation-pipeline-5`, artifact ID `10662546139`, ZIP SHA-256 `9ffa87b2441b5096e24bf20b614a9cafa1f1570558dc1496d224d1205f8566c4`.
+
+Detailed results are recorded in `docs/validation/018-source-data-provenance-results.md`.
+
+Important boundary: Task 018 is an engineering/reproducibility hardening task. It does not establish profitability, robustness, model superiority, production readiness or permission to execute trades.
+
+The next engineering stage should be defined only after inspecting the current repository implementation, existing test coverage and remaining quality gaps.
 
 ## Safety constraints
 

@@ -51,7 +51,9 @@ jobs:
         run: python -m bandit -r app -lll -iii
 
       - name: Backend tests
-        run: python -m pytest -q
+        run: |
+          $env:PYTHONPATH = "..;" + $env:PYTHONPATH
+          python -m pytest -q
 
       - name: Backend compile
         run: python -m compileall -q app

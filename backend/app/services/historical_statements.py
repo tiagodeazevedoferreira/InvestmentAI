@@ -40,24 +40,30 @@ class NormalizedStatement:
 
 _FIELD_ALIASES = {
     "revenue": ("revenue", "totalrevenue", "total_revenue"),
-    "operating_income": ("operating_income", "operatingincome", "operatingIncome"),
-    "net_income": ("net_income", "netincome", "netIncome", "netIncomeToCommon"),
-    "ebitda": ("ebitda", "EBITDA"),
-    "total_assets": ("total_assets", "totalassets", "totalAssets"),
-    "total_debt": ("total_debt", "totaldebt", "totalDebt"),
-    "cash": ("cash", "cash_and_equivalents", "cashAndCashEquivalents"),
-    "equity": ("equity", "total_equity", "totalStockholderEquity"),
-    "operating_cash_flow": ("operating_cash_flow", "operatingcashflow", "operatingCashFlow"),
-    "capex": ("capex", "capital_expenditure", "capitalExpenditure"),
+    "operating_income": ("operating_income", "operatingincome"),
+    "net_income": ("net_income", "netincome", "netIncomeToCommon"),
+    "ebitda": ("ebitda",),
+    "total_assets": ("total_assets", "totalassets"),
+    "total_debt": ("total_debt", "totaldebt"),
+    "cash": ("cash", "cash_and_equivalents", "cashandcashequivalents"),
+    "equity": ("equity", "total_equity", "totalstockholderequity"),
+    "operating_cash_flow": ("operating_cash_flow", "operatingcashflow"),
+    "capex": ("capex", "capital_expenditure", "capitalexpenditure"),
 }
 
 
+def _normalized_keys(record: Mapping[str, object]) -> dict[str, object]:
+    return {str(key).replace("-", "").replace("_", "").lower(): value for key, value in record.items()}
+
+
 def _value(record: Mapping[str, object], aliases: tuple[str, ...]) -> float | None:
+    normalized = _normalized_keys(record)
     for key in aliases:
-        if key in record and record[key] is not None:
-            value = float(record[key])
+        normalized_key = key.replace("-", "").replace("_", "").lower()
+        if normalized_key in normalized and normalized[normalized_key] is not None:
+            value = float(normalized[normalized_key])
             if not isfinite(value):
-                raise ValueError(f"{key} must be finite")
+                raise ValueError(f"{normalized_key} must be finite")
             return value
     return None
 
@@ -78,7 +84,13 @@ def normalize_historical_statements(
     for record in records:
         if not isinstance(record, Mapping):
             raise ValueError("statement record must be a mapping")
-        period_end = str(record.get("period_end") or record.get("date") or record.get("asOfDate") or "").strip()
+        normalized = _normalized_keys(record)
+        period_end = str(
+            normalized.get("periodend")
+            or normalized.get("date")
+            or normalized.get("asofdate")
+            or ""
+        ).strip()
         if not period_end:
             raise ValueError("statement period_end is required")
         output.append(

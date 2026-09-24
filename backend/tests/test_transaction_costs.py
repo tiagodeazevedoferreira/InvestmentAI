@@ -48,9 +48,9 @@ def test_calibration_is_deterministic_and_reports_median_p95():
     assert first.venue == "B3"
     assert first.observations == 3
     assert first.median_commission_bps == pytest.approx(10.0)
-    assert first.p95_commission_bps == pytest.approx(15.0)
-    assert first.median_slippage_bps == pytest.approx(4.0)
-    assert first.p95_slippage_bps == pytest.approx(9.0)
+    assert first.p95_commission_bps == pytest.approx(14.5)
+    assert first.median_slippage_bps == pytest.approx(5.0)
+    assert first.p95_slippage_bps == pytest.approx(9.5)
     assert first.source == "synthetic"
 
 

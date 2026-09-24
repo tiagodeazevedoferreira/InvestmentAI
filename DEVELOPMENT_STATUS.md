@@ -32,7 +32,7 @@ Last updated: 2026-09-24
 - [x] Cost/slippage-aware market simulator
 - [x] Market replay
 - [x] Walk-forward evaluation
-- [x] Transaction-cost calibration by venue
+- [x] Transaction-cost calibration by venue and calibrated backtest integration
 - [x] Causal ML trading backtest
 - [x] ML robustness audit
 - [x] ML cross-asset model diagnosis and improvement
@@ -202,6 +202,18 @@ Workflow `.github/workflows/ml-cross-asset.yml` completed successfully in run `3
 Task 011 is research/observability only. It does not establish profitability or robustness, and it does not change model thresholds, execution policy, risk gates, broker integration or promotion authority.
 
 Dedicated task and validation records are published at `docs/codex/tasks/011-cross-asset-ml-diagnostics.md` and `docs/validation/011-cross-asset-ml-diagnostics-results.md`.
+
+### Task 023 — Calibrated transaction-cost backtest integration
+
+Completed and validated on 2026-09-24.
+
+The deterministic backtest now exposes an explicit opt-in `BacktestConfig.from_calibration()` boundary for a validated `VenueCostCalibration`. The caller can select the median or P95 calibrated commission/slippage profile, commission basis points are converted to the existing decimal commission-rate representation, and venue/source provenance is retained in the immutable configuration.
+
+Existing direct `commission_rate`/`slippage_bps` configuration remains unchanged; there is no automatic replacement of prior backtest assumptions. The task does not discover live venue costs, contact a broker, invoke MT5/DOTO execution, tune or promote a model, or establish profitability or production readiness.
+
+Validation completed successfully in Phase 10 Live Gate Tests run `36039678561` and Security and Dependency Scan run `36039678583`. The security workflow completed dependency audit, static security scan, backend tests and backend compilation successfully. The Phase 10 gate also completed successfully with the calibrated-cost changes present.
+
+Detailed task record: `docs/codex/tasks/023-calibrated-transaction-cost-backtest.md`.
 
 ## Current execution gate
 The internal paper execution path is deterministic and broker-independent. Provider-backed scheduling obtains B3 history through the OpenBB/yfinance boundary, evaluates the existing RSI paper policy, persists a deterministic decision key, and skips duplicates. Completed decisions receive persisted 1/5/20-bar forward outcomes. The calibration layer reports directional hit rate, confidence intervals and return statistics under an explicit transaction-cost assumption, and the runner can partition results by a causal trailing-volatility regime. Paper decisions can also be reconciled against TradingView validator evidence using an explicit timestamp tolerance. The empirical gate evaluates predefined evidence criteria, but a passing result only permits human review and can never authorize promotion automatically. Operational kill-switch and broker-neutral reconciliation primitives are hardened. The Doto/MT5 demo-only adapter, read-only reconciliation harness, fail-closed authorization gate, and pre/post-reconciled DEMO execution coordinator are implemented. The adapter rejects unsupported limit intents, uses bid/ask semantics for market orders, requires a successful order_check result, and verifies DEMO status during initialization. A non-submitting preflight path builds the exact market request and runs order_check without order_send().

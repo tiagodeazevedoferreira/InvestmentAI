@@ -223,7 +223,7 @@ A deterministic, provider-neutral calibration primitive now relates externally s
 
 The implementation is research-only: it does not rank or select providers, modify signal weights or thresholds, change risk gates, promote models, contact brokers, or authorize execution. Statistical interpretation remains descriptive and is subject to sample-size, selection, market-regime and timestamp-alignment limitations.
 
-Validation completed successfully in CI run `36050009093`, External Intelligence Validation run `36050009099`, Phase 10 Live Gate Tests run `36050009108`, Cross-Asset ML Experiment run `36050009092` and Security and Dependency Scan run `36050009126`.
+Validation completed successfully in CI run `36050009093`, External Intelligence Validation run `36050009099`, Phase 10 Live Gate Tests run `36050009108`, Cross-Asset ML Experiment run `36050009287` and Security and Dependency Scan run `36050009126`.
 
 Detailed task record: `docs/codex/tasks/024-provider-calibration-historical-outcomes.md`.
 

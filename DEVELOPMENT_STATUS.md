@@ -158,9 +158,9 @@ Last updated: 2026-09-16
 - [x] Fault-injected DEMO submission-interruption test
 - [x] Scheduler → DEMO promotion-boundary unit tests
 - [x] Historical OHLCV pipeline and temporal-purge tests
-- [ ] Full integration test suite against provider mocks
-- [ ] End-to-end training/backtest test
-- [ ] Security/dependency scan
+- [x] Full integration test suite against provider mocks
+- [x] End-to-end training/backtest test
+- [x] Security/dependency scan
 - [ ] Production deployment
 
 ## Current ML validation gate

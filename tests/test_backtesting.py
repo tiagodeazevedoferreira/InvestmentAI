@@ -39,3 +39,42 @@ def test_commission_and_slippage_reduce_result():
 def test_invalid_signal_is_rejected():
     with pytest.raises(ValueError, match="signal_fn must return"):
         Backtester().run(replay(), lambda bar: 2)
+
+
+def test_backtest_config_from_calibration_uses_median_and_preserves_provenance():
+    from app.services.transaction_costs import VenueCostCalibration
+
+    calibration = VenueCostCalibration(
+        venue="B3",
+        source="fixture-v1",
+        observations=100,
+        median_commission_bps=10.0,
+        p95_commission_bps=14.5,
+        median_slippage_bps=5.0,
+        p95_slippage_bps=9.5,
+    )
+    config = BacktestConfig.from_calibration(calibration)
+
+    assert config.commission_rate == pytest.approx(0.001)
+    assert config.slippage_bps == pytest.approx(5.0)
+    assert config.cost_venue == "B3"
+    assert config.cost_source == "fixture-v1"
+
+
+def test_backtest_config_from_calibration_supports_p95():
+    from app.services.transaction_costs import VenueCostCalibration
+
+    calibration = VenueCostCalibration("B3", "fixture-v1", 3, 10.0, 14.5, 5.0, 9.5)
+    config = BacktestConfig.from_calibration(calibration, percentile="p95", initial_cash=50_000.0)
+
+    assert config.initial_cash == pytest.approx(50_000.0)
+    assert config.commission_rate == pytest.approx(0.00145)
+    assert config.slippage_bps == pytest.approx(9.5)
+
+
+def test_backtest_config_from_calibration_rejects_invalid_percentile():
+    from app.services.transaction_costs import VenueCostCalibration
+
+    calibration = VenueCostCalibration("B3", "fixture-v1", 1, 10.0, 10.0, 5.0, 5.0)
+    with pytest.raises(ValueError, match="median.*p95"):
+        BacktestConfig.from_calibration(calibration, percentile="p90")

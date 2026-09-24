@@ -75,6 +75,7 @@ Last updated: 2026-09-24
 - [ ] TradingView alert/webhook activation on an eligible plan
 - [x] OpenBB/B3 provider capability validation
 - [x] Provider calibration against historical outcomes
+- [x] Persisted paper outcome calibration pipeline
 
 ## Execution
 - [x] Simulation-only default
@@ -146,6 +147,7 @@ Last updated: 2026-09-24
 - [x] Paper scheduler/ledger unit tests
 - [x] Paper outcome attribution unit tests
 - [x] Paper calibration unit tests
+- [x] Persisted paper outcome calibration runner and ledger persistence tests
 - [x] Causal regime/reconciliation unit tests
 - [x] Empirical promotion gate unit tests
 - [x] Operational safety unit tests
@@ -238,3 +240,15 @@ The controlled runner remains manual and fail-closed: read-only mode does not ca
 
 ## Promotion boundary
 Phases 1-9 remain non-live. Phase 10/live is intentionally disabled and requires explicit authorization after empirical validation and operational readiness, including kill-switch and reconciliation hardening.
+
+### Task 025 — Persisted paper outcome calibration pipeline
+
+Completed and validated on 2026-09-24.
+
+The persisted PAPER decision ledger now retains the causal decision reference price, and the historical calibration runner reads persisted decisions, attributes forward outcomes at configured horizons, persists outcomes idempotently and feeds completed observations into the existing descriptive calibration report. Incomplete future horizons remain pending rather than being treated as failures, while malformed provenance or market data fails closed.
+
+The pipeline remains research-only: it does not submit orders, change policy thresholds or risk gates, rank providers, promote models, or claim profitability or production readiness.
+
+Validation completed successfully in CI run 36057607054, Security and Dependency Scan run 36057607141, Phase 10 Live Gate Tests run 36057607186, External Intelligence Validation run 36057607020 and Cross-Asset ML Experiment run 36057607036, all for commit 3c7b812124e47acfb444c687595247edfcba3f97.
+
+Detailed task record: docs/codex/tasks/025-persisted-paper-outcome-calibration.md.

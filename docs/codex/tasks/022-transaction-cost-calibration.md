@@ -1,6 +1,6 @@
 # Task 022 — Transaction-cost calibration framework
 
-**Status:** IN PROGRESS
+**Status:** COMPLETE
 
 ## Objective
 
@@ -45,6 +45,16 @@ This task establishes a transaction-cost measurement/calibration primitive only.
 
 ## Validation record
 
-Pending CI validation.
+Validation completed on 2026-09-24 against main commit `04989d545041360a1915e7352a76bfe5e2540a8a`.
+
+Validation:
+- CI run `36024066096`: success.
+- Phase 10 Live Gate Tests run `36024066079`: success.
+- External Intelligence Validation run `36024066058`: success.
+- Cross-Asset ML Experiment run `36024066039`: success.
+- Security and Dependency Scan run `36024066035`, attempt 2: success.
+- Security attempt 2 completed dependency audit, Bandit static scan, backend tests and backend compilation successfully on runner `ECTIN8F38594`.
+
+The initial security attempt was externally cancelled during the Bandit step after reporting no issues identified; the failed attempt was rerun and completed successfully.
 
 Runner: ECTIN8F38594

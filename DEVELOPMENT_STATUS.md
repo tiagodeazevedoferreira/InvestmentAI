@@ -19,7 +19,7 @@ Last updated: 2026-09-24
 - [x] Fundamental data service boundary
 - [x] P/E, P/B, EV/EBITDA, ROE and dividend-yield primitives
 - [x] DCF/Gordon valuation primitives
-- [ ] Provider-normalized historical statements
+- [x] Provider-normalized historical statements
 - [ ] ROIC with invested-capital definition and validation
 - [ ] Fundamental score/ranking and margin-of-safety engine
 
@@ -96,9 +96,9 @@ Last updated: 2026-09-24
 - [x] Authorized DEMO execution coordinator with pre/post reconciliation
 - [x] Controlled end-to-end validation against a real Doto/MT5 DEMO account
 - [x] Durable DEMO restart/recovery coordinator with no automatic resubmission
-- [x] Empirical restart/recovery validation against the persisted DEMO ledger, confirming an ambiguous `SUBMITTED` record remains pending without broker submission
-- [x] Broker-connected read-only recovery validation using the confirmed Order `29453207` / Deal `28862296`
-- [x] Fault-injected submission-interruption test: exception after authorization remains recoverable `SUBMITTED` and never becomes an automatic retry
+- [x] Empirical restart/recovery validation against the persisted DEMO ledger, confirming an ambiguous SUBMITTED record remains pending without broker submission
+- [x] Broker-connected read-only recovery validation using the confirmed Order 29453207 / Deal 28862296
+- [x] Fault-injected submission-interruption test: exception after authorization remains recoverable SUBMITTED and never becomes an automatic retry
 - [x] Scheduler → DEMO fail-closed promotion boundary (plan-only; broker submission disconnected)
 - [ ] Scheduler → DEMO broker integration
 - [ ] Real interrupted-broker-submission recovery validation without deliberately creating another DEMO transaction
@@ -169,15 +169,15 @@ Last updated: 2026-09-24
 The causal ML trading backtest, robustness audit and model diagnosis are complete. The robustness gate is not yet passed because performance is not stable across all evaluated assets and assumptions. A causal pooled cross-asset model experiment is implemented to test whether normalized technical features transfer across PETR4, VALE3 and ITUB4 without changing execution policy. Task 011 diagnostics are now validated in CI and recorded as research/observability evidence. The pooled experiment remains research-only until its out-of-sample evidence is reviewed.
 
 ## Current historical-data validation gate
-Task 008 is complete and validated offline with deterministic synthetic data. Task 009 is also complete and validated against real daily B3 datasets for `PETR4.SA`, `VALE3.SA` and `ITUB4.SA` using the existing OpenBB/yfinance provider boundary.
+Task 008 is complete and validated offline with deterministic synthetic data. Task 009 is also complete and validated against real daily B3 datasets for PETR4.SA, VALE3.SA and ITUB4.SA using the existing OpenBB/yfinance provider boundary.
 
-Task 009 validation used `2024-01-01` through `2025-03-31`, interval `1d`. Each symbol returned 312 observations covering `2024-01-02` through `2025-03-31` and passed the shared quality gate for required columns, duplicates, nulls, non-finite values, timestamp monotonicity, OHLC consistency and negative volume. Two calendar gaps were reported per dataset, with a maximum gap of five days; these remained observability metadata rather than automatic failures. VALE3 returned an additional `Dividend` field, and ITUB4 returned `Split_Ratio` and `Dividend`; these were not required OHLCV fields and were not independently used to reconstruct corporate-action adjustments.
+Task 009 validation used 2024-01-01 through 2025-03-31, interval 1d. Each symbol returned 312 observations covering 2024-01-02 through 2025-03-31 and passed the shared quality gate for required columns, duplicates, nulls, non-finite values, timestamp monotonicity, OHLC consistency and negative volume. Two calendar gaps were reported per dataset, with a maximum gap of five days; these remained observability metadata rather than automatic failures. VALE3 returned an additional Dividend field, and ITUB4 returned Split_Ratio and Dividend; these were not required OHLCV fields and were not independently used to reconstruct corporate-action adjustments.
 
-The real data also passed technical indicators and feature engineering. A PETR4 smoke window produced 61 indicator rows, 36 feature rows and 36 targets. The existing purged walk-forward pipeline then executed with horizon `5`, train size `120`, test size `40` and step `40`, producing four folds per asset. Aggregate model/baseline balanced accuracy was `0.5895/0.3358` for PETR4, `0.5026/0.3773` for VALE3 and `0.4771/0.4671` for ITUB4. These are diagnostic validation results only and do not imply profitability or production readiness.
+The real data also passed technical indicators and feature engineering. A PETR4 smoke window produced 61 indicator rows, 36 feature rows and 36 targets. The existing purged walk-forward pipeline then executed with horizon 5, train size 120, test size 40 and step 40, producing four folds per asset. Aggregate model/baseline balanced accuracy was 0.5895/0.3358 for PETR4, 0.5026/0.3773 for VALE3 and 0.4771/0.4671 for ITUB4. These are diagnostic validation results only and do not imply profitability or production readiness.
 
-Task 009 validation completed with 39/39 backend tests passing and `compileall -q backend` clean. A static scan found only pre-existing MT5/DOTO/execution references in unrelated backend components. No `mt5.order_send()` call was made and no financial transaction was submitted during the task.
+Task 009 validation completed with 39/39 backend tests passing and compileall -q backend clean. A static scan found only pre-existing MT5/DOTO/execution references in unrelated backend components. No mt5.order_send() call was made and no financial transaction was submitted during the task.
 
-Detailed reproducible results are recorded in `docs/validation/009-real-historical-data-validation-results.md`.
+Detailed reproducible results are recorded in docs/validation/009-real-historical-data-validation-results.md.
 
 This task closes the real historical-data validation gate only. It does not mark real-dataset production training, venue-specific cost/slippage calibration, production readiness, live trading or MT5/DOTO execution validation as complete.
 
@@ -185,11 +185,11 @@ This task closes the real historical-data validation gate only. It does not mark
 
 Completed and validated on 2026-09-16.
 
-The first reproducible real-dataset training workflow is complete for the controlled B3 sample. PETR4.SA, VALE3.SA and ITUB4.SA were trained using OpenBB with yfinance, interval `1d`, period `5y` and horizon `5`.
+The first reproducible real-dataset training workflow is complete for the controlled B3 sample. PETR4.SA, VALE3.SA and ITUB4.SA were trained using OpenBB with yfinance, interval 1d, period 5y and horizon 5.
 
-The canonical `validate_market_data()` gate executes before feature engineering and invalid datasets fail closed. The existing feature pipeline, XGBoost engine and five-bar temporal purge were preserved.
+The canonical validate_market_data() gate executes before feature engineering and invalid datasets fail closed. The existing feature pipeline, XGBoost engine and five-bar temporal purge were preserved.
 
-Validation completed with `43 passed` backend tests and clean `compileall -q backend`.
+Validation completed with 43 passed backend tests and clean compileall -q backend.
 
 Important boundary: Task 010 is diagnostic only. It does not establish profitability, production readiness, model superiority, live-trading readiness, complete-universe robustness or permission to execute trades.
 
@@ -199,23 +199,23 @@ Completed and validated on 2026-09-16.
 
 The causal pooled-vs-asset-specific experiment now has a dedicated diagnostic layer reporting actual positive rate, predicted positive rate, mean predicted probability, probability/prediction bias, accuracy, Brier score, ECE, first-vs-last fold temporal deltas and causal reference-vs-OOS feature distribution shift. CI runs the diagnostic unit tests before the real-data experiment and report generation.
 
-Workflow `.github/workflows/ml-cross-asset.yml` completed successfully in run `35131993552` on `main` commit `e17ddc0`. The `ml-cross-asset-experiment` artifact was generated with SHA-256 `cd1b20126b8f9e0c49f98295dbc9c933051c82e212100a191d17670f242781e6`. The experiment covered PETR4, VALE3 and ITUB4 with 8 paired OOS folds.
+Workflow .github/workflows/ml-cross-asset.yml completed successfully in run 35131993552 on main commit e17ddc0. The ml-cross-asset-experiment artifact was generated with SHA-256 cd1b20126b8f9e0c49f98295dbc9c933051c82e212100a191d17670f242781e6. The experiment covered PETR4, VALE3 and ITUB4 with 8 paired OOS folds.
 
 Task 011 is research/observability only. It does not establish profitability or robustness, and it does not change model thresholds, execution policy, risk gates, broker integration or promotion authority.
 
-Dedicated task and validation records are published at `docs/codex/tasks/011-cross-asset-ml-diagnostics.md` and `docs/validation/011-cross-asset-ml-diagnostics-results.md`.
+Dedicated task and validation records are published at docs/codex/tasks/011-cross-asset-ml-diagnostics.md and docs/validation/011-cross-asset-ml-diagnostics-results.md.
 
 ### Task 023 — Calibrated transaction-cost backtest integration
 
 Completed and validated on 2026-09-24.
 
-The deterministic backtest now exposes an explicit opt-in `BacktestConfig.from_calibration()` boundary for a validated `VenueCostCalibration`. The caller can select the median or P95 calibrated commission/slippage profile, commission basis points are converted to the existing decimal commission-rate representation, and venue/source provenance is retained in the immutable configuration.
+The deterministic backtest now exposes an explicit opt-in BacktestConfig.from_calibration() boundary for a validated VenueCostCalibration. The caller can select the median or P95 calibrated commission/slippage profile, commission basis points are converted to the existing decimal commission-rate representation, and venue/source provenance is retained in the immutable configuration.
 
-Existing direct `commission_rate`/`slippage_bps` configuration remains unchanged; there is no automatic replacement of prior backtest assumptions. The task does not discover live venue costs, contact a broker, invoke MT5/DOTO execution, tune or promote a model, or establish profitability or production readiness.
+Existing direct commission_rate/slippage_bps configuration remains unchanged; there is no automatic replacement of prior backtest assumptions. The task does not discover live venue costs, contact a broker, invoke MT5/DOTO execution, tune or promote a model, or establish profitability or production readiness.
 
-Validation completed successfully in Phase 10 Live Gate Tests run `36039678561` and Security and Dependency Scan run `36039678583`. The security workflow completed dependency audit, static security scan, backend tests and backend compilation successfully. The Phase 10 gate also completed successfully with the calibrated-cost changes present.
+Validation completed successfully in Phase 10 Live Gate Tests run 36039678561 and Security and Dependency Scan run 36039678583. The security workflow completed dependency audit, static security scan, backend tests and backend compilation successfully. The Phase 10 gate also completed successfully with the calibrated-cost changes present.
 
-Detailed task record: `docs/codex/tasks/023-calibrated-transaction-cost-backtest.md`.
+Detailed task record: docs/codex/tasks/023-calibrated-transaction-cost-backtest.md.
 
 ### Task 024 — Provider calibration against historical outcomes
 
@@ -225,18 +225,18 @@ A deterministic, provider-neutral calibration primitive now relates externally s
 
 The implementation is research-only: it does not rank or select providers, modify signal weights or thresholds, change risk gates, promote models, contact brokers, or authorize execution. Statistical interpretation remains descriptive and is subject to sample-size, selection, market-regime and timestamp-alignment limitations.
 
-Validation completed successfully in CI run `36050009093`, External Intelligence Validation run `36050009099`, Phase 10 Live Gate Tests run `36050009108`, Cross-Asset ML Experiment run `36050009287` and Security and Dependency Scan run `36050009126`.
+Validation completed successfully in CI run 36050009093, External Intelligence Validation run 36050009099, Phase 10 Live Gate Tests run 36050009108, Cross-Asset ML Experiment run 36050009287 and Security and Dependency Scan run 36050009126.
 
-Detailed task record: `docs/codex/tasks/024-provider-calibration-historical-outcomes.md`.
+Detailed task record: docs/codex/tasks/024-provider-calibration-historical-outcomes.md.
 
 ## Current execution gate
 The internal paper execution path is deterministic and broker-independent. Provider-backed scheduling obtains B3 history through the OpenBB/yfinance boundary, evaluates the existing RSI paper policy, persists a deterministic decision key, and skips duplicates. Completed decisions receive persisted 1/5/20-bar forward outcomes. The calibration layer reports directional hit rate, confidence intervals and return statistics under an explicit transaction-cost assumption, and the runner can partition results by a causal trailing-volatility regime. Paper decisions can also be reconciled against TradingView validator evidence using an explicit timestamp tolerance. The empirical gate evaluates predefined evidence criteria, but a passing result only permits human review and can never authorize promotion automatically. Operational kill-switch and broker-neutral reconciliation primitives are hardened. The Doto/MT5 demo-only adapter, read-only reconciliation harness, fail-closed authorization gate, and pre/post-reconciled DEMO execution coordinator are implemented. The adapter rejects unsupported limit intents, uses bid/ask semantics for market orders, requires a successful order_check result, and verifies DEMO status during initialization. A non-submitting preflight path builds the exact market request and runs order_check without order_send().
 
-The controlled Doto/MT5 DEMO end-to-end gate was completed on 2026-09-11. The first explicitly authorized `EURUSD BUY 0.01` was accepted and filled: order `29453207`, deal `28862296`, position `29453207`, open at `1.15960`. External MT5 inspection confirmed exactly one open EURUSD BUY position with volume `0.01`; no pending open order remained because the market order was filled. Targeted post-execution reconciliation was validated using broker history lookup by deal/order/position identifiers after a time-window lookup proved unreliable because the broker/server history clock differed from the Python UTC window. The corrected reconciliation path recovered execution `28862296` and position `EURUSD: BUY 0.01` without submitting another order. The durable demo ledger reports the valid transaction as `FILLED`, and the local demo portfolio state mirrors the external position. The restart/recovery coordinator was then exercised against the actual persisted local ledger. The historical ambiguous `SUBMITTED` record remained `SUBMITTED` with no broker identifiers, while the already `FILLED` reference transaction remained untouched. The recovery call did not invoke broker submission, did not create a new intent and did not alter the existing EURUSD position. This empirically validates the restart/recovery no-duplicate boundary for the current persisted state.
+The controlled Doto/MT5 DEMO end-to-end gate was completed on 2026-09-11. The first explicitly authorized EURUSD BUY 0.01 was accepted and filled: order 29453207, deal 28862296, position 29453207, open at 1.15960. External MT5 inspection confirmed exactly one open EURUSD BUY position with volume 0.01; no pending open order remained because the market order was filled. Targeted post-execution reconciliation was validated using broker history lookup by deal/order/position identifiers after a time-window lookup proved unreliable because the broker/server history clock differed from the Python UTC window. The corrected reconciliation path recovered execution 28862296 and position EURUSD: BUY 0.01 without submitting another order. The durable demo ledger reports the valid transaction as FILLED, and the local demo portfolio state mirrors the external position. The restart/recovery coordinator was then exercised against the actual persisted local ledger. The historical ambiguous SUBMITTED record remained SUBMITTED with no broker identifiers, while the already FILLED reference transaction remained untouched. The recovery call did not invoke broker submission, did not create a new intent and did not alter the existing EURUSD position. This empirically validates the restart/recovery no-duplicate boundary for the current persisted state.
 
-A broker-connected, read-only recovery harness was then validated using a disposable SQLite ledger. It seeded the already confirmed Order `29453207` / Deal `28862296` and a separate synthetic unknown submission. Targeted MT5 history promoted only the confirmed record to `FILLED`; the unknown record remained `SUBMITTED`; `order_send` was not called; and temporary SQLite state was successfully discarded on Windows. A separate fault-injected coordinator test confirms that a timeout after local authorization preserves `SUBMITTED` uncertainty rather than classifying the intent as `FAILED` or retrying automatically. The new scheduler-to-DEMO boundary now exposes the scheduler's deterministic decision, quantity, reference price and risk result to a fail-closed promotion planner. The planner is disabled by default, requires an explicit symbol mapping, and stops at an `OrderIntent`; it does not own a broker or call `order_send`. Actual scheduler-driven DEMO submission remains disconnected pending a separate promotion step. A real broker interruption is intentionally not induced merely for testing because doing so could create another DEMO transaction. Live execution remains disabled.
+A broker-connected, read-only recovery harness was then validated using a disposable SQLite ledger. It seeded the already confirmed Order 29453207 / Deal 28862296 and a separate synthetic unknown submission. Targeted MT5 history promoted only the confirmed record to FILLED; the unknown record remained SUBMITTED; order_send was not called; and temporary SQLite state was successfully discarded on Windows. A separate fault-injected coordinator test confirms that a timeout after local authorization preserves SUBMITTED uncertainty rather than classifying the intent as FAILED or retrying automatically. The new scheduler-to-DEMO boundary now exposes the scheduler's deterministic decision, quantity, reference price and risk result to a fail-closed promotion planner. The planner is disabled by default, requires an explicit symbol mapping, and stops at an OrderIntent; it does not own a broker or call order_send. Actual scheduler-driven DEMO submission remains disconnected pending a separate promotion step. A real broker interruption is intentionally not induced merely for testing because doing so could create another DEMO transaction. Live execution remains disabled.
 
-The controlled runner remains manual and fail-closed: read-only mode does not call `order_send()`, and execution requires both explicit `--execute` and the dedicated DEMO execution arm. No additional DEMO order should be sent solely for verification. Automatic scheduler-to-broker execution remains disconnected, and live execution remains disabled.
+The controlled runner remains manual and fail-closed: read-only mode does not call order_send(), and execution requires both explicit --execute and the dedicated DEMO execution arm. No additional DEMO order should be sent solely for verification. Automatic scheduler-to-broker execution remains disconnected, and live execution remains disabled.
 
 ## Promotion boundary
 Phases 1-9 remain non-live. Phase 10/live is intentionally disabled and requires explicit authorization after empirical validation and operational readiness, including kill-switch and reconciliation hardening.
@@ -252,3 +252,13 @@ The pipeline remains research-only: it does not submit orders, change policy thr
 Validation completed successfully in CI run 36057607054, Security and Dependency Scan run 36057607141, Phase 10 Live Gate Tests run 36057607186, External Intelligence Validation run 36057607020 and Cross-Asset ML Experiment run 36057607036, all for commit 3c7b812124e47acfb444c687595247edfcba3f97.
 
 Detailed task record: docs/codex/tasks/025-persisted-paper-outcome-calibration.md.
+
+### Task 026 — Provider-normalized historical statements
+
+Completed and validated on 2026-09-24.
+
+The fundamental-data boundary now normalizes provider-specific historical statement aliases into an immutable provider-neutral schema while retaining symbol, period-end and statement-type provenance. Numeric values are validated for finiteness and normalized statements are sorted deterministically by period. The implementation remains limited to data normalization and does not calculate ROIC, score investments, alter valuation assumptions or authorize execution.
+
+Validation completed successfully in CI run 36058759389, Security and Dependency Scan run 36058759361, Phase 10 Live Gate Tests run 36058759323, External Intelligence Validation run 36058759373 and Cross-Asset ML Experiment run 36058759402 for commit a6ce3461f80b4d58794ece7c062d927fe81f73a2.
+
+Detailed task record: docs/codex/tasks/026-provider-normalized-historical-statements.md.

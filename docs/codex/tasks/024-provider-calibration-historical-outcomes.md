@@ -58,7 +58,7 @@ Completed on 2026-09-24 on commit `69c348de91c665edbbb0f50dfdc44b6e3a5bbadd`.
 - CI: run `36050009093` — success.
 - External Intelligence Validation: run `36050009099` — success.
 - Phase 10 Live Gate Tests: run `36050009108` — success.
-- Cross-Asset ML Experiment: run `36050009092` — success.
+- Cross-Asset ML Experiment: run `36050009287` — success.
 - Security and Dependency Scan: run `36050009126` — success.
 
 The validation confirms the provider calibration primitive, backend tests, compilation and security checks pass without changing execution authority. The task remains research-only and descriptive; it does not rank providers, alter thresholds or weights, promote models, contact brokers, or authorize execution.

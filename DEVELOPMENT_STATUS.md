@@ -1,6 +1,6 @@
 # Development Status
 
-Last updated: 2026-09-16
+Last updated: 2026-09-24
 
 ## Foundation
 - [x] Repository and persistent handoff context
@@ -32,7 +32,7 @@ Last updated: 2026-09-16
 - [x] Cost/slippage-aware market simulator
 - [x] Market replay
 - [x] Walk-forward evaluation
-- [ ] Transaction-cost calibration by venue
+- [x] Transaction-cost calibration by venue
 - [x] Causal ML trading backtest
 - [x] ML robustness audit
 - [x] ML cross-asset model diagnosis and improvement

@@ -74,7 +74,7 @@ Last updated: 2026-09-24
 - [ ] Real Doto signal observation/export/approved bridge
 - [ ] TradingView alert/webhook activation on an eligible plan
 - [x] OpenBB/B3 provider capability validation
-- [ ] Provider calibration against historical outcomes
+- [x] Provider calibration against historical outcomes
 
 ## Execution
 - [x] Simulation-only default
@@ -214,6 +214,18 @@ Existing direct `commission_rate`/`slippage_bps` configuration remains unchanged
 Validation completed successfully in Phase 10 Live Gate Tests run `36039678561` and Security and Dependency Scan run `36039678583`. The security workflow completed dependency audit, static security scan, backend tests and backend compilation successfully. The Phase 10 gate also completed successfully with the calibrated-cost changes present.
 
 Detailed task record: `docs/codex/tasks/023-calibrated-transaction-cost-backtest.md`.
+
+### Task 024 — Provider calibration against historical outcomes
+
+Completed and validated on 2026-09-24.
+
+A deterministic, provider-neutral calibration primitive now relates externally supplied signal confidence to realized historical outcomes. Results are grouped by provider and horizon and report hit rate, mean confidence, Brier score, calibration gap and mean signed return. Invalid confidence/return values and empty datasets fail closed.
+
+The implementation is research-only: it does not rank or select providers, modify signal weights or thresholds, change risk gates, promote models, contact brokers, or authorize execution. Statistical interpretation remains descriptive and is subject to sample-size, selection, market-regime and timestamp-alignment limitations.
+
+Validation completed successfully in CI run `36050009093`, External Intelligence Validation run `36050009099`, Phase 10 Live Gate Tests run `36050009108`, Cross-Asset ML Experiment run `36050009092` and Security and Dependency Scan run `36050009126`.
+
+Detailed task record: `docs/codex/tasks/024-provider-calibration-historical-outcomes.md`.
 
 ## Current execution gate
 The internal paper execution path is deterministic and broker-independent. Provider-backed scheduling obtains B3 history through the OpenBB/yfinance boundary, evaluates the existing RSI paper policy, persists a deterministic decision key, and skips duplicates. Completed decisions receive persisted 1/5/20-bar forward outcomes. The calibration layer reports directional hit rate, confidence intervals and return statistics under an explicit transaction-cost assumption, and the runner can partition results by a causal trailing-volatility regime. Paper decisions can also be reconciled against TradingView validator evidence using an explicit timestamp tolerance. The empirical gate evaluates predefined evidence criteria, but a passing result only permits human review and can never authorize promotion automatically. Operational kill-switch and broker-neutral reconciliation primitives are hardened. The Doto/MT5 demo-only adapter, read-only reconciliation harness, fail-closed authorization gate, and pre/post-reconciled DEMO execution coordinator are implemented. The adapter rejects unsupported limit intents, uses bid/ask semantics for market orders, requires a successful order_check result, and verifies DEMO status during initialization. A non-submitting preflight path builds the exact market request and runs order_check without order_send().

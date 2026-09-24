@@ -65,7 +65,7 @@ class PaperDecisionLedger:
         self.firebase.set(self._key(signal_id), current)
         return current
 
-    def claim(self, signal_id: str, *, symbol: str, bar_timestamp: str, action: str) -> tuple[bool, dict[str, Any]]:
+    def claim(self, signal_id: str, *, symbol: str, bar_timestamp: str, action: str, decision_price: float | None = None) -> tuple[bool, dict[str, Any]]:
         """Create a pending decision, or return the existing record."""
         existing = self.get(signal_id)
         if existing is not None:

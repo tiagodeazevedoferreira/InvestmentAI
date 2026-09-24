@@ -6,6 +6,7 @@ from typing import Callable, Iterable
 import pandas as pd
 
 from app.services.market_replay import MarketBar, MarketReplay
+from app.services.transaction_costs import VenueCostCalibration
 
 
 @dataclass(frozen=True)
@@ -13,6 +14,40 @@ class BacktestConfig:
     initial_cash: float = 100_000.0
     commission_rate: float = 0.0
     slippage_bps: float = 0.0
+    cost_venue: str | None = None
+    cost_source: str | None = None
+
+    @classmethod
+    def from_calibration(
+        cls,
+        calibration: VenueCostCalibration,
+        *,
+        percentile: str = "median",
+        initial_cash: float = 100_000.0,
+    ) -> "BacktestConfig":
+        """Build an explicit offline backtest config from a calibrated cost profile.
+
+        This is opt-in: existing callers that provide commission/slippage directly
+        retain their current semantics. The selected profile is descriptive only
+        and carries venue/source provenance for auditability.
+        """
+        if not isinstance(calibration, VenueCostCalibration):
+            raise ValueError("calibration must be a VenueCostCalibration")
+        if percentile not in {"median", "p95"}:
+            raise ValueError("percentile must be 'median' or 'p95'")
+        if percentile == "median":
+            commission_bps = calibration.median_commission_bps
+            slippage_bps = calibration.median_slippage_bps
+        else:
+            commission_bps = calibration.p95_commission_bps
+            slippage_bps = calibration.p95_slippage_bps
+        return cls(
+            initial_cash=initial_cash,
+            commission_rate=commission_bps / 10_000.0,
+            slippage_bps=slippage_bps,
+            cost_venue=calibration.venue,
+            cost_source=calibration.source,
+        )
 
     def __post_init__(self) -> None:
         if self.initial_cash <= 0:

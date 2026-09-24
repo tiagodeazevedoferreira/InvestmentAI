@@ -130,6 +130,7 @@ def run_symbol(
         symbol=display_symbol,
         bar_timestamp=timestamp,
         action=action,
+        decision_price=preview["decision"].get("reference_price"),
     )
     if not created and existing.get("status") == "completed":
         duplicate = SchedulerResult(

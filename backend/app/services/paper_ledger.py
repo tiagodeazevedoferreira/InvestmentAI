@@ -60,6 +60,8 @@ class PaperDecisionLedger:
             for item in observations
         }
         current = dict(current)
+        if current.get("outcomes") == outcomes:
+            return current
         current["outcomes"] = outcomes
         current["outcomes_updated_at"] = datetime.now(timezone.utc).isoformat()
         self.firebase.set(self._key(signal_id), current)
@@ -75,6 +77,7 @@ class PaperDecisionLedger:
             "symbol": symbol.upper(),
             "bar_timestamp": bar_timestamp,
             "action": action,
+            "decision_price": decision_price,
             "status": "pending",
             "created_at": datetime.now(timezone.utc).isoformat(),
             "executed": False,

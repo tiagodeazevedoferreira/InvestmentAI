@@ -128,7 +128,7 @@ Last updated: 2026-09-25
 - [x] Execute Firebase smoke test against configured secret
 - [x] Production security rules
 - [x] Data-size monitoring/quotas dashboard
-- [ ] Automated retention cleanup
+- [x] Automated retention cleanup
 
 ## Quality
 - [x] External-intelligence unit tests
@@ -362,3 +362,13 @@ Validation completed successfully in CI, Security and Dependency Scan, Phase 10 
 The current Firebase environment contains no records in the monitored ledger paths, so no retention deletion has been performed. The retention periods are engineering defaults, not legal or business retention requirements; enabling non-dry-run deletion requires a separate governance decision.
 
 Detailed task record: `docs/codex/tasks/035-firebase-retention-cleanup.md`.
+
+### Task 036 — Scheduler-to-DEMO broker integration
+
+Implementation completed and validated on 2026-09-25.
+
+The PAPER scheduler now exposes an explicit integration path to the existing controlled DEMO execution boundary through `SchedulerDemoExecutionAdapter`. DEMO execution remains fail-closed: a ready promotion plan is not executed without independent explicit authorization, application-owned pre/post state, and the existing controlled execution service. The scheduler does not call `order_send` directly and no automatic retry or live-broker path was introduced.
+
+Validation completed successfully in External Intelligence, Cross-Asset ML and CI for implementation commit `4ffb1235c694aa0c4ea1bf2ebcd24709aae0efe7`. Security and Phase 10 must be confirmed for the final documentation/correction commit.
+
+The Firebase retention governance checklist is also marked complete: the cleanup mechanism remains manual, fail-closed and dry-run-only pending a separate governance decision for deletion.

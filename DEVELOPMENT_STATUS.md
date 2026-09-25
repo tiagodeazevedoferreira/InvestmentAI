@@ -329,3 +329,14 @@ A dependency-light tabular Q-learning research boundary was added with chronolog
 Validation completed successfully in CI run 36173391620, Security and Dependency Scan run 36173391649, Phase 10 Live Gate Tests run 36173391610, External Intelligence Validation run 36173391707 and Cross-Asset ML Experiment run 36173391677 for commit badd2c1a168eb40d611f70c7a97adde9d2931f9f.
 
 Detailed task record: docs/codex/tasks/032-rl-agent-experiment.md.
+
+
+### Task 033 — Firebase data governance hardening
+
+Implementation completed on 2026-09-25; environment validation is pending Firebase configuration.
+
+The Realtime Database rules were hardened to default-deny for both reads and writes, removing unauthenticated public access paths that are not required by the current frontend. A regression test now enforces this posture. The backend FirebaseRepository remains the server-side Admin SDK boundary.
+
+The Firebase Smoke Test was executed after correcting its repository import. The workflow reached the connectivity check successfully but failed because FIREBASE_DATABASE_URL was not configured in the GitHub Actions environment. The service-account secret was present but redacted by GitHub Actions; the database URL variable was empty. No credential was added to the repository.
+
+Validation of the code changes remains dependent on CI/Security completion and a configured Firebase database URL for the smoke test. Detailed task record: docs/codex/tasks/033-firebase-data-governance-hardening.md.

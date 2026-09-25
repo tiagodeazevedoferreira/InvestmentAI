@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import os
+import time
 from pathlib import Path
 
 import pandas as pd
@@ -22,6 +24,8 @@ HORIZON = 5
 TRAIN_SIZE = 500
 TEST_SIZE = 100
 STEP = 100
+DATA_RETRIES = int(os.getenv("CROSS_ASSET_DATA_RETRIES", "4"))
+DATA_RETRY_DELAYS = (10, 30, 60, 120)
 
 
 def _fold_metrics(
@@ -110,10 +114,41 @@ def _evaluate(symbol: str, frame: pd.DataFrame, pooled_run) -> dict:
     }
 
 
+def _exception_chain(exc: BaseException) -> list[str]:
+    messages: list[str] = []
+    current: BaseException | None = exc
+    seen: set[int] = set()
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        messages.append(str(current).lower())
+        messages.append(repr(current).lower())
+        current = current.__cause__ or current.__context__
+    return messages
+
+
+def _is_rate_limited(exc: BaseException) -> bool:
+    text = " ".join(_exception_chain(exc))
+    return any(marker in text for marker in ("rate limit", "ratelimit", "too many requests", "429"))
+
+
+def _historical_with_retry(provider: OpenBBMarketDataProvider, symbol: str) -> pd.DataFrame:
+    attempts = max(1, DATA_RETRIES)
+    for attempt in range(attempts):
+        try:
+            return provider.historical_with_quality(symbol, start=START, end=END, interval="1d")[0]
+        except Exception as exc:
+            if not _is_rate_limited(exc) or attempt == attempts - 1:
+                raise
+            delay = DATA_RETRY_DELAYS[min(attempt, len(DATA_RETRY_DELAYS) - 1)]
+            print(f"Market-data provider rate-limited for {symbol}; retrying in {delay}s ({attempt + 1}/{attempts - 1}).")
+            time.sleep(delay)
+    raise RuntimeError(f"Unable to retrieve market data for {symbol}")
+
+
 def main() -> None:
     provider = OpenBBMarketDataProvider()
     frames = {
-        symbol: provider.historical_with_quality(symbol, start=START, end=END, interval="1d")[0]
+        symbol: _historical_with_retry(provider, symbol)
         for symbol in SYMBOLS
     }
     pooled = purged_cross_asset_walk_forward_predictions(

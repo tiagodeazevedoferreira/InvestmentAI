@@ -6,6 +6,11 @@ from typing import Any, Sequence
 
 from ..firebase import FirebaseRepository
 
+_ALLOWED_RETENTION_PATHS = frozenset({
+    "paper/decision_ledger",
+    "paper/shadow_decision_ledger",
+})
+
 
 @dataclass(frozen=True)
 class FirebaseRetentionPolicy:
@@ -50,12 +55,10 @@ def _parse_timestamp(value: Any) -> datetime | None:
     return parsed.astimezone(timezone.utc) if parsed.tzinfo else None
 
 
-def _record_key(record: dict[str, Any]) -> str:
-    for field in ("signal_id", "shadow_id"):
-        value = record.get(field)
-        if isinstance(value, str) and value.strip():
-            return value.strip()
-    raise ValueError("record has no supported immutable key")
+def _record_key(record: dict[str, Any], firebase_key: str) -> str:
+    if not isinstance(firebase_key, str) or not firebase_key.strip():
+        raise ValueError("record has no Firebase child key")
+    return firebase_key.strip()
 
 
 def plan_firebase_cleanup(repository: FirebaseRepository, policies: Sequence[FirebaseRetentionPolicy], *, now: datetime | None = None, max_deletions: int = 100) -> FirebaseCleanupReport:
@@ -71,8 +74,10 @@ def plan_firebase_cleanup(repository: FirebaseRepository, policies: Sequence[Fir
     skipped = 0
     for policy in policies:
         path = policy.path.strip("/")
+        if path not in _ALLOWED_RETENTION_PATHS:
+            raise ValueError(f"retention cleanup path is not allowed: {path}")
         cutoff = current - timedelta(days=policy.retention_days)
-        for record in repository.list_children(path, limit=max_deletions):
+        for firebase_key, record in repository.list_child_items(path, limit=max_deletions, oldest_first=True):
             scanned += 1
             if not isinstance(record, dict):
                 skipped += 1
@@ -84,7 +89,7 @@ def plan_firebase_cleanup(repository: FirebaseRepository, policies: Sequence[Fir
             if timestamp >= cutoff:
                 continue
             try:
-                key = _record_key(record)
+                key = _record_key(record, firebase_key)
             except ValueError:
                 skipped += 1
                 continue

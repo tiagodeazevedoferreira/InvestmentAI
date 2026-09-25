@@ -10,8 +10,11 @@ class FakeFirebase:
     def __init__(self, records):
         self.records = records
         self.deleted = []
-    def list_children(self, path, *, limit=200):
+    def list_children(self, path, *, limit=200, oldest_first=False):
         return self.records.get(path, [])[:limit]
+
+    def list_child_items(self, path, *, limit=200, oldest_first=False):
+        return [(str(item.get("signal_id") or item.get("shadow_id") or f"key-{i}"), item) for i, item in enumerate(self.records.get(path, [])[:limit])]
     def delete(self, path):
         self.deleted.append(path)
 
@@ -66,3 +69,9 @@ def test_validation():
     with pytest.raises(ValueError): FirebaseRetentionPolicy("paper/decision_ledger", 0)
     with pytest.raises(ValueError): plan_firebase_cleanup(FakeFirebase({}), [], now=NOW)
     with pytest.raises(ValueError): plan_firebase_cleanup(FakeFirebase({}), [FirebaseRetentionPolicy("paper/decision_ledger", 7)], now=NOW, max_deletions=0)
+
+
+def test_retention_path_is_allowlisted():
+    repo = FakeFirebase({"paper/account": [{"signal_id": "old", "created_at": "2026-09-01T12:00:00+00:00"}]})
+    with pytest.raises(ValueError, match="not allowed"):
+        plan_firebase_cleanup(repo, [FirebaseRetentionPolicy("paper/account", 7)], now=NOW)

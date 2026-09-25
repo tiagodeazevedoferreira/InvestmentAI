@@ -58,7 +58,7 @@ Last updated: 2026-09-25
 - [x] Out-of-sample ML evaluation
 - [x] Empirical financial promotion gate evaluator (human-review only)
 - [x] LSTM experiment
-- [ ] RL agent experiment
+- [ ] RL agent experiment (implementation in progress; research-only)
 
 ## External Intelligence
 - [x] Doto AI Market Insights normalization boundary
@@ -319,3 +319,13 @@ Validation completed successfully in CI run 36172852145, Security and Dependency
 The current CI environment does not require PyTorch as a core backend dependency; the training path fails clearly when PyTorch is unavailable. No profitability, robustness or model-superiority claim is made.
 
 Detailed task record: docs/codex/tasks/031-lstm-experiment.md.
+
+### Task 032 — RL agent experiment
+
+Implementation started on 2026-09-25.
+
+A dependency-light tabular Q-learning research boundary was added with chronological/purged splitting, explicit hyperparameters and seed, transaction-cost-aware reward, deterministic greedy evaluation and fail-closed handling of unseen states and invalid inputs. The existing RLPolicy/NoOpRLPolicy boundary remains compatible. CI validation is pending.
+
+The experiment is research-only and does not connect to brokers, execution, risk authorization or model promotion.
+
+Detailed task record: docs/codex/tasks/032-rl-agent-experiment.md.

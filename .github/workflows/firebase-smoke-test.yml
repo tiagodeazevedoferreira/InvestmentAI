@@ -20,7 +20,7 @@ jobs:
         run: |
           python - <<'PY'
           import os
-          from backend.app.services.firebase import FirebaseRepository
+          from backend.app.firebase import FirebaseRepository
           repo = FirebaseRepository(os.environ.get('FIREBASE_DATABASE_URL'), os.environ.get('FIREBASE_SERVICE_ACCOUNT'))
           if not repo.enabled:
               raise SystemExit('Firebase credentials/variable are not available')

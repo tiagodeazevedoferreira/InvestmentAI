@@ -44,7 +44,7 @@ Last updated: 2026-09-25
 - [x] Parametric daily VaR 95%
 - [x] Robust covariance/shrinkage
 - [x] Initial paper position sizing and order risk limits
-- [ ] Production-grade portfolio risk limits
+- [x] Production-grade portfolio risk limits
 
 ## AI/ML
 - [x] Technical feature engineering
@@ -57,7 +57,7 @@ Last updated: 2026-09-25
 - [x] Training workflow on real datasets
 - [x] Out-of-sample ML evaluation
 - [x] Empirical financial promotion gate evaluator (human-review only)
-- [ ] LSTM experiment
+- [ ] LSTM experiment (implementation in progress; research-only)
 - [ ] RL agent experiment
 
 ## External Intelligence
@@ -306,3 +306,14 @@ A provider-neutral covariance estimation boundary now supports the existing samp
 Validation covers sample covariance, Ledoit-Wolf positive-semidefinite output, shrinkage bounds, annualization, labels and fail-closed invalid inputs. The task does not change asset selection, allocation policy, execution, broker integration or model promotion.
 
 Detailed task record: docs/codex/tasks/029-robust-covariance-shrinkage.md.
+
+
+### Task 031 — LSTM experiment
+
+Implementation started on 2026-09-25.
+
+A provider-neutral, leakage-safe LSTM experiment foundation now builds fixed-length causal sequences from the existing five-day directional target, uses explicit hyperparameters and seed, and applies a purged chronological split so overlapping sequence windows are not shared across train/validation/test boundaries. The experiment remains research-only and does not change the XGBoost model, execution policy, risk gates or promotion authority.
+
+Validation of the sequence builder, purged split and optional PyTorch training path is pending CI validation. No profitability, robustness or model-superiority claim is made.
+
+Detailed task record: docs/codex/tasks/031-lstm-experiment.md.

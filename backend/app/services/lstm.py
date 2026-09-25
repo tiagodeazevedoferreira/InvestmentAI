@@ -65,14 +65,19 @@ def chronological_sequence_split(
         raise ValueError("x and y must have equal length and at least 3 observations")
     if not 0 < train_ratio < 1 or not 0 <= validation_ratio < 1 or train_ratio + validation_ratio >= 1:
         raise ValueError("invalid chronological split ratios")
+    if x.ndim != 3 or x.shape[1] < 2:
+        raise ValueError("x must be a 3-dimensional sequence array")
     n = len(x)
+    gap = x.shape[1] - 1
     a = max(1, int(n * train_ratio))
     b = max(a + 1, int(n * (train_ratio + validation_ratio)))
-    if b >= n:
-        b = n - 1
-    if a >= b:
-        raise ValueError("split leaves no validation data")
-    return (x[:a], y[:a]), (x[a:b], y[a:b]), (x[b:], y[b:])
+    val_start = a + gap
+    test_start = b + gap
+    if test_start >= n:
+        raise ValueError("insufficient observations for purged chronological split")
+    if val_start >= b:
+        raise ValueError("insufficient observations for validation split")
+    return (x[:a], y[:a]), (x[val_start:b], y[val_start:b]), (x[test_start:], y[test_start:])
 
 
 def train_lstm(

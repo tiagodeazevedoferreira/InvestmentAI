@@ -12,6 +12,8 @@ from .paper_ledger import PaperDecisionLedger
 from .paper_store import PaperAccountStore
 from .providers import MarketDataProvider, get_provider
 from .scheduler_demo_bridge import DemoPromotionPlan, SchedulerDemoBridge
+from .scheduler_demo_execution import SchedulerDemoExecutionAdapter
+from .controlled_demo_execution import ControlledDemoExecutionResult
 from .shadow_decision_ledger import ShadowDecisionLedger
 
 B3_TZ = ZoneInfo("America/Sao_Paulo")
@@ -32,6 +34,7 @@ class SchedulerResult:
     order: dict | None = None
     reason: str | None = None
     demo_plan: DemoPromotionPlan | None = None
+    demo_execution: ControlledDemoExecutionResult | None = None
     shadow_id: str | None = None
 
 
@@ -86,6 +89,10 @@ def run_symbol(
     execute: bool = True,
     demo_bridge: SchedulerDemoBridge | None = None,
     shadow_ledger: ShadowDecisionLedger | None = None,
+    demo_execution_adapter: SchedulerDemoExecutionAdapter | None = None,
+    demo_execution_authorized: bool = False,
+    demo_internal_before: dict | None = None,
+    demo_internal_after_provider=None,
 ) -> SchedulerResult:
     display_symbol = symbol.strip().upper().removesuffix(".SA")
     frame = provider.history(yahoo_symbol(display_symbol), period=period)
@@ -179,9 +186,25 @@ def run_symbol(
         shadow_id=shadow_id,
     )
     if demo_bridge is not None:
-        return SchedulerResult(
-            **{**scheduler_result.__dict__, "demo_plan": demo_bridge.plan(scheduler_result)}
-        )
+        demo_plan = demo_bridge.plan(scheduler_result)
+        if demo_execution_adapter is None:
+            return SchedulerResult(**{**scheduler_result.__dict__, "demo_plan": demo_plan})
+        if not demo_execution_authorized:
+            return SchedulerResult(**{**scheduler_result.__dict__, "demo_plan": demo_plan, "reason": "DEMO plan prepared; execution requires explicit authorization"})
+        if demo_plan.status != "ready":
+            return SchedulerResult(**{**scheduler_result.__dict__, "demo_plan": demo_plan})
+        if demo_internal_before is None or not callable(demo_internal_after_provider):
+            return SchedulerResult(**{**scheduler_result.__dict__, "demo_plan": demo_plan, "status": "demo_blocked", "reason": "DEMO execution requires internal_before and a post-execution state provider"})
+        try:
+            demo_execution = demo_execution_adapter.execute(
+                demo_plan,
+                execution_authorized=True,
+                internal_before=demo_internal_before,
+                internal_after_provider=demo_internal_after_provider,
+            )
+            return SchedulerResult(**{**scheduler_result.__dict__, "status": "demo_executed", "demo_plan": demo_plan, "demo_execution": demo_execution})
+        except Exception as exc:
+            return SchedulerResult(**{**scheduler_result.__dict__, "status": "demo_error", "demo_plan": demo_plan, "reason": str(exc)})
     return scheduler_result
 
 
@@ -197,6 +220,10 @@ def run_scheduler(
     force: bool = False,
     demo_bridge: SchedulerDemoBridge | None = None,
     shadow_ledger: ShadowDecisionLedger | None = None,
+    demo_execution_adapter: SchedulerDemoExecutionAdapter | None = None,
+    demo_execution_authorized: bool = False,
+    demo_internal_before: dict | None = None,
+    demo_internal_after_provider=None,
 ) -> list[SchedulerResult]:
     allowed, guard_reason = b3_session_allowed()
     if not force and not allowed:
@@ -223,6 +250,10 @@ def run_scheduler(
                     execute=execute,
                     demo_bridge=demo_bridge,
                     shadow_ledger=decision_shadow_ledger,
+                    demo_execution_adapter=demo_execution_adapter,
+                    demo_execution_authorized=demo_execution_authorized,
+                    demo_internal_before=demo_internal_before,
+                    demo_internal_after_provider=demo_internal_after_provider,
                 )
             )
         except Exception as exc:

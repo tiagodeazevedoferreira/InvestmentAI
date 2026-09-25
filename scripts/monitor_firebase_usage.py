@@ -13,9 +13,9 @@ DEFAULT_PATHS = ("paper/account", "paper/decision_ledger", "paper/shadow_decisio
 def main() -> int:
     service_account = os.environ.get("FIREBASE_SERVICE_ACCOUNT")
     database_url = os.environ.get("FIREBASE_DATABASE_URL")
-    paths = tuple(item.strip().strip("/") for item in os.environ.get("FIREBASE_MONITOR_PATHS", ",".join(DEFAULT_PATHS)).split(",") if item.strip())
-    warning = int(os.environ.get("FIREBASE_USAGE_WARNING_BYTES", "500000"))
-    critical = int(os.environ.get("FIREBASE_USAGE_CRITICAL_BYTES", "900000"))
+    paths = tuple(item.strip().strip("/") for item in (os.environ.get("FIREBASE_MONITOR_PATHS") or ",".join(DEFAULT_PATHS)).split(",") if item.strip())
+    warning = int(os.environ.get("FIREBASE_USAGE_WARNING_BYTES") or "500000")
+    critical = int(os.environ.get("FIREBASE_USAGE_CRITICAL_BYTES") or "900000")
     repository = FirebaseRepository(database_url, service_account)
     report = inspect_firebase_usage(repository, paths, warning_bytes=warning, critical_bytes=critical)
     payload = report_to_dict(report)

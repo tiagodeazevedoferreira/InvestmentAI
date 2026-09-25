@@ -42,7 +42,7 @@ Last updated: 2026-09-25
 - [x] Maximum Sharpe
 - [x] Efficient frontier
 - [x] Parametric daily VaR 95%
-- [ ] Robust covariance/shrinkage
+- [x] Robust covariance/shrinkage
 - [x] Initial paper position sizing and order risk limits
 - [ ] Production-grade portfolio risk limits
 
@@ -285,3 +285,14 @@ A provider-neutral deterministic engine now normalizes P/E, P/B, EV/EBITDA, ROE,
 Default thresholds are explicit engineering assumptions and are not presented as empirically validated investment thresholds. Missing metrics, invalid configuration and non-finite inputs fail closed. The engine does not select investments, allocate capital, change execution policy, promote models or authorize broker submission.
 
 Detailed task record: docs/codex/tasks/028-fundamental-score-margin-of-safety.md.
+
+
+### Task 029 — Robust covariance/shrinkage
+
+Implementation completed on 2026-09-25.
+
+A provider-neutral covariance estimation boundary now supports the existing sample covariance and an explicit Ledoit-Wolf shrinkage estimator. Inputs are validated for dimensions, unique asset labels and finite values; outputs preserve asset labels, are symmetrized and validated. Annualization is explicit through periods_per_year and is never implicit. Existing portfolio optimization behavior remains unchanged because the new estimator is an opt-in service boundary.
+
+Validation covers sample covariance, Ledoit-Wolf positive-semidefinite output, shrinkage bounds, annualization, labels and fail-closed invalid inputs. The task does not change asset selection, allocation policy, execution, broker integration or model promotion.
+
+Detailed task record: docs/codex/tasks/029-robust-covariance-shrinkage.md.

@@ -81,7 +81,7 @@ def test_var_limit_requires_daily_covariance_and_uses_confidence():
         covariance_daily=daily,
     )
     assert result["daily_var_fraction"] == pytest.approx(
-        1.6448536269514722 * 0.01, rel=1e-9
+        1.6448536269514722 * np.sqrt(0.00005), rel=1e-9
     )
     assert result["approved"] is True
 

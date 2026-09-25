@@ -24,7 +24,7 @@ def test_usage_report_counts_records_and_bytes():
 
 
 def test_warning_and_critical_statuses_are_fail_closed():
-    report = inspect_firebase_usage(FakeFirebase({"a": {"payload": "x" * 20}, "b": {"payload": "y" * 80}}), ["a", "b"], warning_bytes=40, critical_bytes=70)
+    report = inspect_firebase_usage(FakeFirebase({"a": {"payload": "x" * 30}, "b": {"payload": "y" * 80}}), ["a", "b"], warning_bytes=40, critical_bytes=70)
     assert report.status == "critical"
     assert report.paths[0].status == "warning"
     assert report.paths[1].status == "critical"

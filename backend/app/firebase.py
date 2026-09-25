@@ -35,6 +35,11 @@ class FirebaseRepository:
             raise RuntimeError("Firebase is not configured")
         return self._db.reference(path.strip("/")).get()
 
+    def delete(self, path: str) -> None:
+        if not self._db:
+            raise RuntimeError("Firebase is not configured")
+        self._db.reference(path.strip("/")).delete()
+
     def list_children(self, path: str, *, limit: int = 200) -> list[Any]:
         if limit <= 0:
             raise ValueError("limit must be positive")

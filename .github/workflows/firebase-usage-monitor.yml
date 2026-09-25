@@ -26,6 +26,7 @@ jobs:
           FIREBASE_USAGE_WARNING_BYTES: ${{ vars.FIREBASE_USAGE_WARNING_BYTES }}
           FIREBASE_USAGE_CRITICAL_BYTES: ${{ vars.FIREBASE_USAGE_CRITICAL_BYTES }}
           FIREBASE_MONITOR_PATHS: ${{ vars.FIREBASE_MONITOR_PATHS }}
+          PYTHONPATH: ${{ github.workspace }}
         run: |
           python scripts/monitor_firebase_usage.py
           echo "## Firebase usage monitor" >> "$GITHUB_STEP_SUMMARY"

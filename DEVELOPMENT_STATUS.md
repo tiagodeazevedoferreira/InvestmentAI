@@ -350,3 +350,15 @@ Validation completed successfully in Firebase Usage Monitor run 36189145824, CI 
 The Firebase Usage Monitor successfully connected to the configured Firebase environment, measured the monitored paths and published the usage report artifact. The workflow returns a critical exit code only when a monitored path reaches the configured critical serialized-size threshold; it does not perform automatic deletion or retention changes.
 
 Detailed task record: docs/codex/tasks/034-firebase-usage-monitoring.md.
+
+### Task 035 — Firebase retention cleanup
+
+Completed and validated on 2026-09-25.
+
+A fail-closed, path-scoped Firebase retention mechanism was added for the paper decision and shadow decision ledgers. The initial policy uses a 180-day engineering retention default with a 100-record batch cap and dry-run behavior by default. Invalid or timezone-less timestamps are skipped, Firebase availability is required, and `paper/account` is outside the cleanup policy. The cleanup is exposed through a manual GitHub Actions workflow and does not perform scheduled or automatic deletion.
+
+Validation completed successfully in CI, Security and Dependency Scan, Phase 10 Live Gate Tests, External Intelligence Validation and Cross-Asset ML Experiment for commit `78bb5d4de0010bc1a492d753a399dd674d4893ce`.
+
+The current Firebase environment contains no records in the monitored ledger paths, so no retention deletion has been performed. The retention periods are engineering defaults, not legal or business retention requirements; enabling non-dry-run deletion requires a separate governance decision.
+
+Detailed task record: `docs/codex/tasks/035-firebase-retention-cleanup.md`.

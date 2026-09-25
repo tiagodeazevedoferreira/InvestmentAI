@@ -2,13 +2,6 @@ name: Firebase Retention Cleanup
 
 on:
   workflow_dispatch:
-    inputs:
-      dry_run:
-        description: "Keep true unless deletion has been explicitly authorized"
-        required: true
-        default: true
-        type: boolean
-
 jobs:
   retention:
     runs-on: ubuntu-latest
@@ -22,7 +15,7 @@ jobs:
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           FIREBASE_DATABASE_URL: ${{ vars.FIREBASE_DATABASE_URL || secrets.FIREBASE_DATABASE_URL }}
-          FIREBASE_RETENTION_DRY_RUN: ${{ inputs.dry_run }}
+          FIREBASE_RETENTION_DRY_RUN: "true"
           FIREBASE_RETENTION_POLICIES: ${{ vars.FIREBASE_RETENTION_POLICIES }}
           FIREBASE_RETENTION_MAX_DELETIONS: ${{ vars.FIREBASE_RETENTION_MAX_DELETIONS }}
           PYTHONPATH: ${{ github.workspace }}

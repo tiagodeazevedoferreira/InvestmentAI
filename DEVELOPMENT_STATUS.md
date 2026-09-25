@@ -287,6 +287,16 @@ Default thresholds are explicit engineering assumptions and are not presented as
 Detailed task record: docs/codex/tasks/028-fundamental-score-margin-of-safety.md.
 
 
+### Task 030 — Production-grade portfolio risk limits
+
+Implementation completed on 2026-09-25.
+
+A deterministic provider-neutral portfolio risk-limit evaluator now validates proposed weights against explicit hard limits for maximum position weight, gross exposure, absolute net exposure, annualized volatility and optional one-day parametric VaR. Inputs fail closed on malformed weights, covariance matrices, labels, confidence levels and limits. The evaluator reports structured breach reasons without resizing positions or authorizing execution.
+
+The task is an authorization-boundary primitive only. It does not select assets, optimize or resize portfolios, submit broker orders, promote models or establish empirically optimal thresholds.
+
+Detailed task record: docs/codex/tasks/030-production-grade-portfolio-risk-limits.md.
+
 ### Task 029 — Robust covariance/shrinkage
 
 Implementation completed on 2026-09-25.

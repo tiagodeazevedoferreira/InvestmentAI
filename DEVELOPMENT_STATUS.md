@@ -58,7 +58,7 @@ Last updated: 2026-09-25
 - [x] Out-of-sample ML evaluation
 - [x] Empirical financial promotion gate evaluator (human-review only)
 - [x] LSTM experiment
-- [ ] RL agent experiment (implementation in progress; research-only)
+- [x] RL agent experiment
 
 ## External Intelligence
 - [x] Doto AI Market Insights normalization boundary
@@ -322,10 +322,10 @@ Detailed task record: docs/codex/tasks/031-lstm-experiment.md.
 
 ### Task 032 — RL agent experiment
 
-Implementation started on 2026-09-25.
+Completed and validated on 2026-09-25.
 
-A dependency-light tabular Q-learning research boundary was added with chronological/purged splitting, explicit hyperparameters and seed, transaction-cost-aware reward, deterministic greedy evaluation and fail-closed handling of unseen states and invalid inputs. The existing RLPolicy/NoOpRLPolicy boundary remains compatible. CI validation is pending.
+A dependency-light tabular Q-learning research boundary was added with chronological/purged splitting, explicit hyperparameters and seed, transaction-cost-aware reward, deterministic greedy evaluation and fail-closed handling of unseen states and invalid inputs. The existing RLPolicy/NoOpRLPolicy boundary remains compatible. The implementation is research-only and does not connect to brokers, execution, risk authorization or model promotion.
 
-The experiment is research-only and does not connect to brokers, execution, risk authorization or model promotion.
+Validation completed successfully in CI run 36173391620, Security and Dependency Scan run 36173391649, Phase 10 Live Gate Tests run 36173391610, External Intelligence Validation run 36173391707 and Cross-Asset ML Experiment run 36173391677 for commit badd2c1a168eb40d611f70c7a97adde9d2931f9f.
 
 Detailed task record: docs/codex/tasks/032-rl-agent-experiment.md.

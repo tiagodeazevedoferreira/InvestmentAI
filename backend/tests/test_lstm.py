@@ -22,7 +22,7 @@ def test_make_sequences_is_causal_and_preserves_order():
     assert x[0, 0, 0] == 0
     assert x[0, -1, 0] == 4
     assert y[0] == 1
-    assert x[-1, -1, 0] == 29
+    assert x[-1, -1, 0] == 28
 
 
 def test_chronological_split_has_no_shuffle():

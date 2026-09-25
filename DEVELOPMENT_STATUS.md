@@ -333,10 +333,20 @@ Detailed task record: docs/codex/tasks/032-rl-agent-experiment.md.
 
 ### Task 033 — Firebase data governance hardening
 
-Implementation completed on 2026-09-25; environment validation is pending Firebase configuration.
+Completed and validated on 2026-09-25.
 
-The Realtime Database rules were hardened to default-deny for both reads and writes, removing unauthenticated public access paths that are not required by the current frontend. A regression test now enforces this posture. The backend FirebaseRepository remains the server-side Admin SDK boundary.
+The Realtime Database rules are default-deny for both reads and writes, with a regression test enforcing the posture. The Firebase smoke test was executed successfully against the configured service-account/database environment after correcting the repository import. The backend remains the server-side Firebase Admin SDK boundary.
 
-The Firebase Smoke Test was executed after correcting its repository import. The workflow reached the connectivity check successfully but failed because FIREBASE_DATABASE_URL was not configured in the GitHub Actions environment. The service-account secret was present but redacted by GitHub Actions; the database URL variable was empty. No credential was added to the repository.
+No credentials were added to the repository and no trading/execution behavior was changed.
 
-Validation of the code changes remains dependent on CI/Security completion and a configured Firebase database URL for the smoke test. Detailed task record: docs/codex/tasks/033-firebase-data-governance-hardening.md.
+Detailed task record: docs/codex/tasks/033-firebase-data-governance-hardening.md.
+
+### Task 034 — Firebase usage monitoring
+
+Implementation in progress on 2026-09-25.
+
+A path-scoped Firebase usage monitor now measures serialized UTF-8 payload size and record count for the current application paths, classifies each path with explicit warning/critical thresholds, and publishes a JSON artifact through a scheduled GitHub Actions workflow. The monitor is observational only and does not delete data or alter trading behavior.
+
+Validation workflows are currently running for the implementation commit; Task 034 will be marked complete after CI, Security and the Firebase Usage Monitor workflow complete successfully against the configured Firebase environment.
+
+Detailed task record: docs/codex/tasks/034-firebase-usage-monitoring.md.

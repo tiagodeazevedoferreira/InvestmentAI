@@ -1,0 +1,39 @@
+name: Firebase Retention Cleanup
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Keep true unless deletion has been explicitly authorized"
+        required: true
+        default: true
+        type: boolean
+
+jobs:
+  retention:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r backend/requirements.txt
+      - name: Execute Firebase retention policy
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FIREBASE_DATABASE_URL: ${{ vars.FIREBASE_DATABASE_URL || secrets.FIREBASE_DATABASE_URL }}
+          FIREBASE_RETENTION_DRY_RUN: ${{ inputs.dry_run }}
+          FIREBASE_RETENTION_POLICIES: ${{ vars.FIREBASE_RETENTION_POLICIES }}
+          FIREBASE_RETENTION_MAX_DELETIONS: ${{ vars.FIREBASE_RETENTION_MAX_DELETIONS }}
+          PYTHONPATH: ${{ github.workspace }}
+        run: |
+          python scripts/cleanup_firebase_retention.py
+          echo "## Firebase retention report" >> "$GITHUB_STEP_SUMMARY"
+          echo >> "$GITHUB_STEP_SUMMARY"
+          cat firebase-retention-report.json >> "$GITHUB_STEP_SUMMARY"
+      - name: Publish retention report
+        uses: actions/upload-artifact@v4
+        with:
+          name: firebase-retention-report
+          path: firebase-retention-report.json
+          retention-days: 30

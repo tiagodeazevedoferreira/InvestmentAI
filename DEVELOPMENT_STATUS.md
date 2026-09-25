@@ -1,6 +1,6 @@
 # Development Status
 
-Last updated: 2026-09-24
+Last updated: 2026-09-25
 
 ## Foundation
 - [x] Repository and persistent handoff context
@@ -20,8 +20,8 @@ Last updated: 2026-09-24
 - [x] P/E, P/B, EV/EBITDA, ROE and dividend-yield primitives
 - [x] DCF/Gordon valuation primitives
 - [x] Provider-normalized historical statements
-- [ ] ROIC with invested-capital definition and validation
-- [ ] Fundamental score/ranking and margin-of-safety engine
+- [x] ROIC with invested-capital definition and validation
+- [x] Fundamental score/ranking and margin-of-safety engine
 
 ## Trading
 - [x] EMA 9/21
@@ -262,3 +262,26 @@ The fundamental-data boundary now normalizes provider-specific historical statem
 Validation completed successfully in CI run 36058759389, Security and Dependency Scan run 36058759361, Phase 10 Live Gate Tests run 36058759323, External Intelligence Validation run 36058759373 and Cross-Asset ML Experiment run 36058759402 for commit a6ce3461f80b4d58794ece7c062d927fe81f73a2.
 
 Detailed task record: docs/codex/tasks/026-provider-normalized-historical-statements.md.
+
+
+### Task 027 — ROIC with invested-capital definition and validation
+
+Completed and validated on 2026-09-25.
+
+The fundamental service now exposes an explicit ROIC primitive using NOPAT divided by invested capital. Invested capital is defined as equity + total debt - cash using point-in-time balance-sheet values. NOPAT uses an explicitly supplied effective tax rate; missing required inputs return None, while invalid tax rates, non-finite inputs and non-positive invested capital fail closed.
+
+Validation completed successfully in CI run 36068342082, Phase 10 Live Gate Tests run 36068342080, External Intelligence Validation run 36068342083, Cross-Asset ML Experiment run 36068342116, Paper Scheduler run 36072169092 and Security and Dependency Scan run 36068342141 for the Task 027 head commit 4f1b1ab5585760f319647f3c4174cbee02412ffe.
+
+The implementation remains descriptive/research-only and does not score investments, authorize allocation, promote models or execute trades.
+
+Detailed task record: docs/codex/tasks/027-roic-invested-capital.md.
+
+### Task 028 — Fundamental score/ranking and margin-of-safety engine
+
+Implementation completed on 2026-09-25.
+
+A provider-neutral deterministic engine now normalizes P/E, P/B, EV/EBITDA, ROE, ROIC and dividend yield into configurable 0–1 component scores, combines them with explicitly validated weights, produces deterministic rankings with a symbol tie-break, and calculates margin of safety from a supplied intrinsic value and market price.
+
+Default thresholds are explicit engineering assumptions and are not presented as empirically validated investment thresholds. Missing metrics, invalid configuration and non-finite inputs fail closed. The engine does not select investments, allocate capital, change execution policy, promote models or authorize broker submission.
+
+Detailed task record: docs/codex/tasks/028-fundamental-score-margin-of-safety.md.

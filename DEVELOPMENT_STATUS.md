@@ -57,7 +57,7 @@ Last updated: 2026-09-25
 - [x] Training workflow on real datasets
 - [x] Out-of-sample ML evaluation
 - [x] Empirical financial promotion gate evaluator (human-review only)
-- [ ] LSTM experiment (implementation in progress; research-only)
+- [x] LSTM experiment
 - [ ] RL agent experiment
 
 ## External Intelligence
@@ -310,10 +310,12 @@ Detailed task record: docs/codex/tasks/029-robust-covariance-shrinkage.md.
 
 ### Task 031 — LSTM experiment
 
-Implementation started on 2026-09-25.
+Completed and validated on 2026-09-25.
 
 A provider-neutral, leakage-safe LSTM experiment foundation now builds fixed-length causal sequences from the existing five-day directional target, uses explicit hyperparameters and seed, and applies a purged chronological split so overlapping sequence windows are not shared across train/validation/test boundaries. The experiment remains research-only and does not change the XGBoost model, execution policy, risk gates or promotion authority.
 
-Validation of the sequence builder, purged split and optional PyTorch training path is pending CI validation. No profitability, robustness or model-superiority claim is made.
+Validation completed successfully in CI run 36172852145, Security and Dependency Scan run 36172852062, Phase 10 Live Gate Tests run 36172852026, External Intelligence Validation run 36172852092 and Cross-Asset ML Experiment run 36172852034 for commit 3e7ae09cb5bd13c2dc910acf31563a58f61edd23.
+
+The current CI environment does not require PyTorch as a core backend dependency; the training path fails clearly when PyTorch is unavailable. No profitability, robustness or model-superiority claim is made.
 
 Detailed task record: docs/codex/tasks/031-lstm-experiment.md.

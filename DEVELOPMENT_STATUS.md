@@ -125,9 +125,9 @@ Last updated: 2026-09-25
 ## Firebase/data governance
 - [x] Operational repository abstraction
 - [x] Retention-aware storage boundary
-- [ ] Execute Firebase smoke test against configured secret
-- [ ] Production security rules
-- [ ] Data-size monitoring/quotas dashboard
+- [x] Execute Firebase smoke test against configured secret
+- [x] Production security rules
+- [x] Data-size monitoring/quotas dashboard
 - [ ] Automated retention cleanup
 
 ## Quality
@@ -234,7 +234,7 @@ The internal paper execution path is deterministic and broker-independent. Provi
 
 The controlled Doto/MT5 DEMO end-to-end gate was completed on 2026-09-11. The first explicitly authorized EURUSD BUY 0.01 was accepted and filled: order 29453207, deal 28862296, position 29453207, open at 1.15960. External MT5 inspection confirmed exactly one open EURUSD BUY position with volume 0.01; no pending open order remained because the market order was filled. Targeted post-execution reconciliation was validated using broker history lookup by deal/order/position identifiers after a time-window lookup proved unreliable because the broker/server history clock differed from the Python UTC window. The corrected reconciliation path recovered execution 28862296 and position EURUSD: BUY 0.01 without submitting another order. The durable demo ledger reports the valid transaction as FILLED, and the local demo portfolio state mirrors the external position. The restart/recovery coordinator was then exercised against the actual persisted local ledger. The historical ambiguous SUBMITTED record remained SUBMITTED with no broker identifiers, while the already FILLED reference transaction remained untouched. The recovery call did not invoke broker submission, did not create a new intent and did not alter the existing EURUSD position. This empirically validates the restart/recovery no-duplicate boundary for the current persisted state.
 
-A broker-connected, read-only recovery harness was then validated using a disposable SQLite ledger. It seeded the already confirmed Order 29453207 / Deal 28862296 and a separate synthetic unknown submission. Targeted MT5 history promoted only the confirmed record to FILLED; the unknown record remained SUBMITTED; order_send was not called; and temporary SQLite state was successfully discarded on Windows. A separate fault-injected coordinator test confirms that a timeout after local authorization preserves SUBMITTED uncertainty rather than classifying the intent as FAILED or retrying automatically. The new scheduler-to-DEMO boundary now exposes the scheduler's deterministic decision, quantity, reference price and risk result to a fail-closed promotion planner. The planner is disabled by default, requires an explicit symbol mapping, and stops at an OrderIntent; it does not own a broker or call order_send. Actual scheduler-driven DEMO submission remains disconnected pending a separate promotion step. A real broker interruption is intentionally not induced merely for testing because doing so could create another DEMO transaction. Live execution remains disabled.
+A broker-connected, read-only recovery harness was then validated using a disposable SQLite ledger. It seeded the already confirmed Order 29453207 / Deal 28862296 and a separate synthetic unknown submission. Targeted MT5 history promoted only the confirmed record to FILLED; the unknown record remained SUBMITTED; order_send was not called; and temporary SQLite state was successfully discarded on Windows. A separate fault-injected coordinator test confirms that a timeout after local authorization preserves SUBMITTED uncertainty rather than classifying the intent as FAILED or retrying automatically. The new scheduler-to-DEMO boundary now exposes the scheduler's deterministic decision, quantity, reference price and risk result to a fail-closed promotion planner. The planner is disabled by default, requires an explicit symbol mapping, and stops at an OrderIntent; it does not own a broker or call order_send. Actual scheduler-driven DEMO submission remains disconnected pending a separate promotion step. Live execution remains disabled.
 
 The controlled runner remains manual and fail-closed: read-only mode does not call order_send(), and execution requires both explicit --execute and the dedicated DEMO execution arm. No additional DEMO order should be sent solely for verification. Automatic scheduler-to-broker execution remains disconnected, and live execution remains disabled.
 
@@ -328,8 +328,6 @@ A dependency-light tabular Q-learning research boundary was added with chronolog
 
 Validation completed successfully in CI run 36173391620, Security and Dependency Scan run 36173391649, Phase 10 Live Gate Tests run 36173391610, External Intelligence Validation run 36173391707 and Cross-Asset ML Experiment run 36173391677 for commit badd2c1a168eb40d611f70c7a97adde9d2931f9f.
 
-Detailed task record: docs/codex/tasks/032-rl-agent-experiment.md.
-
 
 ### Task 033 — Firebase data governance hardening
 
@@ -343,10 +341,12 @@ Detailed task record: docs/codex/tasks/033-firebase-data-governance-hardening.md
 
 ### Task 034 — Firebase usage monitoring
 
-Implementation in progress on 2026-09-25.
+Completed and validated on 2026-09-25.
 
-A path-scoped Firebase usage monitor now measures serialized UTF-8 payload size and record count for the current application paths, classifies each path with explicit warning/critical thresholds, and publishes a JSON artifact through a scheduled GitHub Actions workflow. The monitor is observational only and does not delete data or alter trading behavior.
+A path-scoped Firebase usage monitor measures serialized UTF-8 payload size and record count for the current application paths, classifies each path with explicit warning/critical thresholds, and publishes a JSON artifact through a scheduled GitHub Actions workflow. The monitor is observational only and does not delete data or alter trading behavior.
 
-Validation workflows are currently running for the implementation commit; Task 034 will be marked complete after CI, Security and the Firebase Usage Monitor workflow complete successfully against the configured Firebase environment.
+Validation completed successfully in Firebase Usage Monitor run 36189145824, CI run 36189145841, Security and Dependency Scan run 36189145888, External Intelligence Validation run 36189145939, Cross-Asset ML Experiment run 36189145798 and Phase 10 Live Gate Tests run 36189146243 on commit b378edf5d9c4158c190b905aa5571abb0abe0034.
+
+The Firebase Usage Monitor successfully connected to the configured Firebase environment, measured the monitored paths and published the usage report artifact. The workflow returns a critical exit code only when a monitored path reaches the configured critical serialized-size threshold; it does not perform automatic deletion or retention changes.
 
 Detailed task record: docs/codex/tasks/034-firebase-usage-monitoring.md.

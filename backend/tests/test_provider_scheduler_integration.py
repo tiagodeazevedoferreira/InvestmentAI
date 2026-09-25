@@ -100,3 +100,76 @@ def test_openbb_provider_factory_feeds_scheduler_without_external_network(monkey
     assert account_store.save_calls == 0
     assert paper_ledger.get(result.signal_id)["status"] == "completed"
     assert shadow_ledger.get(result.shadow_id)["execution_authority"] == "none"
+
+
+class FakeDemoExecutionAdapter:
+    def __init__(self) -> None:
+        self.calls = 0
+        self.last_plan = None
+
+    def execute(self, plan, *, execution_authorized, internal_before, internal_after_provider):
+        self.calls += 1
+        self.last_plan = plan
+        assert execution_authorized is True
+        assert internal_before["cash"] == 100_000
+        assert callable(internal_after_provider)
+        return SimpleNamespace(record=SimpleNamespace(state="FILLED"))
+
+
+def test_scheduler_demo_execution_requires_explicit_authorization(monkeypatch):
+    frame = deterministic_b3_frame()
+    monkeypatch.setattr(OpenBBProvider, "history", lambda self, symbol, period="5y": frame.copy())
+    firebase = InMemoryFirebase()
+    account_store = AccountStore()
+    paper_ledger = PaperDecisionLedger(firebase=firebase)
+    shadow_ledger = ShadowDecisionLedger(firebase=firebase)
+    from app.services.scheduler_demo_bridge import SchedulerDemoBridge
+
+    adapter = FakeDemoExecutionAdapter()
+    result = run_symbol(
+        get_provider("openbb"),
+        account_store,
+        paper_ledger,
+        "PETR4",
+        execute=False,
+        shadow_ledger=shadow_ledger,
+        demo_bridge=SchedulerDemoBridge(enabled=True, symbol_map={"PETR4": "PETR4"}),
+        demo_execution_adapter=adapter,
+        demo_execution_authorized=False,
+        demo_internal_before={"cash": 100_000},
+        demo_internal_after_provider=lambda: {"cash": 100_000},
+    )
+
+    assert result.demo_plan is not None
+    assert result.demo_plan.status == "ready"
+    assert adapter.calls == 0
+    assert result.status == "decided"
+
+
+def test_scheduler_demo_execution_calls_controlled_boundary_only_when_authorized(monkeypatch):
+    frame = deterministic_b3_frame()
+    monkeypatch.setattr(OpenBBProvider, "history", lambda self, symbol, period="5y": frame.copy())
+    firebase = InMemoryFirebase()
+    account_store = AccountStore()
+    paper_ledger = PaperDecisionLedger(firebase=firebase)
+    shadow_ledger = ShadowDecisionLedger(firebase=firebase)
+    from app.services.scheduler_demo_bridge import SchedulerDemoBridge
+
+    adapter = FakeDemoExecutionAdapter()
+    result = run_symbol(
+        get_provider("openbb"),
+        account_store,
+        paper_ledger,
+        "PETR4",
+        execute=False,
+        shadow_ledger=shadow_ledger,
+        demo_bridge=SchedulerDemoBridge(enabled=True, symbol_map={"PETR4": "PETR4"}),
+        demo_execution_adapter=adapter,
+        demo_execution_authorized=True,
+        demo_internal_before={"cash": 100_000},
+        demo_internal_after_provider=lambda: {"cash": 100_000},
+    )
+
+    assert result.status == "demo_executed"
+    assert result.demo_plan is not None and result.demo_plan.status == "ready"
+    assert adapter.calls == 1

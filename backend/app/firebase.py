@@ -40,17 +40,24 @@ class FirebaseRepository:
             raise RuntimeError("Firebase is not configured")
         self._db.reference(path.strip("/")).delete()
 
-    def list_children(self, path: str, *, limit: int = 200) -> list[Any]:
+    def list_children(self, path: str, *, limit: int = 200, oldest_first: bool = False) -> list[Any]:
         if limit <= 0:
             raise ValueError("limit must be positive")
         if not self._db:
             raise RuntimeError("Firebase is not configured")
-        value = (
-            self._db.reference(path.strip("/"))
-            .order_by_child("created_at")
-            .limit_to_last(limit)
-            .get()
-        )
+        query = self._db.reference(path.strip("/")).order_by_child("created_at")
+        value = (query.limit_to_first(limit) if oldest_first else query.limit_to_last(limit)).get()
         if not isinstance(value, dict):
             return []
         return list(value.values())
+
+    def list_child_items(self, path: str, *, limit: int = 200, oldest_first: bool = False) -> list[tuple[str, Any]]:
+        if limit <= 0:
+            raise ValueError("limit must be positive")
+        if not self._db:
+            raise RuntimeError("Firebase is not configured")
+        query = self._db.reference(path.strip("/")).order_by_child("created_at")
+        value = (query.limit_to_first(limit) if oldest_first else query.limit_to_last(limit)).get()
+        if not isinstance(value, dict):
+            return []
+        return [(str(key), child) for key, child in value.items()]

@@ -53,6 +53,18 @@ Swagger: `/docs` and ReDoc: `/redoc`.
 
 Set `FIREBASE_DATABASE_URL` and provide the Firebase Admin service-account JSON through `FIREBASE_SERVICE_ACCOUNT` only in a secure environment. Never commit credentials.
 
+## Container deployment baseline
+
+The repository includes a production-oriented Linux container build for the FastAPI backend. It runs on Python 3.12, uses a non-root application user, exposes port `8000` and includes a container health check against `/api/health`.
+
+Build locally from the repository root:
+
+```bash
+docker build --pull -t investmentai-backend:local .
+```
+
+Run with required runtime configuration supplied through the environment; do not bake secrets into the image. The image build is continuously exercised by the `Container Build` GitHub Actions workflow. This is a deployment foundation only; production hosting, domain/TLS, secret injection and operational monitoring remain separate deployment work.
+
 ## Project state
 
 See `PROJECT_CONTEXT.md`, `DEVELOPMENT_STATUS.md`, `ROADMAP.md` and `DECISIONS.md`. These files are the persistent handoff context for future development conversations.

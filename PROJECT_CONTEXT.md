@@ -57,7 +57,7 @@ The internal paper engine is deterministic and broker-independent. It supports m
 `scripts/run_paper_scheduler.py` obtains fresh B3 history through the OpenBB/yfinance provider boundary for PETR4, VALE3 and ITUB4, then invokes the existing paper automation policy. It is restricted to a weekday post-close B3 window, requires Firebase for durable state, and persists a deterministic decision ledger key based on symbol/bar timestamp/action. Repeated scheduler runs therefore skip already-processed decisions. GitHub Actions serializes runs and invokes the scheduler at 20:30 UTC (17:30 BRT) on weekdays. Manual dispatch supports shadow mode and an explicit guard bypass for validation.
 
 ## DEMO broker boundary
-The Doto/MT5 adapter is DEMO-only and fail-closed. It verifies the DEMO server during initialization, normalizes account/positions/open orders/executions for reconciliation, uses bid/ask semantics for market orders, requires `order_check()` before `order_send()`, rejects unsupported limit intents and refuses cancellation until pending-order semantics are validated. `AuthorizedDemoExecutor` requires kill-switch clearance plus healthy/fresh pre-execution reconciliation and healthy post-execution reconciliation. The scheduler is intentionally disconnected from the DEMO broker.
+The Doto/MT5 adapter is DEMO-only and fail-closed. It verifies the DEMO server during initialization, normalizes account/positions/open orders/executions for reconciliation, uses bid/ask semantics for market orders, requires `order_check()` before `order_send()`, rejects unsupported limit intents and refuses cancellation until pending-order semantics are validated. `AuthorizedDemoExecutor` requires kill-switch clearance plus healthy/fresh pre-execution reconciliation and healthy post-execution reconciliation. The PAPER scheduler now has an explicit `SchedulerDemoExecutionAdapter` integration path to the controlled DEMO boundary, but execution remains disabled unless the caller independently supplies authorization and application-owned pre/post state.
 
 ### Doto/MT5 DEMO validation checkpoint — 2026-09-11
 - DEMO account: `5344431`
@@ -104,9 +104,12 @@ The Doto/MT5 adapter is DEMO-only and fail-closed. It verifies the DEMO server d
 - Full automated test suite was green: `231 passed, 2 warnings` at this checkpoint; after the later reconciliation changes it is `232 passed, 2 warnings`.
 
 ## Current execution target
-The controlled Doto/MT5 DEMO end-to-end validation gate is complete as of 2026-09-11. The first explicitly authorized `EURUSD BUY 0.01` was filled as order `29453207`, deal `28862296`, with open position ticket `29453207`. External MT5 state and targeted history reconciliation have been confirmed read-only, and the local demo ledger/portfolio state matches the broker position. The next engineering work must not send another DEMO order solely for verification. Automatic scheduler-to-broker execution remains disconnected. Live execution remains disabled.
+The controlled Doto/MT5 DEMO end-to-end validation gate is complete as of 2026-09-11. The first explicitly authorized `EURUSD BUY 0.01` was filled as order `29453207`, deal `28862296`, with open position ticket `29453207`. External MT5 state and targeted history reconciliation have been confirmed read-only, and the local demo ledger/portfolio state matches the broker position. The next engineering work must not send another DEMO order solely for verification. Automatic scheduler-to-broker execution is not enabled by default; the integration requires explicit caller authorization and the existing controlled DEMO execution boundary. Live execution remains disabled.
 
 ## Recent commits / handoff checkpoint
+- `2d827275e3c904c61df74f15bd98d5bab5e6797f` — `fix: bypass Windows PowerShell execution policy in security workflow`
+- `63d2dbf8fb69375e7dcb5a6c9e6e932872fcf123` — `docs: complete Task 036 validation record`
+- Task 036 final validation: CI `36271207460`, Security `36271207472`, External Intelligence `36271207458`, Cross-Asset ML `36271207490`, Phase 10 `36271207493`
 - `0c164b6` — targeted post-execution reconciliation by broker history identifiers
 - `f83201abcf3726ac8b7e4cf3a43e850334cbedff` — align post-execution reconciliation clock with broker snapshot
 - `3ce15dd2c9336b037c899244c0d6afe3baaeca1e` — `Fix controlled DEMO runner result reporting`

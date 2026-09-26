@@ -99,6 +99,7 @@ Last updated: 2026-09-26
 - [x] Empirical restart/recovery validation against the persisted DEMO ledger, confirming an ambiguous SUBMITTED record remains pending without broker submission
 - [x] Broker-connected read-only recovery validation using the confirmed Order 29453207 / Deal 28862296
 - [x] Fault-injected submission-interruption test: exception after authorization remains recoverable SUBMITTED and never becomes an automatic retry
+- [x] Durable DEMO submission correlation and deterministic recovery by broker evidence
 - [x] Scheduler → DEMO fail-closed promotion boundary (plan-only; broker submission disconnected)
 - [x] Scheduler → DEMO broker integration
 - [ ] Real interrupted-broker-submission recovery validation without deliberately creating another DEMO transaction
@@ -158,6 +159,7 @@ Last updated: 2026-09-26
 - [x] MT5 DEMO preflight tests
 - [x] DEMO restart/recovery tests
 - [x] Fault-injected DEMO submission-interruption test
+- [x] DEMO submission-correlation recovery tests
 - [x] Scheduler → DEMO promotion-boundary unit tests
 - [x] Historical OHLCV pipeline and temporal-purge tests
 - [x] Full integration test suite against provider mocks
@@ -372,3 +374,15 @@ The PAPER scheduler now exposes an explicit integration path to the existing con
 Final validation completed successfully on commit `2d827275e3c904c61df74f15bd98d5bab5e6797f`: CI run `36271207460`, External Intelligence run `36271207458`, Cross-Asset ML run `36271207490`, Phase 10 Live Gate Tests run `36271207493` and Security/Dependency Scan run `36271207472`. The Security workflow also confirmed the Windows runner PowerShell execution-policy correction and completed dependency audit, static security scan, backend tests and compilation successfully.
 
 The Firebase retention governance checklist is also marked complete: the cleanup mechanism remains manual, fail-closed and dry-run-only pending a separate governance decision for deletion.
+
+### Task 037 — Interrupted DEMO submission recovery correlation
+
+Implementation completed on 2026-09-26.
+
+The controlled DEMO execution boundary now persists a bounded correlation identifier with each intent, propagates it through OrderIntent and into the MT5 order comment, and normalizes the broker history comment back into recovery evidence. When the broker response is lost after authorization, the durable ledger remains SUBMITTED and recovery can promote the exact execution to FILLED only when correlation, symbol, side and quantity all match. Missing or mismatched evidence remains SUBMITTED and no automatic retry is performed.
+
+Validation is deterministic and fault-injected: the test simulates an accepted broker submission followed by loss of the response, confirms the correlation survives in the durable ledger, recovers the matching broker evidence, and confirms the broker submission count remains one. No additional DEMO transaction was created.
+
+Real broker-connected validation of an actually interrupted MT5 order_send() remains intentionally pending because reproducing that condition would require deliberately creating another DEMO transaction.
+
+Detailed task record: docs/codex/tasks/037-interrupted-demo-submission-recovery.md.

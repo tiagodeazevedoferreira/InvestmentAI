@@ -25,6 +25,7 @@ class DemoOrderRecord:
     deal_id: str | None = None
     error: str | None = None
     execution: Mapping[str, Any] | None = None
+    correlation_id: str | None = None
 
 
 class DemoOrderLedger:
@@ -56,22 +57,29 @@ class DemoOrderLedger:
                     intent_id TEXT PRIMARY KEY, symbol TEXT NOT NULL, side TEXT NOT NULL,
                     quantity REAL NOT NULL, state TEXT NOT NULL, created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL, order_id TEXT, deal_id TEXT, error TEXT,
-                    execution_json TEXT)"""
+                    execution_json TEXT, correlation_id TEXT)"""
             )
+            columns = {row["name"] for row in connection.execute("PRAGMA table_info(demo_orders)")}
+            if "correlation_id" not in columns:
+                connection.execute("ALTER TABLE demo_orders ADD COLUMN correlation_id TEXT")
             connection.execute("CREATE INDEX IF NOT EXISTS idx_demo_orders_state ON demo_orders(state)")
+            connection.execute("CREATE INDEX IF NOT EXISTS idx_demo_orders_correlation ON demo_orders(correlation_id)")
 
-    def create(self, intent_id: str, symbol: str, side: str, quantity: float, *, now: datetime | None = None) -> DemoOrderRecord:
+    def create(self, intent_id: str, symbol: str, side: str, quantity: float, *,
+               correlation_id: str | None = None, now: datetime | None = None) -> DemoOrderRecord:
         intent_id, symbol, side, quantity = intent_id.strip(), symbol.strip().upper(), side.strip().upper(), float(quantity)
+        correlation_id = correlation_id.strip() if correlation_id else None
         if not intent_id: raise ValueError("intent_id is required")
         if not symbol: raise ValueError("symbol is required")
         if side not in {"BUY", "SELL"}: raise ValueError("side must be BUY or SELL")
         if quantity <= 0: raise ValueError("quantity must be positive")
+        if correlation_id is not None and not correlation_id: raise ValueError("correlation_id cannot be empty")
         timestamp = (now or datetime.now(timezone.utc)).astimezone(timezone.utc).isoformat()
         try:
             with self._connect() as connection:
                 connection.execute(
-                    "INSERT INTO demo_orders(intent_id,symbol,side,quantity,state,created_at,updated_at) VALUES(?,?,?,?,?,?,?)",
-                    (intent_id, symbol, side, quantity, "INTENDED", timestamp, timestamp),
+                    "INSERT INTO demo_orders(intent_id,symbol,side,quantity,state,created_at,updated_at,correlation_id) VALUES(?,?,?,?,?,?,?,?)",
+                    (intent_id, symbol, side, quantity, "INTENDED", timestamp, timestamp, correlation_id),
                 )
         except sqlite3.IntegrityError as exc:
             raise DemoLedgerError(f"intent_id already exists: {intent_id}") from exc
@@ -111,6 +119,7 @@ class DemoOrderLedger:
             intent_id=row["intent_id"], symbol=row["symbol"], side=row["side"], quantity=float(row["quantity"]),
             state=row["state"], created_at=row["created_at"], updated_at=row["updated_at"],
             order_id=row["order_id"], deal_id=row["deal_id"], error=row["error"], execution=execution,
+            correlation_id=row["correlation_id"],
         )
 
     def find_filled_match(self, symbol: str, side: str, quantity: float) -> DemoOrderRecord | None:
@@ -144,13 +153,40 @@ class DemoOrderLedger:
             return current
 
         executions = external.get("executions", [])
-        execution_ids = {
-            str(item.get("execution_id"))
-            for item in executions
-            if isinstance(item, Mapping) and item.get("execution_id")
-        }
-        if current.deal_id and str(current.deal_id) in execution_ids:
-            return self.transition(intent_id, "FILLED", now=now, execution=current.execution)
+        if not isinstance(executions, list):
+            return current
+
+        for item in executions:
+            if not isinstance(item, Mapping):
+                continue
+            execution_id = item.get("execution_id")
+            if current.deal_id and execution_id and str(current.deal_id) == str(execution_id):
+                return self.transition(
+                    intent_id, "FILLED", now=now,
+                    order_id=_first_value(item, "order_id", "order"),
+                    deal_id=str(execution_id),
+                    execution=item,
+                )
+            correlation = item.get("correlation_id")
+            if not current.correlation_id or not correlation:
+                continue
+            if str(correlation).strip().upper() != str(current.correlation_id).strip().upper():
+                continue
+            if str(item.get("symbol", "")).strip().upper() != current.symbol:
+                continue
+            if str(item.get("side", "")).strip().upper() != current.side:
+                continue
+            try:
+                if abs(float(item.get("quantity", 0.0)) - current.quantity) > 1e-12:
+                    continue
+            except (TypeError, ValueError):
+                continue
+            return self.transition(
+                intent_id, "FILLED", now=now,
+                order_id=_first_value(item, "order_id", "order"),
+                deal_id=str(execution_id) if execution_id else None,
+                execution=item,
+            )
 
         return current
 
@@ -158,3 +194,11 @@ class DemoOrderLedger:
         with self._connect() as connection:
             rows = connection.execute("SELECT intent_id FROM demo_orders WHERE state NOT IN ('FILLED','REJECTED','FAILED') ORDER BY created_at").fetchall()
         return tuple(self.get(row["intent_id"]) for row in rows)
+
+
+def _first_value(data: Mapping[str, Any], *keys: str) -> str | None:
+    for key in keys:
+        value = data.get(key)
+        if value is not None and str(value).strip() and str(value) != "0":
+            return str(value)
+    return None

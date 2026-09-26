@@ -30,8 +30,12 @@ The repository now contains `Dockerfile`, `.dockerignore` and `.github/workflows
 
 The local environment used for development does not provide the Docker CLI, so the image was not built locally. CI is the authoritative build validation path and must pass before this baseline is considered validated.
 
-## Status
+Status
 
-IMPLEMENTED — CI validation pending.
+VALIDATED — CI green.
+
+Validation completed successfully in Container Build run `36278613121` for commit `3e3071a2a2f12df2ebd70f5c311a74cca10f41b7`. The workflow built the production image, started the container, waited for the Docker health check and executed an in-container `/api/health` smoke test. Cleanup ran regardless of outcome.
+
+The same commit also passed CI, Security and Dependency Scan, External Intelligence Validation, Cross-Asset ML Experiment and Phase 10 Live Gate Tests.
 
 Production hosting, domain/TLS, runtime secret injection, persistent storage strategy and operational monitoring remain separate deployment work.

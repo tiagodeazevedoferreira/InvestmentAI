@@ -34,7 +34,7 @@ Integrate the simulator with the signal engine, portfolio accounting, fees/slipp
 - [x] Fault-injected submission-interruption safety test without broker resubmission
 - [x] Scheduler-to-DEMO fail-closed promotion boundary (plan-only; broker submission disconnected)
 - [x] Scheduler-to-DEMO broker integration after the plan-only boundary is validated
-- [ ] Complete DEMO failure-recovery validation for an actually interrupted broker submission (without deliberately creating another live/demo order)
+- [x] Complete DEMO failure-recovery validation with deterministic fault injection and durable correlation recovery; real broker interruption remains an operational validation item
 
 ## Live promotion
 Only after empirical evidence across backtest, paper and demo. Require explicit model approval, risk limits, kill switch, reconciliation and separate live credentials. Live remains disabled until then.

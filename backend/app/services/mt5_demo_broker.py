@@ -116,7 +116,7 @@ class MetaTrader5DemoBroker:
             {"execution_id": str(cls._value(row, "ticket", "")), "order_id": str(cls._value(row, "order", "")),
              "symbol": str(cls._value(row, "symbol", "")).upper(),
              "quantity": float(cls._value(row, "volume", 0.0)),
-             "side": "BUY" if int(cls._value(row, "type", 0)) in {0, 2, 4} else "SELL",
+             "side": "BUY" if int(cls._value(row, "type", 0)) == 0 else ("SELL" if int(cls._value(row, "type", 0)) == 1 else ""),
              "comment": str(cls._value(row, "comment", "")),
              "correlation_id": _correlation_from_comment(cls._value(row, "comment", ""))}
             for row in (deals or [])

@@ -114,7 +114,11 @@ class MetaTrader5DemoBroker:
     def _normalize_deals(cls, deals: Any) -> list[dict[str, Any]]:
         return [
             {"execution_id": str(cls._value(row, "ticket", "")), "order_id": str(cls._value(row, "order", "")),
-             "symbol": str(cls._value(row, "symbol", "")).upper(), "quantity": float(cls._value(row, "volume", 0.0))}
+             "symbol": str(cls._value(row, "symbol", "")).upper(),
+             "quantity": float(cls._value(row, "volume", 0.0)),
+             "side": "BUY" if int(cls._value(row, "type", 0)) in {0, 2, 4} else "SELL",
+             "comment": str(cls._value(row, "comment", "")),
+             "correlation_id": _correlation_from_comment(cls._value(row, "comment", ""))}
             for row in (deals or [])
         ]
 
@@ -226,7 +230,7 @@ class MetaTrader5DemoBroker:
         request = {"action": mt5.TRADE_ACTION_DEAL, "symbol": symbol, "volume": quantity,
                    "type": order_type, "price": price, "deviation": 20,
                    "type_time": mt5.ORDER_TIME_GTC, "type_filling": mt5.ORDER_FILLING_IOC,
-                   "comment": "InvestmentAI-DEMO"}
+                   "comment": _broker_comment(intent.correlation_id)}
         check = mt5.order_check(request)
         if check is None:
             raise MT5DemoExecutionError("MT5 order_check returned None")
@@ -242,9 +246,26 @@ class MetaTrader5DemoBroker:
                 "order": self._value(result, "order", 0), "deal": self._value(result, "deal", 0),
                 "volume": float(self._value(result, "volume", 0.0) or 0.0), "symbol": symbol,
                 "side": intent.side, "requested_quantity": quantity, "price": price,
-                "environment": self.environment, "timestamp": datetime.now(timezone.utc).isoformat()}
+                "environment": self.environment, "correlation_id": intent.correlation_id,
+                "timestamp": datetime.now(timezone.utc).isoformat()}
 
     def close(self) -> None:
         if self._mt5 is not None and self._connected:
             self._mt5.shutdown()
         self._connected = False
+
+
+def _broker_comment(correlation_id: str | None) -> str:
+    if not correlation_id:
+        return "InvestmentAI-DEMO"
+    token = str(correlation_id).strip()
+    if not token:
+        return "InvestmentAI-DEMO"
+    return "IAI:" + token[:27]
+
+
+def _correlation_from_comment(comment: Any) -> str | None:
+    value = str(comment or "").strip()
+    if value.startswith("IAI:") and len(value) > 4:
+        return value[4:31]
+    return None

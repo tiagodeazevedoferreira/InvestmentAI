@@ -11,6 +11,7 @@ class OrderIntent:
     side: str
     quantity: float
     limit_price: float | None = None
+    correlation_id: str | None = None
 
 
 class ExecutionBlocked(RuntimeError):
@@ -28,7 +29,8 @@ class SimulatedBroker:
             raise ValueError("side must be BUY or SELL")
         return {"order_id": str(uuid4()), "status": "accepted", "environment": self.environment,
                 "symbol": intent.symbol.upper(), "side": intent.side, "quantity": intent.quantity,
-                "limit_price": intent.limit_price, "timestamp": datetime.now(timezone.utc).isoformat()}
+                "limit_price": intent.limit_price, "correlation_id": intent.correlation_id,
+                "timestamp": datetime.now(timezone.utc).isoformat()}
 
 
 class OrderManager:

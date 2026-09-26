@@ -11,6 +11,25 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r backend/requirements.txt
+      - name: Validate Firebase database target
+        env:
+          FIREBASE_DATABASE_URL: ${{ vars.FIREBASE_DATABASE_URL || secrets.FIREBASE_DATABASE_URL }}
+        run: |
+          python - <<'PY'
+          import os
+          from urllib.parse import urlparse
+
+          expected_host = "investmentai-ae1e5-default-rtdb.firebaseio.com"
+          value = (os.environ.get("FIREBASE_DATABASE_URL") or "").strip()
+          if not value:
+              raise SystemExit("FIREBASE_DATABASE_URL is not configured")
+          parsed = urlparse(value)
+          if parsed.scheme != "https" or parsed.netloc != expected_host:
+              raise SystemExit(
+                  f"FIREBASE_DATABASE_URL points to unexpected host: {parsed.netloc or '<missing>'}"
+              )
+          print(f"Firebase database target validated: https://{expected_host}/")
+          PY
       - name: Execute Firebase retention policy
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}

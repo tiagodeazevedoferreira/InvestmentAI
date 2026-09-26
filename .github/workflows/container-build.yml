@@ -1,5 +1,4 @@
 name: Container Build
-# Validated build trigger
 
 on:
   push:
@@ -15,3 +14,32 @@ jobs:
 
       - name: Build production backend image
         run: docker build --pull --tag investmentai-backend:ci .
+
+      - name: Start container
+        run: docker run --detach --name investmentai-backend-ci --publish 8000:8000 investmentai-backend:ci
+
+      - name: Wait for container health
+        shell: bash
+        run: |
+          set -euo pipefail
+          for i in {1..30}; do
+            status="$(docker inspect --format='{{.State.Health.Status}}' investmentai-backend-ci 2>/dev/null || true)"
+            echo "health=$status"
+            if [ "$status" = "healthy" ]; then
+              exit 0
+            fi
+            if [ "$status" = "unhealthy" ]; then
+              docker logs investmentai-backend-ci
+              exit 1
+            fi
+            sleep 2
+          done
+          docker logs investmentai-backend-ci
+          exit 1
+
+      - name: Smoke test API health
+        run: docker exec investmentai-backend-ci python -c "import urllib.request; response=urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=5); assert response.status == 200; print(response.read().decode())"
+
+      - name: Cleanup container
+        if: always()
+        run: docker rm --force investmentai-backend-ci

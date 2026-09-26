@@ -375,6 +375,16 @@ Final validation completed successfully on commit `2d827275e3c904c61df74f15bd98d
 
 The Firebase retention governance checklist is also marked complete: the cleanup mechanism remains manual, fail-closed and dry-run-only pending a separate governance decision for deletion.
 
+### Task 038 — Production container build baseline
+
+Implemented on 2026-09-26.
+
+A production-oriented Linux container baseline was added for the FastAPI backend: Python 3.12 slim runtime, non-root application user, port 8000, `/api/health` container health check, and a `.dockerignore` that excludes credentials and local state. A GitHub Actions workflow builds the image without publishing or deploying it.
+
+This is a deployment foundation only. Production hosting, domain/TLS, runtime secret injection, persistent storage and operational monitoring remain separate work. The local development environment does not have Docker installed, so local image-build validation was not possible; CI is the authoritative build check.
+
+Detailed task record: `docs/codex/tasks/038-production-container-build-baseline.md`.
+
 ### Task 037 — Interrupted DEMO submission recovery correlation
 
 Implementation completed on 2026-09-26.

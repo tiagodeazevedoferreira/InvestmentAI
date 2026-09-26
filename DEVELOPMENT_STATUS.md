@@ -1,6 +1,6 @@
 # Development Status
 
-Last updated: 2026-09-25
+Last updated: 2026-09-26
 
 ## Foundation
 - [x] Repository and persistent handoff context
@@ -100,7 +100,7 @@ Last updated: 2026-09-25
 - [x] Broker-connected read-only recovery validation using the confirmed Order 29453207 / Deal 28862296
 - [x] Fault-injected submission-interruption test: exception after authorization remains recoverable SUBMITTED and never becomes an automatic retry
 - [x] Scheduler → DEMO fail-closed promotion boundary (plan-only; broker submission disconnected)
-- [ ] Scheduler → DEMO broker integration
+- [x] Scheduler → DEMO broker integration
 - [ ] Real interrupted-broker-submission recovery validation without deliberately creating another DEMO transaction
 - [ ] Live broker adapter
 - [x] Empirical promotion gate evaluator (human-review only)
@@ -365,10 +365,10 @@ Detailed task record: `docs/codex/tasks/035-firebase-retention-cleanup.md`.
 
 ### Task 036 — Scheduler-to-DEMO broker integration
 
-Implementation completed and validated on 2026-09-25.
+Implementation completed and validated on 2026-09-26.
 
 The PAPER scheduler now exposes an explicit integration path to the existing controlled DEMO execution boundary through `SchedulerDemoExecutionAdapter`. DEMO execution remains fail-closed: a ready promotion plan is not executed without independent explicit authorization, application-owned pre/post state, and the existing controlled execution service. The scheduler does not call `order_send` directly and no automatic retry or live-broker path was introduced.
 
-Validation completed successfully in External Intelligence, Cross-Asset ML and CI for implementation commit `4ffb1235c694aa0c4ea1bf2ebcd24709aae0efe7`. Security and Phase 10 must be confirmed for the final documentation/correction commit.
+Final validation completed successfully on commit `2d827275e3c904c61df74f15bd98d5bab5e6797f`: CI run `36271207460`, External Intelligence run `36271207458`, Cross-Asset ML run `36271207490`, Phase 10 Live Gate Tests run `36271207493` and Security/Dependency Scan run `36271207472`. The Security workflow also confirmed the Windows runner PowerShell execution-policy correction and completed dependency audit, static security scan, backend tests and compilation successfully.
 
 The Firebase retention governance checklist is also marked complete: the cleanup mechanism remains manual, fail-closed and dry-run-only pending a separate governance decision for deletion.

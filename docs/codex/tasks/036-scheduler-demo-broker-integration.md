@@ -1,6 +1,6 @@
 # Task 036 — Scheduler-to-DEMO broker integration
 
-**Status:** IN PROGRESS
+**Status:** COMPLETED
 
 ## Objective
 
@@ -43,4 +43,4 @@ Connect the existing PAPER scheduler to the controlled DEMO execution boundary w
 
 ## Validation
 
-Pending validation after implementation commit.
+Completed on 2026-09-26. Final validation passed on commit `2d827275e3c904c61df74f15bd98d5bab5e6797f`: CI run `36271207460`, Security and Dependency Scan run `36271207472`, External Intelligence Validation run `36271207458`, Cross-Asset ML Experiment run `36271207490` and Phase 10 Live Gate Tests run `36271207493`.

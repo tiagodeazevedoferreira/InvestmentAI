@@ -106,6 +106,12 @@ The Doto/MT5 adapter is DEMO-only and fail-closed. It verifies the DEMO server d
 ## Current execution target
 The controlled Doto/MT5 DEMO end-to-end validation gate is complete as of 2026-09-11. The first explicitly authorized `EURUSD BUY 0.01` was filled as order `29453207`, deal `28862296`, with open position ticket `29453207`. External MT5 state and targeted history reconciliation have been confirmed read-only, and the local demo ledger/portfolio state matches the broker position. The next engineering work must not send another DEMO order solely for verification. Automatic scheduler-to-broker execution is not enabled by default; the integration requires explicit caller authorization and the existing controlled DEMO execution boundary. Live execution remains disabled.
 
+## Container deployment checkpoint — 2026-09-26
+
+Task 038 production container baseline is validated. Commit `3e3071a2a2f12df2ebd70f5c311a74cca10f41b7` passed Container Build run `36278613121`, including image build, container startup, Docker health check, in-container `/api/health` smoke test and cleanup. The same commit passed CI, Security and Dependency Scan, External Intelligence Validation, Cross-Asset ML Experiment and Phase 10 Live Gate Tests.
+
+The container is a deployment foundation only. The Linux container must not be treated as the Doto/MT5 execution workstation: the existing MT5/DOTO integration depends on the authenticated desktop terminal and remains a separately controlled DEMO boundary. Production hosting, TLS, secret injection, persistence and operational monitoring are not yet implemented.
+
 ## Recent commits / handoff checkpoint
 - `2d827275e3c904c61df74f15bd98d5bab5e6797f` — `fix: bypass Windows PowerShell execution policy in security workflow`
 - `63d2dbf8fb69375e7dcb5a6c9e6e932872fcf123` — `docs: complete Task 036 validation record`

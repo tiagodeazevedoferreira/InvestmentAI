@@ -1,0 +1,16 @@
+name: Container Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build production backend image
+        run: docker build --pull --tag investmentai-backend:ci .

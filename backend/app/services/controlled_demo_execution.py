@@ -37,7 +37,11 @@ class ControlledDemoExecutionService:
     def execute(self, intent: OrderIntent, *, internal_before: Mapping[str, Any],
                 internal_after_provider: Callable[[], Mapping[str, Any]]) -> ControlledDemoExecutionResult:
         intent_id = self._intent_id_factory()
-        correlation_id = intent.correlation_id or self._correlation_id_factory()
+        correlation_id = str(intent.correlation_id or self._correlation_id_factory()).strip()
+        if not correlation_id:
+            raise ValueError("DEMO correlation_id cannot be empty")
+        if len(correlation_id) > 20:
+            raise ValueError("DEMO correlation_id must be at most 20 characters")
         normalized = self.executor.preflight.validate(intent, environment="demo")
         normalized = replace(normalized, correlation_id=correlation_id)
         self.executor.preflight.validate_state(internal_before)

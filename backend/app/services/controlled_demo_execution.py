@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from typing import Any, Callable, Mapping
 from uuid import uuid4
@@ -26,18 +26,22 @@ class ControlledDemoExecutionService:
 
     def __init__(self, executor: AuthorizedDemoExecutor, ledger: DemoOrderLedger, *,
                  intent_id_factory: Callable[[], str] | None = None,
+                 correlation_id_factory: Callable[[], str] | None = None,
                  now: Callable[[], datetime] | None = None) -> None:
         self.executor = executor
         self.ledger = ledger
         self._intent_id_factory = intent_id_factory or (lambda: str(uuid4()))
+        self._correlation_id_factory = correlation_id_factory or (lambda: uuid4().hex[:20])
         self._now = now or (lambda: datetime.now(timezone.utc))
 
     def execute(self, intent: OrderIntent, *, internal_before: Mapping[str, Any],
                 internal_after_provider: Callable[[], Mapping[str, Any]]) -> ControlledDemoExecutionResult:
         intent_id = self._intent_id_factory()
+        correlation_id = intent.correlation_id or self._correlation_id_factory()
         normalized = self.executor.preflight.validate(intent, environment="demo")
+        normalized = replace(normalized, correlation_id=correlation_id)
         self.executor.preflight.validate_state(internal_before)
-        self.ledger.create(intent_id, normalized.symbol, normalized.side, normalized.quantity, now=self._now())
+        self.ledger.create(intent_id, normalized.symbol, normalized.side, normalized.quantity, correlation_id=correlation_id, now=self._now())
         try:
             def mark_authorized() -> None:
                 self.ledger.transition(intent_id, "AUTHORIZED", now=self._now())
@@ -88,8 +92,9 @@ class ControlledDemoExecutionService:
 
         Recovery is read-only with respect to the broker: it only inspects
         persisted SUBMITTED records and broker evidence supplied by the caller.
-        A record becomes FILLED only when its exact deal ID is externally
-        confirmed. No pending record is resubmitted automatically.
+        A record becomes FILLED only when exact deal evidence is confirmed
+        by deal ID or by the persisted correlation ID plus symbol/side/quantity.
+        No pending record is resubmitted automatically.
 
         A failure while obtaining evidence for one pending record is itself
         treated as unresolved. The record remains SUBMITTED with the error

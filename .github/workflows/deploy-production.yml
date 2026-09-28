@@ -1,0 +1,164 @@
+name: Deploy Production — Cloud Run
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_digest:
+        description: "Optional Artifact Registry image digest to deploy; leave empty to build the current commit"
+        required: false
+        type: string
+      rollback:
+        description: "Deploy the supplied existing image digest without building a new image"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: investmentai-production-deployment
+  cancel-in-progress: false
+
+env:
+  GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+  GCP_REGION: ${{ vars.GCP_REGION }}
+  ARTIFACT_REGISTRY_REPOSITORY: ${{ vars.ARTIFACT_REGISTRY_REPOSITORY }}
+  CLOUD_RUN_SERVICE: ${{ vars.CLOUD_RUN_SERVICE }}
+  GCP_WIF_PROVIDER: ${{ vars.GCP_WIF_PROVIDER }}
+  GCP_DEPLOY_SERVICE_ACCOUNT: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+  GCP_RUNTIME_SERVICE_ACCOUNT: ${{ vars.GCP_RUNTIME_SERVICE_ACCOUNT }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Validate deployment inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          for value in GCP_PROJECT_ID GCP_REGION ARTIFACT_REGISTRY_REPOSITORY CLOUD_RUN_SERVICE GCP_WIF_PROVIDER GCP_DEPLOY_SERVICE_ACCOUNT GCP_RUNTIME_SERVICE_ACCOUNT; do
+            if [ -z "${!value:-}" ]; then
+              echo "Missing required GitHub variable: $value"
+              exit 1
+            fi
+          done
+          if [ "${{ inputs.rollback }}" = "true" ] && [ -z "${{ inputs.image_digest }}" ]; then
+            echo "rollback=true requires image_digest"
+            exit 1
+          fi
+          if [ -n "${{ inputs.image_digest }}" ] && [[ "${{ inputs.image_digest }}" != sha256:* ]]; then
+            echo "image_digest must be an immutable sha256 digest"
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+        if: ${{ inputs.rollback == false }}
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ env.GCP_WIF_PROVIDER }}
+          service_account: ${{ env.GCP_DEPLOY_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker authentication
+        if: ${{ inputs.rollback == false }}
+        run: gcloud auth configure-docker "${GCP_REGION}-docker.pkg.dev" --quiet
+
+      - name: Build and publish immutable image
+        if: ${{ inputs.rollback == false }}
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          IMAGE="${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${ARTIFACT_REGISTRY_REPOSITORY}/investmentai:${IMAGE_TAG}"
+          docker build --pull --tag "${IMAGE}" .
+          docker push "${IMAGE}"
+          echo "IMAGE_REF=${IMAGE}" >> "$GITHUB_ENV"
+
+      - name: Resolve published image digest
+        if: ${{ inputs.rollback == false }}
+        run: |
+          set -euo pipefail
+          DIGEST="$(gcloud artifacts docker images describe "${IMAGE_REF}" --format='value(image_summary.digest)')"
+          test -n "${DIGEST}"
+          echo "IMAGE_DIGEST=${DIGEST}" >> "$GITHUB_ENV"
+
+      - name: Select rollback image
+        if: ${{ inputs.rollback == true }}
+        run: |
+          set -euo pipefail
+          echo "IMAGE_DIGEST=${{ inputs.image_digest }}" >> "$GITHUB_ENV"
+
+      - name: Deploy immutable image to Cloud Run
+        run: |
+          set -euo pipefail
+          IMAGE="${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${ARTIFACT_REGISTRY_REPOSITORY}/investmentai@${IMAGE_DIGEST}"
+          gcloud run deploy "${CLOUD_RUN_SERVICE}" \
+            --project="${GCP_PROJECT_ID}" \
+            --region="${GCP_REGION}" \
+            --image="${IMAGE}" \
+            --service-account="${GCP_RUNTIME_SERVICE_ACCOUNT}" \
+            --port=8000 \
+            --cpu=1 \
+            --memory=1Gi \
+            --min-instances=0 \
+            --max-instances=2 \
+            --timeout=60s \
+            --no-allow-unauthenticated \
+            --set-env-vars="APP_NAME=InvestmentAI,ENVIRONMENT=production,TRADING_MODE=simulation,LIVE_TRADING_ENABLED=false,MODEL_APPROVED=false,RISK_GATE_ENABLED=true,MT5_DEMO_EXECUTION_ENABLED=false,API_DOCS_ENABLED=false,LOG_LEVEL=INFO,CORS_ALLOWED_ORIGINS=*" \
+            --update-secrets="FIREBASE_DATABASE_URL=investmentai-firebase-database-url:latest,FIREBASE_SERVICE_ACCOUNT=investmentai-firebase-service-account:latest,TRADINGVIEW_WEBHOOK_SECRET=investmentai-tradingview-webhook-secret:latest"
+
+      - name: Wait for Cloud Run deployment
+        run: |
+          set -euo pipefail
+          gcloud run services describe "${CLOUD_RUN_SERVICE}" \
+            --project="${GCP_PROJECT_ID}" \
+            --region="${GCP_REGION}" \
+            --format='value(status.latestReadyRevisionName)'
+
+      - name: Resolve authenticated service URL
+        id: service
+        run: |
+          set -euo pipefail
+          URL="$(gcloud run services describe "${CLOUD_RUN_SERVICE}" --project="${GCP_PROJECT_ID}" --region="${GCP_REGION}" --format='value(status.url)')"
+          test -n "${URL}"
+          echo "url=${URL}" >> "$GITHUB_OUTPUT"
+
+      - name: Smoke test liveness
+        env:
+          SERVICE_URL: ${{ steps.service.outputs.url }}
+        run: |
+          set -euo pipefail
+          TOKEN="$(gcloud auth print-identity-token --audiences="${SERVICE_URL}")"
+          STATUS="$(curl --silent --show-error --output /tmp/health.json --write-out '%{http_code}' -H "Authorization: Bearer ${TOKEN}" "${SERVICE_URL}/api/health")"
+          test "${STATUS}" = "200"
+          cat /tmp/health.json
+
+      - name: Smoke test readiness and safety mode
+        env:
+          SERVICE_URL: ${{ steps.service.outputs.url }}
+        run: |
+          set -euo pipefail
+          TOKEN="$(gcloud auth print-identity-token --audiences="${SERVICE_URL}")"
+          STATUS="$(curl --silent --show-error --output /tmp/ready.json --write-out '%{http_code}' -H "Authorization: Bearer ${TOKEN}" "${SERVICE_URL}/api/ready")"
+          test "${STATUS}" = "200"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          body = json.loads(Path('/tmp/ready.json').read_text())
+          assert body['status'] == 'ready', body
+          assert body['trading_mode'] == 'simulation', body
+          print(body)
+          PY
+
+      - name: Report immutable deployment
+        run: |
+          echo "Cloud Run service: ${CLOUD_RUN_SERVICE}"
+          echo "Image digest: ${IMAGE_DIGEST}"
+          echo "Trading mode: simulation"
+          echo "LIVE trading: disabled"
+          echo "DEMO execution: disabled"

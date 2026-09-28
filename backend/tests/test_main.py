@@ -35,7 +35,9 @@ def test_api_replaces_invalid_request_id():
     assert response.status_code == 200
     UUID(response.headers["X-Request-ID"])
     assert response.headers["X-Request-ID"] != "not-a-uuid"
-\n\ndef test_api_readiness_is_ready_by_default():
+
+
+def test_api_readiness_is_ready_by_default():
     response = client.get("/api/ready")
 
     assert response.status_code == 200

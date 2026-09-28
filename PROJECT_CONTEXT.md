@@ -177,3 +177,10 @@ Final validation commit: `9bf2fa27645ad1d7ccf0a14687414be7de739f06`.
 Validation runs: CI `36430394082`, Security `36430393911`, External Intelligence `36430394353`, Cross-Asset ML `36430394262`, Phase 10 `36430394033`, Container Build `36430394126`.
 
 The template contains no real secrets and does not implement hosting, secret-manager integration, LIVE execution or DEMO execution.
+
+
+## Production persistence checkpoint — 2026-09-28
+
+Task 045 is complete and validated. Firebase is the authoritative external state store for durable PAPER account and decision data; the DEMO SQLite ledger remains on the controlled Windows DOTO/MT5 workstation; model artifacts must not depend on an ephemeral container filesystem. Persistence failures must fail closed rather than silently creating fresh authoritative state.
+
+This task is provider-neutral and does not provision storage, hosting, backups, TLS, LIVE execution or new DEMO transactions.

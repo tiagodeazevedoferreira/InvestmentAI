@@ -12,8 +12,9 @@ API, PWA, Firebase integration boundary, CI, environment separation, OpenBB prov
 - [x] Container liveness/readiness validation contract
 - [x] Provider-neutral production runtime configuration contract
 - [x] Provider-neutral production persistence contract
+- [x] Provider-neutral backup and recovery contract
 
-Production hosting, TLS and operational monitoring remain separate work. Runtime secret injection and persistence contracts are complete; provider-specific hosting/storage and backup implementation remain separate work.
+Production hosting, TLS and operational monitoring remain separate work. Runtime secret injection, persistence and backup/recovery contracts are complete; provider-specific hosting/storage and backup implementation remain separate work.
 
 ## Quant research
 Expand normalized fundamental statements, ROIC methodology, scoring/ranking, walk-forward validation, robust covariance and transaction-cost calibration.

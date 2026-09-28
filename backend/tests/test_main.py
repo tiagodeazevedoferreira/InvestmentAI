@@ -3,6 +3,7 @@ from uuid import UUID
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.settings import TradingMode
 
 
 client = TestClient(app)
@@ -45,7 +46,7 @@ def test_api_replaces_invalid_request_id():
 def test_api_readiness_fails_closed_for_unsafe_live_configuration(monkeypatch):
     from app.api import routes
 
-    monkeypatch.setattr(routes.settings, "trading_mode", routes.TradingMode.LIVE)
+    monkeypatch.setattr(routes.settings, "trading_mode", TradingMode.LIVE)
     monkeypatch.setattr(routes.settings, "live_trading_enabled", False)
     monkeypatch.setattr(routes.settings, "model_approved", False)
     monkeypatch.setattr(routes.settings, "risk_gate_enabled", False)

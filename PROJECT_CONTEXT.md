@@ -196,3 +196,10 @@ Task 046 is complete and validated. Recovery requirements now cover Firebase/PAP
 Task 047 is complete and validated as a provider-neutral hosting/deployment contract. The target topology keeps the FastAPI/PAPER runtime in a Linux container while the authenticated Windows DOTO/MT5 workstation remains a separate DEMO execution boundary. The contract covers TLS/ingress, readiness versus liveness, runtime secret injection, persistence/recovery integration, deployment lifecycle, rollback and operational monitoring requirements.
 
 No cloud provider was selected or provisioned, no public endpoint was exposed, no LIVE authorization was introduced and no new DEMO transaction was created. Actual production provisioning remains a separate implementation task.
+
+
+## Production deployment artifact checkpoint — 2026-09-28
+
+Task 048 adds a provider-neutral CI/CD artifact boundary. The production image is built and tagged with the source commit SHA, a simulation-only candidate is validated through /api/health and /api/ready, and the exact image is exported with a SHA-256 checksum as a controlled GitHub Actions artifact.
+
+No external registry, cloud provider, public endpoint, secret provisioning, LIVE authorization or DEMO transaction was introduced. Actual deployment remains a separate provider-specific implementation.

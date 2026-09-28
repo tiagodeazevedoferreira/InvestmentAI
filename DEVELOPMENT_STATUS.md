@@ -499,3 +499,18 @@ Detailed task record: `docs/codex/tasks/047-production-hosting-deployment-contra
 Implemented a provider-neutral CI/CD boundary that builds the production container with the Git commit SHA, validates a simulation-only candidate through liveness/readiness, exports an immutable compressed image artifact and publishes a SHA-256 checksum to GitHub Actions artifacts. The pipeline does not push to an external registry, provision infrastructure, expose a public endpoint, enable LIVE/DEMO execution or submit broker orders.
 
 Detailed task record: docs/codex/tasks/048-production-deployment-artifact-pipeline.md.
+
+
+## Task 049 — Cloud Run production deployment
+
+Implemented and merged on 2026-09-28. Cloud Run deployment is manual-dispatch only, authenticates GitHub Actions through OIDC/WIF, publishes commit-SHA images, deploys immutable Artifact Registry digests, references runtime secrets from Secret Manager, keeps the service private and verifies authenticated `/api/health` and `/api/ready` smoke tests. Runtime safety is explicitly simulation-only with LIVE, model approval and MT5/DEMO execution disabled. PR #72 subsequently corrected the service-level Invoker shell command.
+
+Detailed task record: docs/codex/tasks/049-cloud-run-production-deployment.md.
+
+## Task 050 — GCP infrastructure bootstrap
+
+Implemented and merged on 2026-09-28. Terraform provisions the existing project's required APIs, Artifact Registry repository, deployment/runtime service accounts, deployment IAM, repository/main-restricted GitHub WIF and empty Secret Manager containers. Secret values, broker credentials, Cloud Run service creation and trading enablement remain outside Terraform. PR #71 removed duplicate Terraform outputs; PR #72 aligned the deployment Invoker command and bootstrap documentation.
+
+The remaining gate is operator-side authenticated Terraform validation: `terraform init`, `terraform validate` and `terraform plan`, followed by explicit review before `terraform apply`.
+
+Detailed task record: docs/codex/tasks/050-gcp-infrastructure-bootstrap.md.

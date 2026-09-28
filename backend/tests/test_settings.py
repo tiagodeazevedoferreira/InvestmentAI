@@ -28,6 +28,14 @@ def test_production_api_security_settings(monkeypatch):
     assert settings.api_docs_enabled is False
 
 
+def test_log_level_reads_environment_variable(monkeypatch):
+    monkeypatch.setenv("LOG_LEVEL", "debug")
+
+    settings = Settings()
+
+    assert settings.log_level == "debug"
+
+
 def test_cors_origin_parser_ignores_empty_entries():
     from app.main import _cors_origins
 

@@ -169,6 +169,7 @@ Last updated: 2026-09-28
 - [x] Production API runtime hardening (Task 039)
 - [x] API observability baseline (Task 040)
 - [x] Production persistence contract (Task 045)
+- [x] Backup and recovery contract (Task 046)
 
 ## Current ML validation gate
 The causal ML trading backtest, robustness audit and model diagnosis are complete. The robustness gate is not yet passed because performance is not stable across all evaluated assets and assumptions. A causal pooled cross-asset model experiment is implemented to test whether normalized technical features transfer across PETR4, VALE3 and ITUB4 without changing execution policy. Task 011 diagnostics are now validated in CI and recorded as research/observability evidence. The pooled experiment remains research-only until its out-of-sample evidence is reviewed.
@@ -477,3 +478,8 @@ Detailed task record: `docs/codex/tasks/043-production-runtime-configuration-con
 Completed and validated on 2026-09-28. The production persistence boundary is explicit: Firebase is the authoritative external store for durable PAPER state and idempotency ledgers; the DEMO SQLite ledger remains on the controlled Windows DOTO/MT5 workstation; model artifacts under `models/xgboost` must be supplied independently of the container's ephemeral writable filesystem. Durable-state failures must fail closed rather than silently creating fresh authoritative state.
 
 No LIVE authorization, DEMO transaction, broker credential or production hosting was introduced.
+
+
+## Task 046 — Backup and recovery contract
+
+Completed and validated on 2026-09-28. The repository now defines provider-neutral recovery requirements for Firebase/PAPER state, the Windows DEMO SQLite ledger and XGBoost model artifacts. Recovery must validate structural integrity, idempotency/provenance and read-only reconciliation before state-mutating execution resumes. No automated backup/restore provider or new DEMO transaction was introduced.

@@ -189,3 +189,10 @@ This task is provider-neutral and does not provision storage, hosting, backups, 
 ## Backup and recovery checkpoint — 2026-09-28
 
 Task 046 is complete and validated. Recovery requirements now cover Firebase/PAPER state, the controlled Windows DEMO SQLite ledger and deployed model artifacts. Recovery must be independently validated before PAPER scheduling resumes, and DEMO execution remains disabled until its separate reconciliation gate is healthy. No provider-specific backup system or automated restore was introduced.
+
+
+## Production hosting/deployment checkpoint — 2026-09-28
+
+Task 047 is complete and validated as a provider-neutral hosting/deployment contract. The target topology keeps the FastAPI/PAPER runtime in a Linux container while the authenticated Windows DOTO/MT5 workstation remains a separate DEMO execution boundary. The contract covers TLS/ingress, readiness versus liveness, runtime secret injection, persistence/recovery integration, deployment lifecycle, rollback and operational monitoring requirements.
+
+No cloud provider was selected or provisioned, no public endpoint was exposed, no LIVE authorization was introduced and no new DEMO transaction was created. Actual production provisioning remains a separate implementation task.

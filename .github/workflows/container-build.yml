@@ -15,7 +15,7 @@ jobs:
       - name: Build production backend image
         run: docker build --pull --tag investmentai-backend:ci .
 
-      - name: Start container
+      - name: Start safe container
         run: docker run --detach --name investmentai-backend-ci --publish 8000:8000 investmentai-backend:ci
 
       - name: Wait for container health
@@ -37,9 +37,40 @@ jobs:
           docker logs investmentai-backend-ci
           exit 1
 
-      - name: Smoke test API health
+      - name: Smoke test liveness
         run: docker exec investmentai-backend-ci python -c "import urllib.request; response=urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=5); assert response.status == 200; print(response.read().decode())"
 
-      - name: Cleanup container
+      - name: Smoke test safe readiness
+        run: docker exec investmentai-backend-ci python -c "import urllib.request, json; response=urllib.request.urlopen('http://127.0.0.1:8000/api/ready', timeout=5); body=json.load(response); assert response.status == 200; assert body['status'] == 'ready'; assert body['trading_mode'] == 'simulation'; print(body)"
+
+      - name: Remove safe container
         if: always()
         run: docker rm --force investmentai-backend-ci
+
+      - name: Start unsafe LIVE container
+        run: docker run --detach --name investmentai-backend-live-unsafe --publish 8001:8000 -e TRADING_MODE=live -e LIVE_TRADING_ENABLED=false -e MODEL_APPROVED=false -e RISK_GATE_ENABLED=false investmentai-backend:ci
+
+      - name: Smoke test fail-closed readiness
+        shell: bash
+        run: |
+          set -euo pipefail
+          for i in {1..30}; do
+            if curl --silent --show-error --output /tmp/readiness.json --write-out '%{http_code}' http://127.0.0.1:8001/api/ready > /tmp/readiness.status; then
+              status="$(cat /tmp/readiness.status)"
+              if [ "$status" = "503" ]; then
+                cat /tmp/readiness.json
+                grep -q 'not_ready' /tmp/readiness.json
+                grep -q 'live trading is disabled' /tmp/readiness.json
+                grep -q 'live model approval is missing' /tmp/readiness.json
+                grep -q 'risk gate is disabled' /tmp/readiness.json
+                exit 0
+              fi
+            fi
+            sleep 2
+          done
+          docker logs investmentai-backend-live-unsafe
+          exit 1
+
+      - name: Cleanup unsafe container
+        if: always()
+        run: docker rm --force investmentai-backend-live-unsafe

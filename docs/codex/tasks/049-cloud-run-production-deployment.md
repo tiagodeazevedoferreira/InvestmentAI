@@ -26,10 +26,12 @@ Provision outside Git:
 - Artifact Registry Docker repository;
 - dedicated GitHub Actions deployment service account;
 - Workload Identity Federation trust for this repository;
-- Artifact Registry push and Cloud Run deployment permissions;
+- Artifact Registry push, Cloud Run deployment and service-level invocation permissions;
 - Cloud Run runtime service account;
 - Secret Manager secrets required by the application;
 - least-privilege access from the Cloud Run runtime service account to those secrets.
+
+The deployment workflow grants the deployment service account service-level Cloud Run Invoker permission after creating/updating the service so private endpoint smoke tests can run without making the service public.
 
 GitHub Actions variables:
 

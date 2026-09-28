@@ -27,3 +27,10 @@ Provider failures return explicit domain errors; API endpoints use stable respon
 - Train/validation/test are chronological.
 - Backtests account for cash, position state and eventually fees/slippage.
 - Model metrics must be evaluated out-of-sample.
+
+
+## Production deployment boundary
+
+The production deployment topology separates the Linux API/PAPER runtime from the Windows DOTO/MT5 execution workstation. The Linux container is responsible for API, research/data services, PAPER scheduling and operational endpoints; it must not install MT5, own the DEMO SQLite ledger or bypass the controlled broker authorization boundary.
+
+Production ingress must terminate TLS before public exposure and use the existing readiness endpoint independently from liveness. Durable PAPER state and model artifacts remain outside the ephemeral container lifecycle, while DEMO state remains on the controlled Windows workstation. Provider-specific hosting, networking, secret management and monitoring implementations are intentionally deferred.

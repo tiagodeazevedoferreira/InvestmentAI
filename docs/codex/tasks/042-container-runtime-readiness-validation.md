@@ -1,7 +1,7 @@
 # Task 042 — Container runtime readiness validation contract
 
 ## Status
-IN PROGRESS
+COMPLETED — validated
 
 ## Objective
 Extend the production container validation baseline so deployment automation verifies both liveness and the API operational-readiness contract without changing trading authority.
@@ -30,4 +30,16 @@ Extend the production container validation baseline so deployment automation ver
 - Creating another DEMO broker transaction.
 
 ## Validation record
-Pending.
+
+Validated on commit `2a5346c89aa99cdfff0f49eeb7bd2abff538b88a`.
+
+- Container Build: `36426269273` — success
+- CI: `36426269293` — success
+- Security and Dependency Scan: `36426269385` — success
+- External Intelligence Validation: `36426269281` — success
+- Cross-Asset ML Experiment: `36426269365` — success
+- Phase 10 Live Gate Tests: `36426269224` — success
+
+The Container Build now validates safe liveness/readiness and an intentionally unsafe LIVE configuration that must return HTTP 503 from `/api/ready`. The Docker HEALTHCHECK remains on `/api/health` because health is the liveness signal; readiness is validated separately by deployment automation.
+
+No broker credentials, broker calls, LIVE execution, model promotion or DEMO transaction were introduced.

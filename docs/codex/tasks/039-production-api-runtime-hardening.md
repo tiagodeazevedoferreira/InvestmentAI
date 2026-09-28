@@ -22,8 +22,19 @@ This task does not:
 
 ## Validation
 
-Backend regression coverage was added for the new runtime settings and CORS parsing. Full CI, Security and Dependency Scan, External Intelligence Validation, Cross-Asset ML Experiment and Phase 10 Live Gate validation must pass before this task is marked complete.
+Backend regression coverage was added for the new runtime settings and CORS parsing.
+
+The final commit `8f429f1a51ef8c041c52239c119ae60f3a4bbc68` passed all required validation pipelines:
+
+- CI: `36279159400`
+- Security and Dependency Scan: `36279159348`
+- External Intelligence Validation: `36279159374`
+- Cross-Asset ML Experiment: `36279159343`
+- Phase 10 Live Gate Tests: `36279159369`
+- Container Build: `36279159358`
+
+All completed successfully. The task did not alter DEMO/LIVE authorization or broker behavior.
 
 ## Status
 
-IMPLEMENTED — validation pending.
+COMPLETED — validated on 2026-09-28.

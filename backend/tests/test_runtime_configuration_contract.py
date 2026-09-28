@@ -80,3 +80,22 @@ def test_secret_bearing_webhook_routes_are_logged_without_path_values():
     assert "_request_route(request)" in main
     assert "logger.info(" in main
     assert "logger.exception(" in main
+
+
+def test_production_persistence_contract_keeps_durable_state_out_of_ephemeral_container_storage():
+    root = Path(__file__).resolve().parents[2]
+    persistence = (root / "docs" / "codex" / "tasks" / "045-production-persistence-contract.md").read_text(
+        encoding="utf-8"
+    )
+    paper_store = (root / "app" / "services" / "paper_store.py").read_text(encoding="utf-8")
+    paper_ledger = (root / "app" / "services" / "paper_ledger.py").read_text(encoding="utf-8")
+    demo_ledger = (root / "app" / "services" / "demo_ledger.py").read_text(encoding="utf-8")
+
+    assert "PAPER account" in persistence
+    assert "Firebase Realtime Database" in persistence
+    assert "DEMO order ledger" in persistence
+    assert "Windows execution workstation" in persistence
+    assert "models/xgboost" in persistence
+    assert "self.firebase.get(self.path)" in paper_store
+    assert "Firebase is required for paper idempotency" in paper_ledger
+    assert "sqlite3" in demo_ledger

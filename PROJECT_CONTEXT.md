@@ -157,3 +157,13 @@ Final validation commit: `78c5c620967f7e7f10a4abdb9678e9e4fbdbd4cb`.
 Validation runs: CI `36423195902`, Security `36423195901`, External Intelligence `36423195898`, Cross-Asset ML `36423195908`, Phase 10 `36423196108`, Container Build `36423195962`.
 
 This readiness contract remains deployment-neutral: it does not enable LIVE trading, alter DEMO authorization, add broker credentials, publish/deploy the container, or change trading signals/risk limits/model promotion.
+
+
+## Container runtime readiness checkpoint — 2026-09-28
+
+Task 042 is complete and validated. The Container Build workflow now validates the distinction between liveness and readiness: the default container must return HTTP 200 from `/api/health` and `/api/ready`, while an intentionally unsafe LIVE configuration must return HTTP 503 from `/api/ready` with the expected safety issues. The Docker HEALTHCHECK remains on `/api/health`; readiness is a separate deployment signal.
+
+Final validation commit: `2a5346c89aa99cdfff0f49eeb7bd2abff538b88a`.
+Validation runs: Container Build `36426269273`, CI `36426269293`, Security `36426269385`, External Intelligence `36426269281`, Cross-Asset ML `36426269365`, Phase 10 `36426269224`.
+
+This remains deployment-neutral: no production hosting, TLS, runtime secret-management, broker credentials, LIVE execution, model promotion or DEMO transaction was introduced.

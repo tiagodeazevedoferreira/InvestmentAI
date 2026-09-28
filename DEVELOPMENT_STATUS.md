@@ -1,6 +1,6 @@
 # Development Status
 
-Last updated: 2026-09-26
+Last updated: 2026-09-28
 
 ## Foundation
 - [x] Repository and persistent handoff context
@@ -166,6 +166,7 @@ Last updated: 2026-09-26
 - [x] End-to-end training/backtest test
 - [x] Security/dependency scan
 - [ ] Production deployment
+- [x] Production API runtime hardening (Task 039)
 
 ## Current ML validation gate
 The causal ML trading backtest, robustness audit and model diagnosis are complete. The robustness gate is not yet passed because performance is not stable across all evaluated assets and assumptions. A causal pooled cross-asset model experiment is implemented to test whether normalized technical features transfer across PETR4, VALE3 and ITUB4 without changing execution policy. Task 011 diagnostics are now validated in CI and recorded as research/observability evidence. The pooled experiment remains research-only until its out-of-sample evidence is reviewed.
@@ -386,6 +387,18 @@ Validation completed successfully in Container Build run `36278613121` for commi
 This remains a deployment foundation only. Production hosting, domain/TLS, runtime secret injection, persistent storage and operational monitoring remain separate work.
 
 Detailed task record: `docs/codex/tasks/038-production-container-build-baseline.md`.
+
+### Task 039 — Production API runtime hardening
+
+Completed and validated on 2026-09-28.
+
+FastAPI runtime hardening is complete with configurable CORS origins via `CORS_ALLOWED_ORIGINS`, optional disabling of interactive API documentation via `API_DOCS_ENABLED=false`, and baseline security response headers for content sniffing, framing and referrer policy. Default API behavior remains unchanged.
+
+The final commit `8f429f1a51ef8c041c52239c119ae60f3a4bbc68` passed CI `36279159400`, Security and Dependency Scan `36279159348`, External Intelligence Validation `36279159374`, Cross-Asset ML Experiment `36279159343`, Phase 10 Live Gate Tests `36279159369` and Container Build `36279159358`.
+
+The task does not enable LIVE trading, change DEMO authorization, add broker credentials, publish the container, or alter signals, risk limits or model promotion.
+
+Detailed task record: `docs/codex/tasks/039-production-api-runtime-hardening.md`.
 
 ### Task 037 — Interrupted DEMO submission recovery correlation
 

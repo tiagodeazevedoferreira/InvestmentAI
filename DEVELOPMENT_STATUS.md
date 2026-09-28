@@ -438,3 +438,16 @@ Validation completed successfully on commit `78c5c620967f7e7f10a4abdb9678e9e4fbd
 The task does not enable LIVE trading, alter DEMO authorization, add broker credentials, publish/deploy the container, or change trading signals, risk limits or model promotion. The readiness endpoint evaluates existing configuration flags only.
 
 Detailed task record: `docs/codex/tasks/041-api-operational-readiness-contract.md`.
+
+
+### Task 042 — Container runtime readiness validation contract
+
+Completed and validated on 2026-09-28.
+
+The production container validation now exercises both application liveness and operational readiness. The default safe container must return HTTP 200 from `/api/health` and `/api/ready`. A separate intentionally unsafe LIVE container is started with LIVE trading disabled, model approval missing and the risk gate disabled; `/api/ready` must return HTTP 503 and expose only the readiness issue labels needed for diagnosis.
+
+The Docker HEALTHCHECK remains mapped to `/api/health`, preserving the distinction between lightweight liveness and deployment readiness. The task is validation-only and does not introduce broker credentials, execution authority, LIVE enablement, model promotion or DEMO transactions.
+
+Validation completed successfully on commit `2a5346c89aa99cdfff0f49eeb7bd2abff538b88a`: Container Build `36426269273`, CI `36426269293`, Security and Dependency Scan `36426269385`, External Intelligence Validation `36426269281`, Cross-Asset ML Experiment `36426269365` and Phase 10 Live Gate Tests `36426269224`.
+
+Detailed task record: `docs/codex/tasks/042-container-runtime-readiness-validation.md`.

@@ -12,9 +12,9 @@ API, PWA, Firebase integration boundary, CI, environment separation, OpenBB prov
 - [x] Container liveness/readiness validation contract
 - [x] Provider-neutral production runtime configuration contract
 - [x] Provider-neutral production persistence contract
-- [x] Provider-neutral backup and recovery contract\n- [x] Provider-neutral production hosting and deployment contract
+- [x] Provider-neutral backup and recovery contract\n- [x] Provider-neutral production hosting and deployment contract\n- [x] Provider-neutral production deployment artifact pipeline
 
-The provider-neutral hosting/deployment contract is complete. Actual production provisioning, TLS, secret-manager integration, monitoring and provider-specific backup/storage implementation remain separate work.
+The provider-neutral hosting/deployment contract and deployment artifact pipeline are complete. Actual production provisioning, registry integration, TLS, secret-manager integration, monitoring and provider-specific backup/storage implementation remain separate work.
 
 ## Quant research
 Expand normalized fundamental statements, ROIC methodology, scoring/ranking, walk-forward validation, robust covariance and transaction-cost calibration.

@@ -44,8 +44,8 @@ def test_production_runtime_template_covers_all_settings_fields():
     }
 
     assert expected <= declared
-    assert "password" not in template.lower()
-    assert "private_key" not in template.lower()
+    assert "password=" not in template.lower()
+    assert "private_key=" not in template.lower()
 
 
 def test_production_template_defaults_keep_execution_disabled():

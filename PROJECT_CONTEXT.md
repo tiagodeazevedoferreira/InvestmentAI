@@ -167,3 +167,13 @@ Final validation commit: `2a5346c89aa99cdfff0f49eeb7bd2abff538b88a`.
 Validation runs: Container Build `36426269273`, CI `36426269293`, Security `36426269385`, External Intelligence `36426269281`, Cross-Asset ML `36426269365`, Phase 10 `36426269224`.
 
 This remains deployment-neutral: no production hosting, TLS, runtime secret-management, broker credentials, LIVE execution, model promotion or DEMO transaction was introduced.
+
+
+## Production runtime configuration checkpoint — 2026-09-28
+
+Task 043 is complete and validated. The repository now contains a provider-neutral runtime configuration contract and `deploy/production.env.example`. The contract inventories API settings, separates configuration from secret material, preserves simulation/LIVE-disabled/DEMO-disabled defaults, and documents that the Linux container is not the Windows DOTO/MT5 execution workstation.
+
+Final validation commit: `9bf2fa27645ad1d7ccf0a14687414be7de739f06`.
+Validation runs: CI `36430394082`, Security `36430393911`, External Intelligence `36430394353`, Cross-Asset ML `36430394262`, Phase 10 `36430394033`, Container Build `36430394126`.
+
+The template contains no real secrets and does not implement hosting, secret-manager integration, LIVE execution or DEMO execution.

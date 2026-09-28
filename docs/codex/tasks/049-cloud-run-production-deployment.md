@@ -31,6 +31,8 @@ Provision outside Git:
 - Secret Manager secrets required by the application;
 - least-privilege access from the Cloud Run runtime service account to those secrets.
 
+The deployment service account also needs Cloud Run Invoker permission on the service because the workflow validates the private HTTPS endpoint with an identity token.
+
 GitHub Actions variables:
 
 - GCP_PROJECT_ID

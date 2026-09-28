@@ -3,6 +3,16 @@
 ## Completed architecture/foundation
 API, PWA, Firebase integration boundary, CI, environment separation, OpenBB provider boundary, Yahoo fallback, technical analytics, valuation primitives, Markowitz/efficient frontier/VaR, cost-aware simulator, XGBoost training boundary, financial evaluation metrics, model promotion gate and broker isolation.
 
+## Deployment / runtime
+
+- [x] Production-oriented Linux container baseline
+- [x] API runtime hardening
+- [x] API observability baseline
+- [x] API operational readiness contract
+- [x] Container liveness/readiness validation contract
+
+Production hosting, TLS, runtime secret injection, persistence and operational monitoring remain separate work.
+
 ## Quant research
 Expand normalized fundamental statements, ROIC methodology, scoring/ranking, walk-forward validation, robust covariance and transaction-cost calibration.
 

@@ -1,0 +1,7 @@
+project_id = "investmentai-ae1e5"
+region = "southamerica-east1"
+artifact_registry_repository = "investmentai"
+deploy_service_account_id = "investmentai-deploy"
+runtime_service_account_id = "investmentai-runtime"
+workload_identity_pool_id = "github-actions"
+workload_identity_provider_id = "investmentai"

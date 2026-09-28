@@ -15,7 +15,8 @@ API, PWA, Firebase integration boundary, CI, environment separation, OpenBB prov
 - [x] Provider-neutral backup and recovery contract
 - [x] Provider-neutral production hosting and deployment contract
 - [x] Provider-neutral production deployment artifact pipeline
-- [ ] Provider-specific Cloud Run production deployment
+- [x] Provider-specific Cloud Run production deployment
+- [ ] GCP infrastructure bootstrap validation/apply
 
 The provider-neutral hosting/deployment contract and deployment artifact pipeline are complete. Actual production provisioning, registry integration, TLS, secret-manager integration, monitoring and provider-specific backup/storage implementation remain separate work.
 

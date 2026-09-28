@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     xgboost_model_dir: str = "models/xgboost"
     cors_allowed_origins: str = "*"
     api_docs_enabled: bool = True
+    log_level: str = "INFO"
 
     # MT5/Doto connection settings. No password is stored here: the desktop
     # Doto Global MT5 terminal must already be authenticated.

@@ -203,3 +203,8 @@ No cloud provider was selected or provisioned, no public endpoint was exposed, n
 Task 048 adds a provider-neutral CI/CD artifact boundary. The production image is built and tagged with the source commit SHA, a simulation-only candidate is validated through /api/health and /api/ready, and the exact image is exported with a SHA-256 checksum as a controlled GitHub Actions artifact.
 
 No external registry, cloud provider, public endpoint, secret provisioning, LIVE authorization or DEMO transaction was introduced. Actual deployment remains a separate provider-specific implementation.
+
+
+## Provider-specific production deployment checkpoint — 2026-09-28
+
+Task 049 implementation is now present on branch `codex/task-049-cloud-run-production-deployment`. The provider-specific target is Google Cloud Run with Artifact Registry. The deployment workflow is manual-dispatch only, authenticates through GitHub Actions OIDC/Workload Identity Federation, publishes the container under the commit SHA, resolves the resulting Artifact Registry SHA-256 digest, and deploys that immutable digest. Runtime secrets are referenced from Google Secret Manager. The deployed service remains private (`--no-allow-unauthenticated`) because the current API does not yet provide application-level authentication for mutating paper/trading endpoints. Deployment smoke tests use an identity token and verify `/api/health`, `/api/ready`, and `TRADING_MODE=simulation`. LIVE trading, model approval and MT5/DEMO execution remain disabled. Actual cloud provisioning, IAM setup, Secret Manager creation, custom domain/TLS and first production deployment still require explicit infrastructure configuration.

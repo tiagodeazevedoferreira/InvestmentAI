@@ -103,22 +103,22 @@ resource "google_service_account_iam_member" "github_deploy" {
 resource "google_secret_manager_secret" "firebase_database_url" {
   project = var.project_id
   secret_id = "investmentai-firebase-database-url"
-  replication { auto {} }
+  replication {\n    auto {}\n  }
 }
 
 resource "google_secret_manager_secret" "firebase_service_account" {
   project = var.project_id
   secret_id = "investmentai-firebase-service-account"
-  replication { auto {} }
+  replication {\n    auto {}\n  }
 }
 
 resource "google_secret_manager_secret" "tradingview_webhook_secret" {
   project = var.project_id
   secret_id = "investmentai-tradingview-webhook-secret"
-  replication { auto {} }
+  replication {\n    auto {}\n  }
 }
 
-output "artifact_registry_repository" { value = google_artifact_registry_repository.investmentai.name }
-output "deploy_service_account" { value = google_service_account.deploy.email }
-output "runtime_service_account" { value = google_service_account.runtime.email }
-output "workload_identity_provider" { value = google_iam_workload_identity_pool_provider.github.name }
+output "artifact_registry_repository" {\n  value = google_artifact_registry_repository.investmentai.name\n}
+output "deploy_service_account" {\n  value = google_service_account.deploy.email\n}
+output "runtime_service_account" {\n  value = google_service_account.runtime.email\n}
+output "workload_identity_provider" {\n  value = google_iam_workload_identity_pool_provider.github.name\n}

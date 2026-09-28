@@ -112,6 +112,15 @@ Task 038 production container baseline is validated. Commit `3e3071a2a2f12df2ebd
 
 The container is a deployment foundation only. The Linux container must not be treated as the Doto/MT5 execution workstation: the existing MT5/DOTO integration depends on the authenticated desktop terminal and remains a separately controlled DEMO boundary. Production hosting, TLS, secret injection, persistence and operational monitoring are not yet implemented.
 
+## API runtime hardening checkpoint — 2026-09-28
+
+Task 039 is complete and validated. The FastAPI runtime now supports configurable CORS through `CORS_ALLOWED_ORIGINS`, optional interactive API documentation through `API_DOCS_ENABLED`, and baseline response security headers (`X-Content-Type-Options`, `X-Frame-Options` and `Referrer-Policy`). Defaults preserve existing API behavior.
+
+Final validation commit: `8f429f1a51ef8c041c52239c119ae60f3a4bbc68`.
+Validation runs: CI `36279159400`, Security `36279159348`, External Intelligence `36279159374`, Cross-Asset ML `36279159343`, Phase 10 `36279159369`, Container Build `36279159358`.
+
+This hardening remains deployment-only: it does not enable LIVE trading, alter DEMO authorization, add broker credentials, or change trading signals/risk limits/model promotion.
+
 ## Recent commits / handoff checkpoint
 - `2d827275e3c904c61df74f15bd98d5bab5e6797f` — `fix: bypass Windows PowerShell execution policy in security workflow`
 - `63d2dbf8fb69375e7dcb5a6c9e6e932872fcf123` — `docs: complete Task 036 validation record`

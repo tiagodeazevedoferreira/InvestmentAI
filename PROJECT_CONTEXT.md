@@ -137,3 +137,13 @@ This hardening remains deployment-only: it does not enable LIVE trading, alter D
 
 ## Handoff rule
 A new conversation should read this file plus `DEVELOPMENT_STATUS.md`, `DECISIONS.md`, `ARCHITECTURE.md`, `ROADMAP.md`, `docs/OPENBB_B3_PROVIDER.md` and `docs/PAPER_SIGNAL_AUTOMATION.md`, then inspect current source/workflows before changing anything. The context files are part of the project's continuity mechanism: after every material change, update the relevant documentation so a new chat can resume from the recorded state without relying on an old conversation.
+
+
+## API observability checkpoint — 2026-09-28
+
+Task 040 is complete and validated. The FastAPI runtime now supports configurable `LOG_LEVEL`, low-cardinality request access logging, exception logging without request bodies/query parameters/secrets, and request correlation through `X-Request-ID`. Valid caller IDs are preserved; missing or invalid IDs receive generated UUIDs. Existing security headers and API behavior are preserved.
+
+Final validation commit: `5aee55e561317e007c003c0650d4090125986712`.
+Validation runs: CI `36418918794`, Security `36418918741`, External Intelligence Validation `36418918759`, Cross-Asset ML Experiment `36418918739`, Phase 10 Live Gate Tests `36418918776`, Container Build `36418918784`.
+
+This observability baseline remains deployment-neutral: it does not enable LIVE trading, alter DEMO authorization, add broker credentials, publish/deploy the container, or change trading signals/risk limits/model promotion.

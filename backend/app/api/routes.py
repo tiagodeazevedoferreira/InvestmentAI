@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import JSONResponse
 from pathlib import Path
 import pandas as pd
 from ..models import HealthResponse, BacktestRequest, BacktestResponse, ValuationRequest, ValuationResponse, PortfolioRequest, PortfolioResponse, VaRRequest, VaRResponse, PredictionResponse, FundamentalResponse, TradingViewWebhookResponse
@@ -24,6 +25,37 @@ settings = get_settings()
 @router.get("/health", response_model=HealthResponse)
 def health():
     return {"status": "ok", "trading_mode": settings.trading_mode.value}
+
+@router.get("/ready")
+def readiness():
+    """Return whether runtime safety/configuration prerequisites are satisfied."""
+    issues: list[str] = []
+
+    if settings.trading_mode.value == "live":
+        if not settings.live_trading_enabled:
+            issues.append("live trading is disabled")
+        if not settings.model_approved:
+            issues.append("live model approval is missing")
+        if not settings.risk_gate_enabled:
+            issues.append("risk gate is disabled")
+
+    if settings.mt5_demo_execution_enabled and settings.trading_mode.value != "demo":
+        issues.append("DEMO execution is enabled outside demo trading mode")
+
+    if issues:
+        return JSONResponse(
+            status_code=503,
+            content={
+                "status": "not_ready",
+                "trading_mode": settings.trading_mode.value,
+                "issues": issues,
+            },
+        )
+
+    return {
+        "status": "ready",
+        "trading_mode": settings.trading_mode.value,
+    }
 
 @router.get("/market/{symbol}")
 def market(symbol: str, period: str = "1y", provider: str = Query("yahoo")):

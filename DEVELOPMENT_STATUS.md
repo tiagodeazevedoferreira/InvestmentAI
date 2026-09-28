@@ -451,3 +451,21 @@ The Docker HEALTHCHECK remains mapped to `/api/health`, preserving the distincti
 Validation completed successfully on commit `2a5346c89aa99cdfff0f49eeb7bd2abff538b88a`: Container Build `36426269273`, CI `36426269293`, Security and Dependency Scan `36426269385`, External Intelligence Validation `36426269281`, Cross-Asset ML Experiment `36426269365` and Phase 10 Live Gate Tests `36426269224`.
 
 Detailed task record: `docs/codex/tasks/042-container-runtime-readiness-validation.md`.
+
+
+### Task 043 — Production runtime configuration contract
+
+Completed and validated on 2026-09-28.
+
+A provider-neutral runtime configuration contract was added for the production-oriented Linux API container. The contract inventories the settings consumed by `backend/app/settings.py`, documents which values are sensitive and must be injected by the eventual hosting platform, and provides `deploy/production.env.example` with safe placeholders only.
+
+The production template defaults to simulation, LIVE disabled, model approval disabled and DEMO execution disabled. It also documents CORS, API documentation, logging, persistence-path limitations and the separation between the Linux container and the authenticated Windows DOTO/MT5 workstation.
+
+Automated regression coverage verifies that the template accounts for the deployment settings and preserves the disabled execution defaults.
+
+Final validation commit: `9bf2fa27645ad1d7ccf0a14687414be7de739f06`.
+Validation runs: CI `36430394082`, Security and Dependency Scan `36430393911`, External Intelligence Validation `36430394353`, Cross-Asset ML Experiment `36430394262`, Phase 10 Live Gate Tests `36430394033`, Container Build `36430394126`.
+
+No real secret, credential, broker password, LIVE authorization or DEMO transaction was introduced.
+
+Detailed task record: `docs/codex/tasks/043-production-runtime-configuration-contract.md`.

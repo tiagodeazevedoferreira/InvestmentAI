@@ -112,6 +112,16 @@ jobs:
             --set-env-vars="APP_NAME=InvestmentAI,ENVIRONMENT=production,TRADING_MODE=simulation,LIVE_TRADING_ENABLED=false,MODEL_APPROVED=false,RISK_GATE_ENABLED=true,MT5_DEMO_EXECUTION_ENABLED=false,API_DOCS_ENABLED=false,LOG_LEVEL=INFO,CORS_ALLOWED_ORIGINS=*" \
             --update-secrets="FIREBASE_DATABASE_URL=investmentai-firebase-database-url:latest,FIREBASE_SERVICE_ACCOUNT=investmentai-firebase-service-account:latest,TRADINGVIEW_WEBHOOK_SECRET=investmentai-tradingview-webhook-secret:latest"
 
+      - name: Grant deployment service account service-level Invoker access
+        run: |
+          set -euo pipefail
+          gcloud run services add-iam-policy-binding "${CLOUD_RUN_SERVICE}" \\
+            --project="${GCP_PROJECT_ID}" \\
+            --region="${GCP_REGION}" \\
+            --member="serviceAccount:${GCP_DEPLOY_SERVICE_ACCOUNT}" \\
+            --role="roles/run.invoker" \\
+            --quiet
+
       - name: Wait for Cloud Run deployment
         run: |
           set -euo pipefail

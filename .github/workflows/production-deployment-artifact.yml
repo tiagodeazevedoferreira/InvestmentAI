@@ -1,0 +1,72 @@
+name: Production Deployment Artifact
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-validate-artifact:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build immutable production image
+        run: docker build --pull --tag investmentai-backend:${{ github.sha }} .
+
+      - name: Validate image metadata
+        run: |
+          docker image inspect investmentai-backend:${{ github.sha }}             --format='image={{.Id}} user={{.Config.User}} entrypoint={{json .Config.Entrypoint}} cmd={{json .Config.Cmd}}'
+
+      - name: Start production-safe candidate
+        run: |
+          docker run --detach             --name investmentai-deployment-candidate             --publish 8000:8000             -e TRADING_MODE=simulation             -e LIVE_TRADING_ENABLED=false             -e MODEL_APPROVED=false             -e RISK_GATE_ENABLED=true             -e MT5_DEMO_EXECUTION_ENABLED=false             -e API_DOCS_ENABLED=false             investmentai-backend:${{ github.sha }}
+
+      - name: Validate candidate liveness and readiness
+        shell: bash
+        run: |
+          set -euo pipefail
+          for i in {1..30}; do
+            if curl --silent --show-error --fail http://127.0.0.1:8000/api/health > /tmp/health.json               && curl --silent --show-error --fail http://127.0.0.1:8000/api/ready > /tmp/ready.json; then
+              cat /tmp/health.json
+              cat /tmp/ready.json
+              python - <<'PY'
+          import json
+          from pathlib import Path
+
+          health = json.loads(Path("/tmp/health.json").read_text())
+          ready = json.loads(Path("/tmp/ready.json").read_text())
+          assert health["status"] == "ok"
+          assert ready["status"] == "ready"
+          assert ready["trading_mode"] == "simulation"
+          PY
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs investmentai-deployment-candidate
+          exit 1
+
+      - name: Export immutable deployment artifact
+        run: |
+          mkdir -p deployment-artifact
+          docker save investmentai-backend:${{ github.sha }} | gzip -n > deployment-artifact/investmentai-backend-${{ github.sha }}.tar.gz
+          sha256sum deployment-artifact/investmentai-backend-${{ github.sha }}.tar.gz > deployment-artifact/SHA256SUMS
+          cat deployment-artifact/SHA256SUMS
+
+      - name: Upload deployment artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: investmentai-production-image-${{ github.sha }}
+          path: deployment-artifact/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Cleanup candidate
+        if: always()
+        run: docker rm --force investmentai-deployment-candidate

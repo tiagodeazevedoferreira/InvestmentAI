@@ -184,3 +184,8 @@ The template contains no real secrets and does not implement hosting, secret-man
 Task 045 is complete and validated. Firebase is the authoritative external state store for durable PAPER account and decision data; the DEMO SQLite ledger remains on the controlled Windows DOTO/MT5 workstation; model artifacts must not depend on an ephemeral container filesystem. Persistence failures must fail closed rather than silently creating fresh authoritative state.
 
 This task is provider-neutral and does not provision storage, hosting, backups, TLS, LIVE execution or new DEMO transactions.
+
+
+## Backup and recovery checkpoint — 2026-09-28
+
+Task 046 is complete and validated. Recovery requirements now cover Firebase/PAPER state, the controlled Windows DEMO SQLite ledger and deployed model artifacts. Recovery must be independently validated before PAPER scheduling resumes, and DEMO execution remains disabled until its separate reconciliation gate is healthy. No provider-specific backup system or automated restore was introduced.

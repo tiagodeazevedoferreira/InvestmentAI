@@ -492,3 +492,10 @@ Completed and validated on 2026-09-28. A provider-neutral production hosting/dep
 Regression coverage verifies the Linux/Windows execution separation, safe runtime defaults, readiness/liveness distinction and provider-neutral deployment posture.
 
 Detailed task record: `docs/codex/tasks/047-production-hosting-deployment-contract.md`.
+
+
+### Task 048 — Production deployment artifact pipeline
+
+Implemented a provider-neutral CI/CD boundary that builds the production container with the Git commit SHA, validates a simulation-only candidate through liveness/readiness, exports an immutable compressed image artifact and publishes a SHA-256 checksum to GitHub Actions artifacts. The pipeline does not push to an external registry, provision infrastructure, expose a public endpoint, enable LIVE/DEMO execution or submit broker orders.
+
+Detailed task record: docs/codex/tasks/048-production-deployment-artifact-pipeline.md.

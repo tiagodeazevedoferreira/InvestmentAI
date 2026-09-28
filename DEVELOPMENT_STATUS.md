@@ -167,6 +167,7 @@ Last updated: 2026-09-28
 - [x] Security/dependency scan
 - [ ] Production deployment
 - [x] Production API runtime hardening (Task 039)
+- [x] API observability baseline (Task 040)
 
 ## Current ML validation gate
 The causal ML trading backtest, robustness audit and model diagnosis are complete. The robustness gate is not yet passed because performance is not stable across all evaluated assets and assumptions. A causal pooled cross-asset model experiment is implemented to test whether normalized technical features transfer across PETR4, VALE3 and ITUB4 without changing execution policy. Task 011 diagnostics are now validated in CI and recorded as research/observability evidence. The pooled experiment remains research-only until its out-of-sample evidence is reviewed.
@@ -411,3 +412,16 @@ Validation is deterministic and fault-injected: the test simulates an accepted b
 Real broker-connected validation of an actually interrupted MT5 order_send() remains intentionally pending because reproducing that condition would require deliberately creating another DEMO transaction.
 
 Detailed task record: docs/codex/tasks/037-interrupted-demo-submission-recovery.md.
+
+
+### Task 040 — API observability baseline
+
+Completed and validated on 2026-09-28.
+
+The FastAPI runtime now provides deployment-neutral request observability: configurable `LOG_LEVEL`, one low-cardinality access event per completed request, exception logging without request bodies/query parameters/secrets, and UUID-based `X-Request-ID` correlation with preservation of valid caller-supplied IDs. Existing security headers and API behavior were preserved.
+
+Validation completed successfully in CI `36418918794`, Security and Dependency Scan `36418918741`, External Intelligence Validation `36418918759`, Cross-Asset ML Experiment `36418918739`, Phase 10 Live Gate Tests `36418918776` and Container Build `36418918784`.
+
+The task does not enable LIVE trading, alter DEMO authorization, add broker credentials, publish/deploy the container, or change trading signals, risk limits or model promotion.
+
+Detailed task record: `docs/codex/tasks/040-api-observability-baseline.md`.

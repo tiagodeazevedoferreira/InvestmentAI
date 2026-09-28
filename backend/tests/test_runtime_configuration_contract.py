@@ -54,3 +54,29 @@ def test_production_template_defaults_keep_execution_disabled():
     assert "LIVE_TRADING_ENABLED=false" in template
     assert "MODEL_APPROVED=false" in template
     assert "MT5_DEMO_EXECUTION_ENABLED=false" in template
+
+def test_secret_values_are_runtime_only():
+    root = Path(__file__).resolve().parents[2]
+    template = (root / "deploy" / "production.env.example").read_text(encoding="utf-8")
+    dockerfile = (root / "Dockerfile").read_text(encoding="utf-8")
+    dockerignore = (root / ".dockerignore").read_text(encoding="utf-8")
+
+    for key in ("FIREBASE_SERVICE_ACCOUNT", "TRADINGVIEW_WEBHOOK_SECRET"):
+        assert f"{key}=" in template
+        assert f"{key}=\n" in template
+
+    assert "ARG FIREBASE_SERVICE_ACCOUNT" not in dockerfile
+    assert "ARG TRADINGVIEW_WEBHOOK_SECRET" not in dockerfile
+    assert ".env" in dockerignore
+    assert ".env.*" in dockerignore
+
+
+def test_secret_bearing_webhook_routes_are_logged_without_path_values():
+    main = (Path(__file__).resolve().parents[1] / "app" / "main.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert "def _request_route(request: Request)" in main
+    assert "_request_route(request)" in main
+    assert "logger.info(" in main
+    assert "logger.exception(" in main

@@ -18,6 +18,12 @@ def _cors_origins(value: str) -> list[str]:
     return origins or ["*"]
 
 
+def _request_route(request: Request) -> str:
+    route = request.scope.get("route")
+    route_path = getattr(route, "path", None)
+    return str(route_path or request.url.path)
+
+
 def _request_id(value: str | None) -> str:
     if value:
         try:
@@ -49,7 +55,7 @@ async def security_headers(request: Request, call_next):
         logger.exception(
             "api_request_failed method=%s path=%s duration_ms=%.2f request_id=%s",
             request.method,
-            request.url.path,
+            _request_route(request),
             duration_ms,
             request_id,
         )
@@ -63,7 +69,7 @@ async def security_headers(request: Request, call_next):
     logger.info(
         "api_request method=%s path=%s status=%s duration_ms=%.2f request_id=%s",
         request.method,
-        request.url.path,
+        _request_route(request),
         response.status_code,
         duration_ms,
         request_id,

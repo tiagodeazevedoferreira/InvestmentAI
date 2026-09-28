@@ -148,3 +148,27 @@ def test_production_hosting_contract_preserves_linux_windows_execution_boundary(
     assert "LIVE_TRADING_ENABLED=false" in runtime_template
     assert "MT5_DEMO_EXECUTION_ENABLED=false" in runtime_template
     assert "Prediction never directly places an order." in architecture
+
+
+def test_production_deployment_artifact_pipeline_is_provider_neutral_and_safe():
+    root = Path(__file__).resolve().parents[2]
+    workflow = (
+        root / ".github" / "workflows" / "production-deployment-artifact.yml"
+    ).read_text(encoding="utf-8")
+
+    assert "workflow_dispatch:" in workflow
+    assert "docker build --pull" in workflow
+    assert "github.sha" in workflow
+    assert "docker save" in workflow
+    assert "sha256sum" in workflow
+    assert "actions/upload-artifact@v4" in workflow
+    assert "TRADING_MODE=simulation" in workflow
+    assert "LIVE_TRADING_ENABLED=false" in workflow
+    assert "MODEL_APPROVED=false" in workflow
+    assert "MT5_DEMO_EXECUTION_ENABLED=false" in workflow
+    assert "docker push" not in workflow
+    assert "kubectl apply" not in workflow
+    assert "terraform apply" not in workflow
+    assert "az " not in workflow
+    assert "aws " not in workflow
+    assert "gcloud " not in workflow

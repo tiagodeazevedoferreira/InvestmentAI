@@ -10,6 +10,7 @@ API, PWA, Firebase integration boundary, CI, environment separation, OpenBB prov
 - [x] API observability baseline
 - [x] API operational readiness contract
 - [x] Container liveness/readiness validation contract
+- [x] Provider-neutral production runtime configuration contract
 
 Production hosting, TLS, runtime secret injection, persistence and operational monitoring remain separate work.
 

@@ -147,3 +147,13 @@ Final validation commit: `5aee55e561317e007c003c0650d4090125986712`.
 Validation runs: CI `36418918794`, Security `36418918741`, External Intelligence Validation `36418918759`, Cross-Asset ML Experiment `36418918739`, Phase 10 Live Gate Tests `36418918776`, Container Build `36418918784`.
 
 This observability baseline remains deployment-neutral: it does not enable LIVE trading, alter DEMO authorization, add broker credentials, publish/deploy the container, or change trading signals/risk limits/model promotion.
+
+
+## API operational readiness checkpoint — 2026-09-28
+
+Task 041 is complete and validated. The FastAPI runtime now exposes provider-neutral `GET /api/ready` readiness separately from the lightweight `GET /api/health` liveness endpoint. Readiness fails closed with HTTP 503 for unsafe LIVE configuration and for DEMO execution enabled outside DEMO trading mode; the endpoint does not grant execution authority.
+
+Final validation commit: `78c5c620967f7e7f10a4abdb9678e9e4fbdbd4cb`.
+Validation runs: CI `36423195902`, Security `36423195901`, External Intelligence `36423195898`, Cross-Asset ML `36423195908`, Phase 10 `36423196108`, Container Build `36423195962`.
+
+This readiness contract remains deployment-neutral: it does not enable LIVE trading, alter DEMO authorization, add broker credentials, publish/deploy the container, or change trading signals/risk limits/model promotion.

@@ -87,9 +87,9 @@ def test_production_persistence_contract_keeps_durable_state_out_of_ephemeral_co
     persistence = (root / "docs" / "codex" / "tasks" / "045-production-persistence-contract.md").read_text(
         encoding="utf-8"
     )
-    paper_store = (root / "app" / "services" / "paper_store.py").read_text(encoding="utf-8")
-    paper_ledger = (root / "app" / "services" / "paper_ledger.py").read_text(encoding="utf-8")
-    demo_ledger = (root / "app" / "services" / "demo_ledger.py").read_text(encoding="utf-8")
+    paper_store = (root / "backend" / "app" / "services" / "paper_store.py").read_text(encoding="utf-8")
+    paper_ledger = (root / "backend" / "app" / "services" / "paper_ledger.py").read_text(encoding="utf-8")
+    demo_ledger = (root / "backend" / "app" / "services" / "demo_ledger.py").read_text(encoding="utf-8")
 
     assert "PAPER account" in persistence
     assert "Firebase Realtime Database" in persistence

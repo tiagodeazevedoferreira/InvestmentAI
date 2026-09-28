@@ -483,3 +483,12 @@ No LIVE authorization, DEMO transaction, broker credential or production hosting
 ## Task 046 — Backup and recovery contract
 
 Completed and validated on 2026-09-28. The repository now defines provider-neutral recovery requirements for Firebase/PAPER state, the Windows DEMO SQLite ledger and XGBoost model artifacts. Recovery must validate structural integrity, idempotency/provenance and read-only reconciliation before state-mutating execution resumes. No automated backup/restore provider or new DEMO transaction was introduced.
+
+
+### Task 047 — Production hosting and deployment contract
+
+Completed and validated on 2026-09-28. A provider-neutral production hosting/deployment contract now defines the Linux API/PAPER runtime, the separate Windows DOTO/MT5 DEMO execution boundary, TLS/ingress requirements, readiness/liveness usage, runtime secret handling, persistence/recovery integration, deployment lifecycle and minimum operational monitoring. The contract deliberately does not select or provision a cloud provider and does not enable LIVE or create a DEMO transaction.
+
+Regression coverage verifies the Linux/Windows execution separation, safe runtime defaults, readiness/liveness distinction and provider-neutral deployment posture.
+
+Detailed task record: `docs/codex/tasks/047-production-hosting-deployment-contract.md`.

@@ -1,1 +1,40 @@
-variable "project_id" {\n  description = "Existing Google Cloud project ID."\n  type = string\n}\n\nvariable "region" {\n  description = "Google Cloud region for Artifact Registry and Cloud Run."\n  type = string\n  default = "southamerica-east1"\n}\n\nvariable "artifact_registry_repository" {\n  description = "Artifact Registry Docker repository ID."\n  type = string\n  default = "investmentai"\n}\n\nvariable "deploy_service_account_id" {\n  description = "GitHub Actions deployment service account ID."\n  type = string\n  default = "investmentai-deploy"\n}\n\nvariable "runtime_service_account_id" {\n  description = "Cloud Run runtime service account ID."\n  type = string\n  default = "investmentai-runtime"\n}\n\nvariable "workload_identity_pool_id" {\n  description = "Workload Identity Pool ID."\n  type = string\n  default = "github-actions"\n}\n\nvariable "workload_identity_provider_id" {\n  description = "Workload Identity Provider ID."\n  type = string\n  default = "investmentai"\n}\n
+variable "project_id" {
+  description = "Existing Google Cloud project ID."
+  type        = string
+}
+
+variable "region" {
+  description = "Google Cloud region for Artifact Registry and Cloud Run."
+  type        = string
+  default     = "southamerica-east1"
+}
+
+variable "artifact_registry_repository" {
+  description = "Artifact Registry Docker repository ID."
+  type        = string
+  default     = "investmentai"
+}
+
+variable "deploy_service_account_id" {
+  description = "GitHub Actions deployment service account ID."
+  type        = string
+  default     = "investmentai-deploy"
+}
+
+variable "runtime_service_account_id" {
+  description = "Cloud Run runtime service account ID."
+  type        = string
+  default     = "investmentai-runtime"
+}
+
+variable "workload_identity_pool_id" {
+  description = "Workload Identity Pool ID."
+  type        = string
+  default     = "github-actions"
+}
+
+variable "workload_identity_provider_id" {
+  description = "Workload Identity Provider ID."
+  type        = string
+  default     = "investmentai"
+}

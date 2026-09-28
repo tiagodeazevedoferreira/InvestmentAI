@@ -425,3 +425,16 @@ Validation completed successfully in CI `36418918794`, Security and Dependency S
 The task does not enable LIVE trading, alter DEMO authorization, add broker credentials, publish/deploy the container, or change trading signals, risk limits or model promotion.
 
 Detailed task record: `docs/codex/tasks/040-api-observability-baseline.md`.
+
+
+### Task 041 — API operational readiness contract
+
+Completed and validated on 2026-09-28.
+
+A provider-neutral `GET /api/ready` readiness contract was added alongside the existing lightweight `GET /api/health` liveness endpoint. Readiness fails closed with HTTP 503 when LIVE mode lacks existing safety prerequisites (LIVE enablement, model approval or risk gate) or when DEMO execution is enabled outside DEMO trading mode. Regression tests cover the ready default and unsafe LIVE configuration.
+
+Validation completed successfully on commit `78c5c620967f7e7f10a4abdb9678e9e4fbdbd4cb`: CI `36423195902`, Security and Dependency Scan `36423195901`, External Intelligence Validation `36423195898`, Cross-Asset ML Experiment `36423195908`, Phase 10 Live Gate Tests `36423196108` and Container Build `36423195962`.
+
+The task does not enable LIVE trading, alter DEMO authorization, add broker credentials, publish/deploy the container, or change trading signals, risk limits or model promotion. The readiness endpoint evaluates existing configuration flags only.
+
+Detailed task record: `docs/codex/tasks/041-api-operational-readiness-contract.md`.

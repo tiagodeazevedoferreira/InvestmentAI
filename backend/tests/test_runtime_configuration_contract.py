@@ -1,8 +1,5 @@
 from pathlib import Path
 
-from app.settings import Settings
-
-
 def test_production_runtime_template_covers_all_settings_fields():
     template = (
         Path(__file__).resolve().parents[2] / "deploy" / "production.env.example"

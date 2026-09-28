@@ -99,3 +99,22 @@ def test_production_persistence_contract_keeps_durable_state_out_of_ephemeral_co
     assert "self.firebase.get(self.path)" in paper_store
     assert "Firebase is required for paper idempotency" in paper_ledger
     assert "sqlite3" in demo_ledger
+
+
+def test_backup_recovery_contract_preserves_execution_safety_boundaries():
+    root = Path(__file__).resolve().parents[2]
+    contract = (root / "docs" / "codex" / "tasks" / "046-backup-recovery-contract.md").read_text(
+        encoding="utf-8"
+    )
+
+    required_phrases = (
+        "paper/decision_ledger",
+        "paper/shadow_decision_ledger",
+        "SUBMITTED",
+        "never trigger automatic broker resubmission",
+        "XGBOOST_MODEL_DIR",
+        "fail model-dependent readiness/inference",
+        "No new DEMO transaction is required",
+    )
+    for phrase in required_phrases:
+        assert phrase in contract

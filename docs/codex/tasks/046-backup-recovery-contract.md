@@ -1,7 +1,7 @@
 # Task 046 — Backup and recovery contract
 
 ## Status
-IN PROGRESS
+COMPLETED — validated
 
 ## Objective
 

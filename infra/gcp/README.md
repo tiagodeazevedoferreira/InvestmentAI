@@ -16,4 +16,4 @@ Configure GCP_PROJECT_ID, GCP_REGION, ARTIFACT_REGISTRY_REPOSITORY, CLOUD_RUN_SE
 
 The Workload Identity provider accepts only repository tiagodeazevedoferreira/InvestmentAI and refs/heads/main. The deployment service account has Artifact Registry writer, Cloud Run admin and runtime service-account impersonation.
 
-The runtime service account receives Secret Manager accessor at project scope in this initial bootstrap. This can later be tightened to secret-level IAM. The deployment service account must receive service-level Cloud Run Invoker permission after the Cloud Run service exists.
+The runtime service account receives Secret Manager accessor at project scope in this initial bootstrap. This can later be tightened to secret-level IAM. Task 049 grants the deployment service account service-level Cloud Run Invoker permission during deployment, after the Cloud Run service exists.

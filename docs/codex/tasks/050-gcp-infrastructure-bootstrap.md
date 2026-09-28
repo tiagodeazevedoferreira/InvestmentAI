@@ -22,4 +22,4 @@ terraform fmt -check, terraform validate and terraform plan must pass in an oper
 
 ## Remaining work
 
-Create secret versions, configure GitHub production variables, run Task 049, grant service-level Cloud Run Invoker to the deployment service account, and execute the first controlled deployment smoke test.
+Create secret versions, configure GitHub production variables, run Task 049, and execute the first controlled deployment smoke test. Task 049 grants service-level Cloud Run Invoker to the deployment service account after the service is created.

@@ -115,11 +115,11 @@ jobs:
       - name: Grant deployment service account service-level Invoker access
         run: |
           set -euo pipefail
-          gcloud run services add-iam-policy-binding "${CLOUD_RUN_SERVICE}" \\
-            --project="${GCP_PROJECT_ID}" \\
-            --region="${GCP_REGION}" \\
-            --member="serviceAccount:${GCP_DEPLOY_SERVICE_ACCOUNT}" \\
-            --role="roles/run.invoker" \\
+          gcloud run services add-iam-policy-binding "${CLOUD_RUN_SERVICE}" \
+            --project="${GCP_PROJECT_ID}" \
+            --region="${GCP_REGION}" \
+            --member="serviceAccount:${GCP_DEPLOY_SERVICE_ACCOUNT}" \
+            --role="roles/run.invoker" \
             --quiet
 
       - name: Wait for Cloud Run deployment

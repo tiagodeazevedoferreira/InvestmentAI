@@ -168,6 +168,7 @@ Last updated: 2026-09-28
 - [ ] Production deployment
 - [x] Production API runtime hardening (Task 039)
 - [x] API observability baseline (Task 040)
+- [x] Production persistence contract (Task 045)
 
 ## Current ML validation gate
 The causal ML trading backtest, robustness audit and model diagnosis are complete. The robustness gate is not yet passed because performance is not stable across all evaluated assets and assumptions. A causal pooled cross-asset model experiment is implemented to test whether normalized technical features transfer across PETR4, VALE3 and ITUB4 without changing execution policy. Task 011 diagnostics are now validated in CI and recorded as research/observability evidence. The pooled experiment remains research-only until its out-of-sample evidence is reviewed.
@@ -469,3 +470,10 @@ Validation runs: CI `36430394082`, Security and Dependency Scan `36430393911`, E
 No real secret, credential, broker password, LIVE authorization or DEMO transaction was introduced.
 
 Detailed task record: `docs/codex/tasks/043-production-runtime-configuration-contract.md`.
+
+
+## Task 045 — Production persistence contract
+
+Completed and validated on 2026-09-28. The production persistence boundary is explicit: Firebase is the authoritative external store for durable PAPER state and idempotency ledgers; the DEMO SQLite ledger remains on the controlled Windows DOTO/MT5 workstation; model artifacts under `models/xgboost` must be supplied independently of the container's ephemeral writable filesystem. Durable-state failures must fail closed rather than silently creating fresh authoritative state.
+
+No LIVE authorization, DEMO transaction, broker credential or production hosting was introduced.

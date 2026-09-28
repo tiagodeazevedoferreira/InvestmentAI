@@ -118,3 +118,33 @@ def test_backup_recovery_contract_preserves_execution_safety_boundaries():
     )
     for phrase in required_phrases:
         assert phrase in contract
+
+
+def test_production_hosting_contract_preserves_linux_windows_execution_boundary():
+    root = Path(__file__).resolve().parents[2]
+    contract = (
+        root / "docs" / "codex" / "tasks" / "047-production-hosting-deployment-contract.md"
+    ).read_text(encoding="utf-8")
+    dockerfile = (root / "Dockerfile").read_text(encoding="utf-8")
+    runtime_template = (root / "deploy" / "production.env.example").read_text(encoding="utf-8")
+    architecture = (root / "ARCHITECTURE.md").read_text(encoding="utf-8")
+
+    required_phrases = (
+        "Linux production runtime",
+        "Windows DOTO/MT5 execution boundary",
+        "TLS termination",
+        "GET /api/health",
+        "GET /api/ready",
+        "PAPER authoritative state remains external",
+        "DEMO SQLite state remains on the controlled Windows workstation",
+        "No automatic model promotion",
+    )
+    for phrase in required_phrases:
+        assert phrase in contract
+
+    assert "terminal64.exe" not in dockerfile
+    assert "mt5" not in dockerfile.lower()
+    assert "TRADING_MODE=simulation" in runtime_template
+    assert "LIVE_TRADING_ENABLED=false" in runtime_template
+    assert "MT5_DEMO_EXECUTION_ENABLED=false" in runtime_template
+    assert "Prediction never directly places an order." in architecture

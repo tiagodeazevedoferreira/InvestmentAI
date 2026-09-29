@@ -69,6 +69,13 @@ jobs:
         run: |
           & ".\.venv-xgboost-oos-pipeline\Scripts\python.exe" "scripts\run_xgboost_oos_shared_artifact.py"
 
+      - name: Run real-data XGBoost OOS signal diagnostics
+        shell: pwsh
+        env:
+          PYTHONPATH: ${{ github.workspace }}\\backend
+        run: |
+          & ".\\.venv-xgboost-oos-pipeline\\Scripts\\python.exe" "scripts\\run_xgboost_oos_signal_diagnostics.py" --oos-artifact-dir "artifacts/xgboost-oos-shared"
+
       - name: Run real-data economic report
         shell: pwsh
         env:
@@ -109,6 +116,7 @@ jobs:
           path: |
             artifacts/xgboost-oos-shared/
             artifacts/xgboost-oos-economic-report/
+            artifacts/xgboost-oos-signal-diagnostics/
             artifacts/xgboost-oos-cost-attribution/
             artifacts/xgboost-oos-fold-stability/
           if-no-files-found: error

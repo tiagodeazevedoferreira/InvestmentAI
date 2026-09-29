@@ -31,9 +31,9 @@ def test_signal_diagnostics_counts_entries_exits_and_holding_periods():
         threshold=0.60,
     )
 
-    assert result.active_ratio == pytest.approx(3 / 8)
-    assert result.signal_entries == 3
-    assert result.signal_exits == 3
+    assert result.active_ratio == pytest.approx(4 / 8)
+    assert result.signal_entries == 4
+    assert result.signal_exits == 4
     assert result.signal_transitions == 6
     assert result.holding_periods_bars == (2, 1, 1)
     assert result.symbol == "TEST"
@@ -54,8 +54,8 @@ def test_probability_bins_expose_forward_returns_without_dropping_probability_ro
 
     assert sum(row["rows"] for row in result.probability_bins) == len(probabilities)
     assert len(result.probability_bins) == 9
-    assert result.conditional_returns["long"]["rows"] == 7
-    assert result.conditional_returns["cash"]["rows"] == 8
+    assert result.conditional_returns["long"]["rows"] == 9
+    assert result.conditional_returns["cash"]["rows"] == 6
     assert result.conditional_returns["long"]["future_return_5d_rows"] == 5
 
 

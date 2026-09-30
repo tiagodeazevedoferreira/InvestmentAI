@@ -69,6 +69,13 @@ jobs:
         run: |
           & ".\.venv-xgboost-oos-pipeline\Scripts\python.exe" -m pytest "tests\test_xgboost_oos_economic_sensitivity.py" -q
 
+      - name: Run signal persistence contract test
+        shell: pwsh
+        env:
+          PYTHONPATH: ${{ github.workspace }}\backend
+        run: |
+          & ".\.venv-xgboost-oos-pipeline\Scripts\python.exe" -m pytest "backend\tests\test_xgboost_signal_persistence.py" -q
+
       - name: Generate shared OOS artifacts and verify provenance
         shell: pwsh
         env:
@@ -79,9 +86,9 @@ jobs:
       - name: Run real-data XGBoost OOS signal diagnostics
         shell: pwsh
         env:
-          PYTHONPATH: ${{ github.workspace }}\\backend
+          PYTHONPATH: ${{ github.workspace }}\backend
         run: |
-          & ".\\.venv-xgboost-oos-pipeline\\Scripts\\python.exe" "scripts\\run_xgboost_oos_signal_diagnostics.py" --oos-artifact-dir "artifacts/xgboost-oos-shared"
+          & ".\.venv-xgboost-oos-pipeline\Scripts\python.exe" "scripts\run_xgboost_oos_signal_diagnostics.py" --oos-artifact-dir "artifacts/xgboost-oos-shared"
 
       - name: Run real-data economic report
         shell: pwsh
@@ -111,6 +118,13 @@ jobs:
         run: |
           & ".\.venv-xgboost-oos-pipeline\Scripts\python.exe" "scripts\run_xgboost_oos_economic_sensitivity.py" --oos-artifact-dir "artifacts/xgboost-oos-shared"
 
+      - name: Run real-data signal persistence
+        shell: pwsh
+        env:
+          PYTHONPATH: ${{ github.workspace }}\backend
+        run: |
+          & ".\.venv-xgboost-oos-pipeline\Scripts\python.exe" "scripts\run_xgboost_oos_signal_persistence.py" --oos-artifact-dir "artifacts/xgboost-oos-shared"
+
       - name: Run complete backend test suite
         shell: pwsh
         env:
@@ -134,5 +148,6 @@ jobs:
             artifacts/xgboost-oos-cost-attribution/
             artifacts/xgboost-oos-fold-stability/
             artifacts/xgboost-oos-economic-sensitivity/
+            artifacts/xgboost-oos-signal-persistence/
           if-no-files-found: error
           retention-days: 30

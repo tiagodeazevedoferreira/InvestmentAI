@@ -62,6 +62,13 @@ jobs:
         run: |
           & ".\.venv-xgboost-oos-pipeline\Scripts\python.exe" -m pytest "tests\test_xgboost_oos_fold_stability.py" -q
 
+      - name: Run economic sensitivity contract test
+        shell: pwsh
+        env:
+          PYTHONPATH: ${{ github.workspace }}\backend
+        run: |
+          & ".\.venv-xgboost-oos-pipeline\Scripts\python.exe" -m pytest "tests\test_xgboost_oos_economic_sensitivity.py" -q
+
       - name: Generate shared OOS artifacts and verify provenance
         shell: pwsh
         env:
@@ -97,6 +104,13 @@ jobs:
         run: |
           & ".\.venv-xgboost-oos-pipeline\Scripts\python.exe" "scripts\run_xgboost_oos_fold_stability.py" --oos-artifact-dir "artifacts/xgboost-oos-shared"
 
+      - name: Run real-data economic sensitivity
+        shell: pwsh
+        env:
+          PYTHONPATH: ${{ github.workspace }}\backend
+        run: |
+          & ".\.venv-xgboost-oos-pipeline\Scripts\python.exe" "scripts\run_xgboost_oos_economic_sensitivity.py" --oos-artifact-dir "artifacts/xgboost-oos-shared"
+
       - name: Run complete backend test suite
         shell: pwsh
         env:
@@ -119,5 +133,6 @@ jobs:
             artifacts/xgboost-oos-signal-diagnostics/
             artifacts/xgboost-oos-cost-attribution/
             artifacts/xgboost-oos-fold-stability/
+            artifacts/xgboost-oos-economic-sensitivity/
           if-no-files-found: error
           retention-days: 30

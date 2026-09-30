@@ -18,9 +18,9 @@ def test_confirmation_requires_consecutive_exit_bars():
     assert result.tolist() == [-1, 1, 1, 1, 1, -1]
 
 
-def test_hysteresis_holds_between_exit_and_entry_thresholds():
+def test_hysteresis_enters_above_entry_and_holds_between_thresholds():
     result = probabilities_to_persistent_signals(_series([0.8, 0.6, 0.56, 0.54]), entry_threshold=0.7, exit_threshold=0.55)
-    assert result.tolist() == [-1, 1, 1, -1]
+    assert result.tolist() == [1, 1, 1, -1]
 
 
 @pytest.mark.parametrize("kwargs", [

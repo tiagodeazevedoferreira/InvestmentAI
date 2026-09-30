@@ -26,6 +26,7 @@ class XGBoostSignalDiagnostics:
     probability_distribution: dict[str, float]
     probability_bins: tuple[dict, ...]
     conditional_returns: dict[str, dict[str, float | int | None]]
+    entry_holding_analysis: tuple[dict, ...]
 
 
 def _probability_distribution(probabilities: pd.Series) -> dict[str, float]:
@@ -65,15 +66,9 @@ def _probability_bins(probabilities: pd.Series, close: pd.Series) -> tuple[dict,
         for horizon in RETURN_HORIZONS:
             returns = _future_returns(close, horizon).reindex(indexes).dropna()
             row[f"future_return_{horizon}d_rows"] = int(len(returns))
-            row[f"future_return_{horizon}d_mean"] = (
-                float(returns.mean()) if len(returns) else None
-            )
-            row[f"future_return_{horizon}d_median"] = (
-                float(returns.median()) if len(returns) else None
-            )
-            row[f"future_return_{horizon}d_positive_rate"] = (
-                float((returns > 0).mean()) if len(returns) else None
-            )
+            row[f"future_return_{horizon}d_mean"] = float(returns.mean()) if len(returns) else None
+            row[f"future_return_{horizon}d_median"] = float(returns.median()) if len(returns) else None
+            row[f"future_return_{horizon}d_positive_rate"] = float((returns > 0).mean()) if len(returns) else None
         rows.append(row)
     return tuple(rows)
 
@@ -93,6 +88,45 @@ def _holding_periods(signals: pd.Series) -> tuple[int, ...]:
     return tuple(periods)
 
 
+def _entry_holding_analysis(
+    probabilities: pd.Series,
+    close: pd.Series,
+    threshold: float,
+) -> tuple[dict, ...]:
+    """Measure what happened after each entry, including counterfactual holds."""
+    signals = probabilities.ge(threshold)
+    changes = signals.astype(int).diff().fillna(signals.astype(int))
+    entry_indexes = probabilities.index[changes == 1]
+    signal_values = signals.to_numpy(dtype=int)
+    index_positions = {timestamp: position for position, timestamp in enumerate(probabilities.index)}
+
+    rows: list[dict] = []
+    for entry_timestamp in entry_indexes:
+        entry_position = index_positions[entry_timestamp]
+        exit_position = entry_position
+        while exit_position + 1 < len(signal_values) and signal_values[exit_position + 1] == 1:
+            exit_position += 1
+
+        entry_close = float(close.loc[entry_timestamp])
+        exit_timestamp = probabilities.index[exit_position]
+        row: dict = {
+            "entry_timestamp": pd.Timestamp(entry_timestamp).isoformat(),
+            "entry_probability": float(probabilities.loc[entry_timestamp]),
+            "actual_holding_bars": int(exit_position - entry_position + 1),
+            "exit_timestamp": pd.Timestamp(exit_timestamp).isoformat(),
+            "actual_exit_return": float(close.loc[exit_timestamp] / entry_close - 1.0),
+        }
+        for horizon in RETURN_HORIZONS:
+            future_position = entry_position + horizon
+            row[f"future_return_{horizon}d"] = (
+                float(close.iloc[future_position] / entry_close - 1.0)
+                if future_position < len(close.index)
+                else None
+            )
+        rows.append(row)
+    return tuple(rows)
+
+
 def _conditional_returns(
     probabilities: pd.Series,
     close: pd.Series,
@@ -106,15 +140,9 @@ def _conditional_returns(
             returns = _future_returns(close, horizon).reindex(probabilities.index)
             returns = returns[mask].dropna()
             row[f"future_return_{horizon}d_rows"] = int(len(returns))
-            row[f"future_return_{horizon}d_mean"] = (
-                float(returns.mean()) if len(returns) else None
-            )
-            row[f"future_return_{horizon}d_median"] = (
-                float(returns.median()) if len(returns) else None
-            )
-            row[f"future_return_{horizon}d_positive_rate"] = (
-                float((returns > 0).mean()) if len(returns) else None
-            )
+            row[f"future_return_{horizon}d_mean"] = float(returns.mean()) if len(returns) else None
+            row[f"future_return_{horizon}d_median"] = float(returns.median()) if len(returns) else None
+            row[f"future_return_{horizon}d_positive_rate"] = float((returns > 0).mean()) if len(returns) else None
         output[name] = row
     return output
 
@@ -169,4 +197,5 @@ def diagnose_xgboost_oos_signals(
         probability_distribution=_probability_distribution(probabilities),
         probability_bins=_probability_bins(probabilities, close),
         conditional_returns=_conditional_returns(probabilities, close, threshold),
+        entry_holding_analysis=_entry_holding_analysis(probabilities, close, threshold),
     )

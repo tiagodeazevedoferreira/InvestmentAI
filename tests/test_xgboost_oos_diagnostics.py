@@ -45,9 +45,9 @@ def test_entry_holding_analysis_exposes_counterfactual_horizons():
     first = result.entry_holding_analysis[0]
     assert first["actual_holding_bars"] == 1
     assert first["actual_exit_return"] == pytest.approx(0.0)
-    assert first["future_return_3d"] == pytest.approx(0.03)
-    assert first["future_return_5d"] == pytest.approx(0.05)
-    assert first["future_return_10d"] == pytest.approx(0.10)
+    assert first["future_return_3d"] == pytest.approx(104 / 101 - 1.0)
+    assert first["future_return_5d"] == pytest.approx(106 / 101 - 1.0)
+    assert first["future_return_10d"] == pytest.approx(111 / 101 - 1.0)
 
 
 def test_probability_bins_expose_forward_returns_without_dropping_probability_rows():

@@ -248,14 +248,19 @@ No MT5, DOTO or broker submission is part of Task 012 unless a separate executio
 - Automatic scheduler-to-broker execution is disconnected.
 - LIVE execution is disabled.
 - Never expose or request passwords/secrets.
-- Preserve local `.runtime/`, `AGENTS.md` and `scripts/diagnose_first_demo_attempt.py`.
+- Preserve local `.runtime/` and never add it to Git.
+- Preserve the current repository-root `AGENTS.md` (the Task 013 Agent contract). Do not confuse it with any older `AGENTS.md` that existed only as a local untracked snapshot and may still sit in a stash.
+- `scripts/diagnose_first_demo_attempt.py` was a local untracked diagnostic. It is not a Git-tracked file on `main`, is not part of versioned project code, and must not be restored or recreated unless a later Task explicitly authorizes that. Historical “preserve” instructions existed to avoid accidental deletion of local artifacts, not to treat the script as source-controlled.
 - Never use `git reset --hard` or `git clean -fd`.
 - Do not delete or overwrite local untracked operational files without explicit authorization.
+- Do not apply or drop the existing stash as a way to recover local artifacts.
 - Recovery validation should use disposable temporary state when possible.
 
 ## Local repository state known at the last validation
 
-The working tree was clean except for the intentionally preserved local untracked `.runtime/` operational state. `AGENTS.md` and `scripts/diagnose_first_demo_attempt.py` are tracked project files and must also be preserved.
+The working tree is expected to remain clean of tracked modifications except for documentation updates in progress. Intentionally untracked local items include `.runtime/` (operational state; keep out of Git) and the current root `AGENTS.md` until it is committed by an explicit Git Task.
+
+`scripts/diagnose_first_demo_attempt.py` is **not** a tracked project file: it never appeared on `main`, existed only as a local untracked diagnostic, and is not present in the current working tree. A copy may still exist inside an old local stash mixed with other untracked artifacts. That stash must not be applied or dropped here, and this Task does not decide to restore or recreate the script. Older task notes that listed the path as a local file to preserve described that era’s working tree; they do not mean the script is versioned source.
 
 ## Handoff rule
 

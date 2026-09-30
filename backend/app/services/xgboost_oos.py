@@ -12,11 +12,21 @@ from .ml_trading import probabilities_to_signals, signals_to_backtest_function
 
 
 @dataclass(frozen=True)
+class XGBoostOOSFold:
+    fold: int
+    train_start: pd.Timestamp
+    train_end: pd.Timestamp
+    test_start: pd.Timestamp
+    test_end: pd.Timestamp
+
+
+@dataclass(frozen=True)
 class XGBoostOOSRun:
     predictions: pd.Series
     probabilities: pd.Series
     test_rows: int
     folds: int
+    fold_metadata: tuple[XGBoostOOSFold, ...]
 
 
 def _default_params() -> dict:
@@ -89,6 +99,7 @@ def purged_xgboost_oos_predictions(
 
     predictions: list[pd.Series] = []
     probabilities: list[pd.Series] = []
+    fold_metadata: list[XGBoostOOSFold] = []
 
     start = 0
     folds = 0
@@ -111,6 +122,16 @@ def purged_xgboost_oos_predictions(
 
         probability = model.predict_proba(X_test)[:, 1]
         prediction = model.predict(X_test)
+
+        fold_metadata.append(
+            XGBoostOOSFold(
+                fold=folds + 1,
+                train_start=pd.Timestamp(X_train.index[0]),
+                train_end=pd.Timestamp(X_train.index[-1]),
+                test_start=pd.Timestamp(X_test.index[0]),
+                test_end=pd.Timestamp(X_test.index[-1]),
+            )
+        )
 
         predictions.append(
             pd.Series(
@@ -151,6 +172,7 @@ def purged_xgboost_oos_predictions(
         probabilities=prob,
         test_rows=len(prob),
         folds=folds,
+        fold_metadata=tuple(fold_metadata),
     )
 
 
@@ -231,7 +253,9 @@ def run_xgboost_oos_backtest(
 
     first_position = history_index.get_loc(first_oos)
     last_position = history_index.get_loc(last_oos)
-    if not isinstance(first_position, (int, np.integer)) or not isinstance(last_position, (int, np.integer)):
+    if not isinstance(first_position, (int, np.integer)) or not isinstance(
+        last_position, (int, np.integer)
+    ):
         raise ValueError("history index lookup must resolve to unique positions")
 
     replay_end = last_position + 1

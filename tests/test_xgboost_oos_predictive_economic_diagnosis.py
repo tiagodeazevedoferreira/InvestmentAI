@@ -19,9 +19,10 @@ def _economic(symbol: str, strategy_return: float) -> dict:
     return {"symbol": symbol, "strategy_return": strategy_return}
 
 
-def _cost(symbol: str, zero: float, after: float) -> dict:
+def _cost(symbol: str, zero: float, after: float, scenario: str = "commission_plus_slippage") -> dict:
     return {
         "symbol": symbol,
+        "scenario": scenario,
         "zero_cost_strategy_return": zero,
         "commission_plus_slippage_strategy_return": after,
     }
@@ -57,3 +58,21 @@ def test_diagnosis_rejects_economic_cost_drift() -> None:
         assert "drift" in str(exc)
     else:
         raise AssertionError("expected report drift failure")
+
+
+def test_diagnosis_ignores_other_cost_scenarios() -> None:
+    signals = [_signal(symbol, 0.03, 0.01) for symbol in ("PETR4", "VALE3", "ITUB4")]
+    economic = [_economic(symbol, 0.04) for symbol in ("PETR4", "VALE3", "ITUB4")]
+    costs = []
+    for symbol in ("PETR4", "VALE3", "ITUB4"):
+        costs.extend([
+            _cost(symbol, 0.08, 0.04, "zero_cost"),
+            _cost(symbol, 0.08, 0.05, "commission_only"),
+            _cost(symbol, 0.08, 0.045, "slippage_only"),
+            _cost(symbol, 0.08, 0.04, "commission_plus_slippage"),
+        ])
+
+    result = evaluate(signals, economic, costs)
+
+    assert result["summary"]["symbols_with_positive_after_cost_strategy_return"] == 3
+    assert all(row["after_cost_strategy_return"] == 0.04 for row in result["symbols"])

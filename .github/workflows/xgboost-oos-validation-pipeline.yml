@@ -41,6 +41,13 @@ jobs:
         run: |
           & ".\.venv-xgboost-oos-pipeline\Scripts\python.exe" -m pytest "tests\test_xgboost_oos_contract.py" "tests\test_xgboost_oos_economic_contract.py" -q
 
+      - name: Run economic verdict contract test
+        shell: pwsh
+        env:
+          PYTHONPATH: ${{ github.workspace }}\backend
+        run: |
+          & ".\.venv-xgboost-oos-pipeline\Scripts\python.exe" -m pytest "tests\test_xgboost_oos_economic_verdict.py" -q
+
       - name: Run economic report contract test
         shell: pwsh
         env:

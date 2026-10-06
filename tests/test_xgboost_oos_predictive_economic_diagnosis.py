@@ -19,12 +19,11 @@ def _economic(symbol: str, strategy_return: float) -> dict:
     return {"symbol": symbol, "strategy_return": strategy_return}
 
 
-def _cost(symbol: str, zero: float, after: float, scenario: str = "commission_plus_slippage") -> dict:
+def _cost(symbol: str, strategy_return: float, scenario: str) -> dict:
     return {
         "symbol": symbol,
         "scenario": scenario,
-        "zero_cost_strategy_return": zero,
-        "commission_plus_slippage_strategy_return": after,
+        "strategy_return": strategy_return,
     }
 
 

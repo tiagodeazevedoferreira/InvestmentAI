@@ -6,6 +6,7 @@ from pathlib import Path
 
 SYMBOLS = ("PETR4", "VALE3", "ITUB4")
 PREDICTIVE_HORIZON = "future_return_5d_mean"
+AFTER_COST_SCENARIO = "commission_plus_slippage"
 
 
 def _by_symbol(rows: list[dict]) -> dict[str, dict]:
@@ -45,9 +46,14 @@ def _predictive_row(row: dict) -> dict:
 def evaluate(signal_diagnostics: list[dict], economic: list[dict], cost: list[dict]) -> dict:
     signals = _by_symbol(signal_diagnostics)
     economics = _by_symbol(economic)
-    costs = _by_symbol(cost)
+    after_cost_rows = [
+        row for row in cost if str(row.get("scenario", "")).lower() == AFTER_COST_SCENARIO
+    ]
+    costs = _by_symbol(after_cost_rows)
     if set(signals) != set(SYMBOLS) or set(economics) != set(SYMBOLS) or set(costs) != set(SYMBOLS):
         raise ValueError("reports must contain exactly PETR4, VALE3 and ITUB4")
+    if any(str(row.get("scenario", "")).lower() != AFTER_COST_SCENARIO for row in costs.values()):
+        raise ValueError("cost report must use the commission_plus_slippage scenario")
 
     rows = []
     for symbol in SYMBOLS:

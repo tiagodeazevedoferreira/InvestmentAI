@@ -1,0 +1,58 @@
+from __future__ import annotations
+
+from scripts.run_xgboost_oos_predictive_economic_diagnosis import evaluate
+
+
+def _signal(symbol: str, long_mean: float, cash_mean: float) -> dict:
+    return {
+        "symbol": symbol,
+        "oos_rows": 100,
+        "threshold": 0.60,
+        "conditional_returns": {
+            "long": {"rows": 50, "future_return_5d_mean": long_mean},
+            "cash": {"rows": 50, "future_return_5d_mean": cash_mean},
+        },
+    }
+
+
+def _economic(symbol: str, strategy_return: float) -> dict:
+    return {"symbol": symbol, "strategy_return": strategy_return}
+
+
+def _cost(symbol: str, zero: float, after: float) -> dict:
+    return {
+        "symbol": symbol,
+        "zero_cost_strategy_return": zero,
+        "commission_plus_slippage_strategy_return": after,
+    }
+
+
+def test_diagnosis_identifies_predictive_signal_but_cost_unviable() -> None:
+    signals = [_signal("PETR4", 0.04, 0.01), _signal("VALE3", 0.03, 0.01), _signal("ITUB4", 0.01, 0.02)]
+    economic = [_economic("PETR4", 0.01), _economic("VALE3", -0.02), _economic("ITUB4", -0.03)]
+    costs = [
+        _cost("PETR4", 0.08, 0.01),
+        _cost("VALE3", 0.02, -0.02),
+        _cost("ITUB4", -0.03, -0.03),
+    ]
+
+    result = evaluate(signals, economic, costs)
+
+    assert result["summary"]["symbols_with_positive_predictive_spread"] == 2
+    assert result["summary"]["symbols_with_positive_zero_cost_strategy_return"] == 2
+    assert result["summary"]["symbols_with_positive_after_cost_strategy_return"] == 1
+    assert result["symbols"][0]["diagnosis"] == "predictive_signal_but_cost_unviable"
+    assert result["symbols"][2]["diagnosis"] == "no_positive_5d_long_vs_cash_spread"
+
+
+def test_diagnosis_rejects_economic_cost_drift() -> None:
+    signals = [_signal(symbol, 0.03, 0.01) for symbol in ("PETR4", "VALE3", "ITUB4")]
+    economic = [_economic(symbol, 0.05) for symbol in ("PETR4", "VALE3", "ITUB4")]
+    costs = [_cost(symbol, 0.08, 0.04) for symbol in ("PETR4", "VALE3", "ITUB4")]
+
+    try:
+        evaluate(signals, economic, costs)
+    except ValueError as exc:
+        assert "drift" in str(exc)
+    else:
+        raise AssertionError("expected report drift failure")

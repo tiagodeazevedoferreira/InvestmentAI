@@ -132,6 +132,11 @@ jobs:
         run: |
           & ".\.venv-xgboost-oos-pipeline\Scripts\python.exe" "scripts\run_xgboost_oos_signal_persistence.py" --oos-artifact-dir "artifacts/xgboost-oos-shared"
 
+      - name: Run predictive-vs-economic diagnosis
+        shell: pwsh
+        run: |
+          & ".\.venv-xgboost-oos-pipeline\Scripts\python.exe" "scripts\run_xgboost_oos_predictive_economic_diagnosis.py"
+
       - name: Run canonical economic verdict
         shell: pwsh
         run: |
@@ -162,5 +167,6 @@ jobs:
             artifacts/xgboost-oos-economic-sensitivity/
             artifacts/xgboost-oos-signal-persistence/
             artifacts/xgboost-oos-economic-verdict/
+            artifacts/xgboost-oos-predictive-economic-diagnosis/
           if-no-files-found: error
           retention-days: 30

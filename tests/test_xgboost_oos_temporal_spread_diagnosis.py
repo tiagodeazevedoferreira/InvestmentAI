@@ -7,12 +7,12 @@ def _signal(symbol: str) -> dict:
     observations = []
     for fold in range(7):
         day = fold + 1
-        for offset in range(10):
+        for offset in range(100):
             observations.append(
                 {
                     "timestamp": f"2026-01-{day:02d}T00:00:00+00:00",
-                    "regime": "long" if offset < 5 else "cash",
-                    "future_return_5d": 0.02 if offset < 5 else 0.01,
+                    "regime": "long" if offset < 50 else "cash",
+                    "future_return_5d": 0.02 if offset < 50 else 0.01,
                 }
             )
     return {

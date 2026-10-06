@@ -41,7 +41,8 @@ def test_diagnosis_identifies_predictive_signal_but_cost_unviable() -> None:
     assert result["summary"]["symbols_with_positive_predictive_spread"] == 2
     assert result["summary"]["symbols_with_positive_zero_cost_strategy_return"] == 2
     assert result["summary"]["symbols_with_positive_after_cost_strategy_return"] == 1
-    assert result["symbols"][0]["diagnosis"] == "predictive_signal_but_cost_unviable"
+    assert result["symbols"][0]["diagnosis"] == "positive_predictive_spread_and_positive_after_cost"
+    assert result["symbols"][1]["diagnosis"] == "predictive_signal_but_cost_unviable"
     assert result["symbols"][2]["diagnosis"] == "no_positive_5d_long_vs_cash_spread"
 
 

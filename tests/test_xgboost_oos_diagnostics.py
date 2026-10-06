@@ -32,6 +32,8 @@ def test_signal_diagnostics_counts_entries_exits_and_holding_periods():
     assert result.signal_transitions == 6
     assert result.holding_periods_bars == (2, 1, 1)
     assert result.symbol == "TEST"
+    assert len(result.conditional_return_observations_5d) == 3
+    assert result.conditional_return_observations_5d[0]["regime"] == "cash"
 
 
 def test_entry_holding_analysis_exposes_counterfactual_horizons():

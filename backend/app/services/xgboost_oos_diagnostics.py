@@ -27,6 +27,7 @@ class XGBoostSignalDiagnostics:
     probability_bins: tuple[dict, ...]
     conditional_returns: dict[str, dict[str, float | int | None]]
     entry_holding_analysis: tuple[dict, ...]
+    conditional_return_observations_5d: tuple[dict, ...]
 
 
 def _probability_distribution(probabilities: pd.Series) -> dict[str, float]:
@@ -127,6 +128,25 @@ def _entry_holding_analysis(
     return tuple(rows)
 
 
+def _conditional_return_observations_5d(
+    probabilities: pd.Series,
+    close: pd.Series,
+    threshold: float,
+) -> tuple[dict, ...]:
+    returns = _future_returns(close, 5).reindex(probabilities.index)
+    signals = probabilities.ge(threshold)
+    rows: list[dict] = []
+    for timestamp, value in returns.items():
+        if pd.isna(value):
+            continue
+        rows.append({
+            "timestamp": pd.Timestamp(timestamp).isoformat(),
+            "regime": "long" if bool(signals.loc[timestamp]) else "cash",
+            "future_return_5d": float(value),
+        })
+    return tuple(rows)
+
+
 def _conditional_returns(
     probabilities: pd.Series,
     close: pd.Series,
@@ -198,4 +218,5 @@ def diagnose_xgboost_oos_signals(
         probability_bins=_probability_bins(probabilities, close),
         conditional_returns=_conditional_returns(probabilities, close, threshold),
         entry_holding_analysis=_entry_holding_analysis(probabilities, close, threshold),
+        conditional_return_observations_5d=_conditional_return_observations_5d(probabilities, close, threshold),
     )

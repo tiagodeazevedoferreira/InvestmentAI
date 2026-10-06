@@ -516,6 +516,17 @@ The remaining gate is operator-side authenticated Terraform validation: `terrafo
 Detailed task record: docs/codex/tasks/050-gcp-infrastructure-bootstrap.md.
 
 
+
+### Task 052 — XGBoost OOS predictive-vs-economic diagnosis
+
+Implemented on 2026-10-06 in branch feat/xgboost-oos-predictive-economic-diagnosis.
+
+The XGBoost OOS pipeline now reuses the immutable signal-diagnostics, economic-report and cost-attribution artifacts to separate predictive content from economic viability. For each of PETR4, VALE3 and ITUB4 it compares mean five-day forward return when the fixed probability is at least 0.60 against the complementary probability bucket, then compares the zero-cost strategy return with the fixed commission-plus-slippage result.
+
+This layer is descriptive OOS research only. It performs no retraining, threshold tuning, policy selection or execution change. A positive five-day conditional-return spread is not treated as statistically significant or sufficient for model promotion.
+
+The result is published as artifacts/xgboost-oos-predictive-economic-diagnosis/report.json and is covered by tests/test_xgboost_oos_predictive_economic_diagnosis.py.
+
 ## Task 051 — Fixed XGBoost OOS economic verdict
 
 Implemented on 2026-10-06 in branch feat/xgboost-oos-economic-verdict.

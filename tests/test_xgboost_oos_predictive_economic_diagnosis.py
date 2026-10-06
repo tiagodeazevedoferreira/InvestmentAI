@@ -27,14 +27,28 @@ def _cost(symbol: str, strategy_return: float, scenario: str) -> dict:
     }
 
 
-def test_diagnosis_identifies_predictive_signal_but_cost_unviable() -> None:
-    signals = [_signal("PETR4", 0.04, 0.01), _signal("VALE3", 0.03, 0.01), _signal("ITUB4", 0.01, 0.02)]
-    economic = [_economic("PETR4", 0.01), _economic("VALE3", -0.02), _economic("ITUB4", -0.03)]
-    costs = [
-        _cost("PETR4", 0.08, 0.01),
-        _cost("VALE3", 0.02, -0.02),
-        _cost("ITUB4", -0.03, -0.03),
+def _cost_pair(symbol: str, zero_cost: float, after_cost: float) -> list[dict]:
+    return [
+        _cost(symbol, zero_cost, "zero_cost"),
+        _cost(symbol, after_cost, "commission_plus_slippage"),
     ]
+
+
+def test_diagnosis_identifies_predictive_signal_but_cost_unviable() -> None:
+    signals = [
+        _signal("PETR4", 0.04, 0.01),
+        _signal("VALE3", 0.03, 0.01),
+        _signal("ITUB4", 0.01, 0.02),
+    ]
+    economic = [
+        _economic("PETR4", 0.01),
+        _economic("VALE3", -0.02),
+        _economic("ITUB4", -0.03),
+    ]
+    costs = []
+    costs.extend(_cost_pair("PETR4", 0.08, 0.01))
+    costs.extend(_cost_pair("VALE3", 0.02, -0.02))
+    costs.extend(_cost_pair("ITUB4", -0.03, -0.03))
 
     result = evaluate(signals, economic, costs)
 
@@ -49,7 +63,10 @@ def test_diagnosis_identifies_predictive_signal_but_cost_unviable() -> None:
 def test_diagnosis_rejects_economic_cost_drift() -> None:
     signals = [_signal(symbol, 0.03, 0.01) for symbol in ("PETR4", "VALE3", "ITUB4")]
     economic = [_economic(symbol, 0.05) for symbol in ("PETR4", "VALE3", "ITUB4")]
-    costs = [_cost(symbol, 0.08, 0.04) for symbol in ("PETR4", "VALE3", "ITUB4")]
+    costs = []
+    costs.extend(_cost_pair("PETR4", 0.08, 0.04))
+    costs.extend(_cost_pair("VALE3", 0.08, 0.04))
+    costs.extend(_cost_pair("ITUB4", 0.08, 0.04))
 
     try:
         evaluate(signals, economic, costs)
@@ -65,10 +82,10 @@ def test_diagnosis_ignores_other_cost_scenarios() -> None:
     costs = []
     for symbol in ("PETR4", "VALE3", "ITUB4"):
         costs.extend([
-            _cost(symbol, 0.08, 0.04, "zero_cost"),
-            _cost(symbol, 0.08, 0.05, "commission_only"),
-            _cost(symbol, 0.08, 0.045, "slippage_only"),
-            _cost(symbol, 0.08, 0.04, "commission_plus_slippage"),
+            _cost(symbol, 0.08, "zero_cost"),
+            _cost(symbol, 0.05, "commission_only"),
+            _cost(symbol, 0.045, "slippage_only"),
+            _cost(symbol, 0.04, "commission_plus_slippage"),
         ])
 
     result = evaluate(signals, economic, costs)

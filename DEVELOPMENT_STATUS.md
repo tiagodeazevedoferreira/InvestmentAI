@@ -514,3 +514,16 @@ Implemented and merged on 2026-09-28. Terraform provisions the existing project'
 The remaining gate is operator-side authenticated Terraform validation: `terraform init`, `terraform validate` and `terraform plan`, followed by explicit review before `terraform apply`.
 
 Detailed task record: docs/codex/tasks/050-gcp-infrastructure-bootstrap.md.
+
+
+## Task 051 — Fixed XGBoost OOS economic verdict
+
+Implemented on 2026-10-06 in branch feat/xgboost-oos-economic-verdict.
+
+The XGBoost OOS validation pipeline now produces artifacts/xgboost-oos-economic-verdict/report.json through scripts/run_xgboost_oos_economic_verdict.py. The decision is pre-specified: canonical policy baseline_060, one-bar confirmation, and the existing commission-plus-slippage scenario. A symbol must have positive after-cost strategy return and positive excess return versus buy-and-hold over the exact OOS replay window; PETR4, VALE3 and ITUB4 must all pass.
+
+The verdict also cross-checks the canonical economic report against the signal-persistence report to detect semantic drift. It does not retrain, tune thresholds, select the best policy, or change execution behavior.
+
+The latest validated pipeline run before this task was 37368612786 (commit 926757403211337b34f346cac0a8c895baa69bb6), which passed the existing XGBoost OOS pipeline but the current evidence does not satisfy the new economic-verdict criteria: canonical after-cost strategy returns were negative for all three symbols and underperformed buy-and-hold for all three. The appropriate conclusion is no economic validation / no model promotion, not a model-tuning action.
+
+Detailed task implementation is in scripts/run_xgboost_oos_economic_verdict.py and tests/test_xgboost_oos_economic_verdict.py.

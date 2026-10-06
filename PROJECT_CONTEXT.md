@@ -213,3 +213,14 @@ Task 049 implementation is now merged into `main`. The provider-specific target 
 ## Production deployment handoff checkpoint — 2026-09-28
 
 Tasks 049 and 050 are implemented. Task 049 defines the manual Cloud Run deployment boundary with GitHub OIDC/Workload Identity Federation, immutable Artifact Registry digests, private Cloud Run ingress, Secret Manager references and authenticated health/readiness smoke tests. Task 050 defines the Terraform bootstrap for the existing GCP project, including required APIs, Artifact Registry, deployment/runtime service accounts, repository/main-restricted WIF and empty Secret Manager containers. PR #71 corrected duplicate Terraform outputs; PR #72 corrected the Cloud Run Invoker shell command and aligned the Task 050 documentation. No GCP resources have been applied by the repository automation. Operator-side authenticated `terraform init`, `terraform validate` and `terraform plan` remain the next infrastructure gate. LIVE and DEMO remain disabled.
+
+
+## XGBoost OOS economic verdict checkpoint — 2026-10-06
+
+The XGBoost OOS validation pipeline now contains a fixed economic verdict layer. The verdict consumes the immutable economic-report and signal-persistence artifacts and evaluates only the pre-specified canonical policy baseline_060 (entry 0.60, exit 0.60, one confirmation bar) under commission_plus_slippage (0.1% commission plus 5 bps slippage).
+
+A symbol passes only when its after-cost OOS strategy return is positive and its excess return versus buy-and-hold over the exact OOS replay window is positive; all required B3 symbols (PETR4, VALE3 and ITUB4) must pass. The verdict performs no threshold tuning, policy selection or retraining and also checks consistency between the economic and persistence reports.
+
+The current validation artifact from pipeline run 37368612786 does not satisfy this gate: the canonical after-cost strategy returns were approximately -0.21% (PETR4), -7.90% (VALE3) and -13.35% (ITUB4), while excess returns versus buy-and-hold were approximately -18.74, -21.87 and -74.17 percentage points, respectively. Therefore the current XGBoost baseline is not economically validated for promotion. This is a research conclusion, not a trading authorization.
+
+LIVE remains disabled and no execution path is changed by this checkpoint.

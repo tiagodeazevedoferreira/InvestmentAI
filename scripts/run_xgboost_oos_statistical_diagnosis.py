@@ -122,8 +122,8 @@ def evaluate(signal_diagnostics: list[dict], cost_attribution: list[dict]) -> di
         "symbols": rows,
         "summary": {
             "symbols_with_positive_observed_spread": sum(row["observed_spread"] > 0 for row in rows),
-            "symbols_with_95pct_ci_above_zero": sum(row["bootstrap_ci_low"] > 0 for row in rows),
-            "symbols_with_95pct_ci_below_zero": sum(row["bootstrap_ci_high"] < 0 for row in rows),
+            "symbols_with_95pct_ci_above_zero": sum(row["bootstrap_ci_95_low"] > 0 for row in rows),
+            "symbols_with_95pct_ci_below_zero": sum(row["bootstrap_ci_95_high"] < 0 for row in rows),
         },
     }
 

@@ -125,6 +125,11 @@ jobs:
         run: |
           & ".\.venv-xgboost-oos-pipeline\Scripts\python.exe" "scripts\run_xgboost_oos_signal_persistence.py" --oos-artifact-dir "artifacts/xgboost-oos-shared"
 
+      - name: Run canonical economic verdict
+        shell: pwsh
+        run: |
+          & ".\.venv-xgboost-oos-pipeline\Scripts\python.exe" "scripts\run_xgboost_oos_economic_verdict.py"
+
       - name: Run complete backend test suite
         shell: pwsh
         env:
@@ -149,5 +154,6 @@ jobs:
             artifacts/xgboost-oos-fold-stability/
             artifacts/xgboost-oos-economic-sensitivity/
             artifacts/xgboost-oos-signal-persistence/
+            artifacts/xgboost-oos-economic-verdict/
           if-no-files-found: error
           retention-days: 30

@@ -49,18 +49,29 @@ def evaluate(signal_diagnostics: list[dict], economic: list[dict], cost: list[di
     after_cost_rows = [
         row for row in cost if str(row.get("scenario", "")).lower() == AFTER_COST_SCENARIO
     ]
-    costs = _by_symbol(after_cost_rows)
-    if set(signals) != set(SYMBOLS) or set(economics) != set(SYMBOLS) or set(costs) != set(SYMBOLS):
+    zero_cost_rows = [
+        row for row in cost if str(row.get("scenario", "")).lower() == "zero_cost"
+    ]
+    after_costs = _by_symbol(after_cost_rows)
+    zero_costs = _by_symbol(zero_cost_rows)
+    if (
+        set(signals) != set(SYMBOLS)
+        or set(economics) != set(SYMBOLS)
+        or set(after_costs) != set(SYMBOLS)
+        or set(zero_costs) != set(SYMBOLS)
+    ):
         raise ValueError("reports must contain exactly PETR4, VALE3 and ITUB4")
-    if any(str(row.get("scenario", "")).lower() != AFTER_COST_SCENARIO for row in costs.values()):
-        raise ValueError("cost report must use the commission_plus_slippage scenario")
+    if any(str(row.get("scenario", "")).lower() != AFTER_COST_SCENARIO for row in after_costs.values()):
+        raise ValueError("cost report after-cost rows must use the commission_plus_slippage scenario")
+    if any(str(row.get("scenario", "")).lower() != "zero_cost" for row in zero_costs.values()):
+        raise ValueError("cost report zero-cost rows must use the zero_cost scenario")
 
     rows = []
     for symbol in SYMBOLS:
         predictive = _predictive_row(signals[symbol])
         economic_return = float(economics[symbol]["strategy_return"])
-        zero_cost = float(costs[symbol]["zero_cost_strategy_return"])
-        after_cost = float(costs[symbol]["commission_plus_slippage_strategy_return"])
+        zero_cost = float(zero_costs[symbol]["strategy_return"])
+        after_cost = float(after_costs[symbol]["strategy_return"])
         cost_drag = after_cost - zero_cost
         if abs(economic_return - after_cost) > 1e-12:
             raise ValueError(f"economic/cost report drift for {symbol}")

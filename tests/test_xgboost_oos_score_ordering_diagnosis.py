@@ -54,8 +54,8 @@ def test_score_ordering_is_deterministic_and_fixed() -> None:
         artifact["fold_metadata"] = [
             {
                 "fold": fold,
-                "test_start": "2026-01-001T00:00:00+00:00",
-                "test_end": "2026-01-100T00:00:00+00:00",
+                "test_start": "2026-01-01T00:00:00+00:00",
+                "test_end": "2026-04-10T00:00:00+00:00",
             }
             for fold in range(1, 8)
         ]

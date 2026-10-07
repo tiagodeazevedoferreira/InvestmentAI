@@ -1,14 +1,18 @@
 from __future__ import annotations
 
+from datetime import datetime, timedelta
+
 from scripts.run_xgboost_oos_score_ordering_diagnosis import evaluate
 
 
 def _signal(symbol: str) -> dict:
     observations = []
+    start = datetime(2026, 1, 1)
     for index in range(100):
+        timestamp = (start + timedelta(days=index)).isoformat() + "+00:00"
         observations.append(
             {
-                "timestamp": f"2026-01-{index + 1:03d}T00:00:00+00:00",
+                "timestamp": timestamp,
                 "future_return_5d": -0.01 + (index // 20) * 0.01,
             }
         )
@@ -18,10 +22,12 @@ def _signal(symbol: str) -> dict:
 def _artifact(symbol: str) -> dict:
     scores = [0.1, 0.3, 0.5, 0.7, 0.9]
     predictions = []
+    start = datetime(2026, 1, 1)
     for index in range(100):
+        timestamp = (start + timedelta(days=index)).isoformat() + "+00:00"
         predictions.append(
             {
-                "timestamp": f"2026-01-{index + 1:03d}T00:00:00+00:00",
+                "timestamp": timestamp,
                 "probability": scores[index // 20],
             }
         )
@@ -31,8 +37,8 @@ def _artifact(symbol: str) -> dict:
         "fold_metadata": [
             {
                 "fold": 1,
-                "test_start": "2026-01-001T00:00:00+00:00",
-                "test_end": "2026-01-100T00:00:00+00:00",
+                "test_start": "2026-01-01T00:00:00+00:00",
+                "test_end": "2026-04-10T00:00:00+00:00",
             }
         ],
     }

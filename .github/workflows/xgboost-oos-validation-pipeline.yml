@@ -168,6 +168,17 @@ jobs:
         run: |
           & ".\\.venv-xgboost-oos-pipeline\\Scripts\\python.exe" "scripts\\run_xgboost_oos_temporal_spread_diagnosis.py" --signal-diagnostics "artifacts/xgboost-oos-signal-diagnostics/report.json" --shared-artifact-dir "artifacts/xgboost-oos-shared"
 
+      - name: Run score bucket diagnosis contract test
+        shell: pwsh
+        env:
+          PYTHONPATH: ${{ github.workspace }}\\backend
+        run: |
+          & ".\\.venv-xgboost-oos-pipeline\\Scripts\\python.exe" -m pytest "tests\\test_xgboost_oos_score_bucket_diagnosis.py" -q
+
+      - name: Run real-data score bucket diagnosis
+        shell: pwsh
+        run: |
+          & ".\\.venv-xgboost-oos-pipeline\\Scripts\\python.exe" "scripts\\run_xgboost_oos_score_bucket_diagnosis.py"
       - name: Run canonical economic verdict
         shell: pwsh
         run: |
@@ -201,5 +212,6 @@ jobs:
             artifacts/xgboost-oos-predictive-economic-diagnosis/
             artifacts/xgboost-oos-statistical-diagnosis/
             artifacts/xgboost-oos-temporal-spread-diagnosis/
+            artifacts/xgboost-oos-score-bucket-diagnosis/
           if-no-files-found: error
           retention-days: 30

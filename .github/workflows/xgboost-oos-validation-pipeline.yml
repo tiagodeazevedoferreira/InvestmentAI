@@ -62,6 +62,13 @@ jobs:
         run: |
           & ".\\.venv-xgboost-oos-pipeline\\Scripts\\python.exe" -m pytest "tests\\test_xgboost_oos_temporal_spread_diagnosis.py" -q
 
+      - name: Run score ordering diagnosis contract test
+        shell: pwsh
+        env:
+          PYTHONPATH: ${{ github.workspace }}\\backend
+        run: |
+          & ".\\.venv-xgboost-oos-pipeline\\Scripts\\python.exe" -m pytest "tests\\test_xgboost_oos_score_ordering_diagnosis.py" -q
+
       - name: Run economic verdict contract test
         shell: pwsh
         env:
@@ -179,6 +186,11 @@ jobs:
         shell: pwsh
         run: |
           & ".\\.venv-xgboost-oos-pipeline\\Scripts\\python.exe" "scripts\\run_xgboost_oos_score_bucket_diagnosis.py"
+      - name: Run real-data score ordering diagnosis
+        shell: pwsh
+        run: |
+          & ".\\.venv-xgboost-oos-pipeline\\Scripts\\python.exe" "scripts\\run_xgboost_oos_score_ordering_diagnosis.py"
+
       - name: Run canonical economic verdict
         shell: pwsh
         run: |
@@ -213,5 +225,6 @@ jobs:
             artifacts/xgboost-oos-statistical-diagnosis/
             artifacts/xgboost-oos-temporal-spread-diagnosis/
             artifacts/xgboost-oos-score-bucket-diagnosis/
+            artifacts/xgboost-oos-score-ordering-diagnosis/
           if-no-files-found: error
           retention-days: 30

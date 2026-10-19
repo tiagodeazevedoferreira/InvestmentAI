@@ -53,6 +53,11 @@ O usuário já aprendeu o básico do n8n e agora quer usá-lo como agente que pa
 
 ## Regra permanente de continuidade
 
+**Frequência de atualização do contexto:** não atualizar o documento após cada pequeno passo. Atualizar quando houver mudança relevante de objetivo, arquitetura, configuração consolidada, decisão, resultado de teste ou próximo passo; como rotina, agrupar atualizações após cerca de 3–5 etapas concluídas. Atualizar também antes de encerrar uma sessão ou trocar de chat, para preservar um ponto de retomada confiável. Se não houve mudança relevante, não criar commit só para registrar atividade repetitiva.
+
+**Instrução n8n:** sempre que orientar a inclusão de um novo nó, fornecer de uma vez todas as configurações necessárias conhecidas — nome/tipo do nó, conexão, operação, credencial, campos, expressões e opções relevantes — e separar claramente o que é obrigatório do que deve ficar no padrão/vazio. Dar uma ação operacional por vez e aguardar confirmação antes de avançar para a próxima ação.
+
+
 Sempre que houver mudança relevante de objetivo, estado do workflow, configuração, teste, decisão ou próximo passo, atualizar este arquivo no GitHub, na branch `docs/n8n-context-continuity`, no mesmo momento em que a mudança for registrada. O arquivo é a referência de continuidade para retomar o trabalho em qualquer novo chat. Informar ao usuário que a atualização foi feita e registrar o commit retornado. Não confundir esta branch/documentação de continuidade com a branch principal de desenvolvimento do InvestmentAI.
 
 ---

@@ -22,8 +22,8 @@ O usuário já aprendeu o básico do n8n e agora quer usá-lo como agente que pa
 - O usuário adicionou a operação `Extract From Text File` após o nó GitHub e configurou `Input Binary Field` como `Data` e `Destination Output Field` como `text`.
 - **Teste de extração:** o usuário alterou `Input Binary Field` de `Data` para `data` (minúsculo) e o nó passou a retornar texto. A chave binária correta é `data`, embora o cartão de arquivo apareça como `Data`. Configuração atual: `Input Binary Field = data`, `Destination Output Field = text`.
 - **Validação final da extração:** o usuário compartilhou o output em visualização JSON, com um único item e o campo `text`. O texto contém o documento desde o título até a seção final `Padrão operacional`; portanto, a extração está completa e não truncada. O truncamento anterior ocorreu ao copiar/compartilhar a mensagem no chat, não no output do n8n.
-- O usuário adicionou um segundo nó GitHub conectado após `Extract From Text File`, destinado a ler o README do repositório. O usuário confirmou que configurou o caminho `README.md` e deixou `Reference` vazio; Owner/Repository e credencial são os mesmos do primeiro nó.
-- **Próximo passo imediato:** executar apenas o segundo nó GitHub usando `Execute step` para testar a leitura do `README.md`. Não executar o workflow completo nem publicar.
+- O usuário adicionou um segundo nó GitHub conectado após `Extract From Text File`, configurado para ler `README.md`, com `Reference` vazio, mesma credencial e mesmo repositório. Teste isolado com `Execute step` confirmado pelo usuário como bem-sucedido: o nó lê o README.
+- **Próximo passo imediato:** adicionar um nó `Extract From Text File` após o segundo nó GitHub para converter o README binário em texto, configurando `Input Binary Field = data` e `Destination Output Field = readme_text`. Executar apenas esse novo nó para validar a extração. Não executar o workflow completo nem publicar.
 
 ## Separação dos workflows
 

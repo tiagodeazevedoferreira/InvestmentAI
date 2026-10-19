@@ -21,8 +21,8 @@ O usuário já aprendeu o básico do n8n e agora quer usá-lo como agente que pa
 - Interpretação atual: o nó retorna o documento como arquivo binário, não como texto diretamente exposto nos campos JSON.
 - O usuário adicionou a operação `Extract From Text File` após o nó GitHub e configurou `Input Binary Field` como `Data` e `Destination Output Field` como `text`.
 - **Teste de extração:** o usuário alterou `Input Binary Field` de `Data` para `data` (minúsculo) e o nó passou a retornar texto. A chave binária correta é `data`, embora o cartão de arquivo apareça como `Data`. Configuração atual: `Input Binary Field = data`, `Destination Output Field = text`.
-- **Limitação observada:** o usuário confirma que o texto visível no Output parece truncado exatamente no trecho compartilhado no chat (começa com o documento de continuidade e para em `tiagode...`). Ainda não está determinado se o conteúdo do item está realmente truncado ou se é apenas a prévia/cópia da interface. Próximo diagnóstico: verificar o fim do valor de `text` no Output em modo JSON ou abrir o valor completo usando a opção de visualização/cópia disponível, sem executar o workflow completo. Não avançar para análise por IA até confirmar a integridade do texto.
-- Não clicar em `Publish`.
+- **Validação final da extração:** o usuário compartilhou o output em visualização JSON, com um único item e o campo `text`. O texto contém o documento desde o título até a seção final `Padrão operacional`; portanto, a extração está completa e não truncada. O truncamento anterior ocorreu ao copiar/compartilhar a mensagem no chat, não no output do n8n.
+- **Próximo passo imediato:** começar a ampliar a coleta de contexto do repositório além do arquivo de continuidade, mantendo leitura sem efeitos colaterais e uma ação por vez. Não executar o workflow completo nem publicar.
 
 ## Separação dos workflows
 

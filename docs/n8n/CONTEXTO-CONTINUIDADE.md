@@ -19,8 +19,8 @@ O usuário já aprendeu o básico do n8n e agora quer usá-lo como agente que pa
 - Teste do nó GitHub executado isoladamente com sucesso (somente `Execute step`; o workflow completo não foi executado).
 - Output confirmado pelo usuário: `File Name: CONTEXTO-CONTINUIDADE.md`, `Directory: docs/n8n`, `File Extension: md`, `Mime Type: text/markdown`, `File Size: 10.3 kB`; existe a propriedade binária `Data`, e os controles `View` e `Download` exibem o conteúdo do arquivo.
 - Interpretação atual: o nó retorna o documento como arquivo binário, não como texto diretamente exposto nos campos JSON.
-- O usuário adicionou a operação `Extract From Text File` após o nó GitHub e configurou `Input Binary Field` como `Data` (D maiúsculo) e `Destination Output Field` como `text` (minúsculo). A operação ainda não foi executada.
-- **Próximo passo imediato:** executar apenas o nó `Extract From Text File` usando `Execute step` e verificar no output se o campo `text` contém o conteúdo legível do documento. Não executar o workflow completo e não clicar em `Publish`.
+- O usuário adicionou a operação `Extract From Text File` após o nó GitHub e configurou `Input Binary Field` como `Data` e `Destination Output Field` como `text`.
+- Teste isolado do nó de extração falhou: `The item has no binary field 'Data' [item 0]` (n8n 2.43.6, Extract From File node 1.1, operação interna `moveTo`). Isso indica que o item de entrada não expõe uma propriedade binária com a chave exata `Data`, apesar de a interface anterior mostrar um controle `Data` com View/Download. Próximo diagnóstico: abrir o output do nó GitHub e verificar o nome exato da chave na seção Binary (provavelmente a diferença entre rótulo exibido e chave interna), depois ajustar `Input Binary Field` para a chave real. Não executar workflow completo nem publicar.
 - Não clicar em `Publish`.
 
 ## Separação dos workflows

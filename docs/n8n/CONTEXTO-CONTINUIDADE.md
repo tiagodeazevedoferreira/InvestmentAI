@@ -23,7 +23,18 @@ O usuário já aprendeu o básico do n8n e agora quer usá-lo como agente que pa
 - **Teste de extração:** o usuário alterou `Input Binary Field` de `Data` para `data` (minúsculo) e o nó passou a retornar texto. A chave binária correta é `data`, embora o cartão de arquivo apareça como `Data`. Configuração atual: `Input Binary Field = data`, `Destination Output Field = text`.
 - **Validação final da extração:** o usuário compartilhou o output em visualização JSON, com um único item e o campo `text`. O texto contém o documento desde o título até a seção final `Padrão operacional`; portanto, a extração está completa e não truncada. O truncamento anterior ocorreu ao copiar/compartilhar a mensagem no chat, não no output do n8n.
 - O usuário adicionou um segundo nó GitHub conectado após `Extract From Text File`, configurado para ler `README.md`, com `Reference` vazio, mesma credencial e mesmo repositório. Teste isolado com `Execute step` confirmado pelo usuário como bem-sucedido: o nó lê o README.
-- **Próximo passo imediato:** adicionar um nó `Extract From Text File` após o segundo nó GitHub para converter o README binário em texto, configurando `Input Binary Field = data` e `Destination Output Field = readme_text`. Executar apenas esse novo nó para validar a extração. Não executar o workflow completo nem publicar.
+- **Estado atualizado em 19/10/2026:** o workflow novo lê e extrai sete documentos, todos conectados em sequência antes de `Consolidar Contexto do Projeto`:
+  1. `CONTEXTO-CONTINUIDADE.md` → `continuity_context_text`
+  2. `README.md` → `readme_text`
+  3. `PROJECT_CONTEXT.md` → `project_context_text`
+  4. `DEVELOPMENT_STATUS.md` → `development_status_text`
+  5. `ROADMAP.md` → `roadmap_text`
+  6. `DECISIONS.md` → `decisions_text`
+  7. `ARCHITECTURE.md` → `Architecture_text` (A maiúsculo, conforme o campo de saída real do nó de extração).
+- Cada documento tem seu nó GitHub seguido de um nó `Extract From Text File`.
+- O nó `Consolidar Contexto do Projeto` usa referências diretas aos nós de extração via `$(nome_do_nó).first().json`, preferindo o campo configurado e usando `text` como fallback.
+- **Validação confirmada pelo usuário:** após ajustar a chave para `Architecture_text`, o workflow retornou `status: contexto_consolidado` e `total_documentos: 7`. Não há necessidade de recriar os nós existentes.
+- O próximo passo é continuar ampliando a leitura documental de forma incremental (por exemplo, `docs/OPENBB_B3_PROVIDER.md` ou `docs/PAPER_SIGNAL_AUTOMATION.md`), um documento por vez, atualizando o código de consolidação e validando a contagem após cada inclusão.
 
 ## Separação dos workflows
 

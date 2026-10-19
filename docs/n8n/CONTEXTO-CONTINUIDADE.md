@@ -16,8 +16,10 @@ O usuário já aprendeu o básico do n8n e agora quer usá-lo como agente que pa
 - Nó GitHub adicionado após o gatilho manual; a ação selecionada é de leitura/obtenção de arquivo (a confirmar pelo teste).
 - Campos `As Binary Property`, `Put Output File in Field` e `Additional Parameters` foram exibidos na configuração. Dentro de `Additional Parameters`, o usuário confirmou existir o campo `Reference`.
 - O usuário preencheu `Reference` com `docs/n8n-context-continuity`, a branch onde está o arquivo de continuidade.
-- Ainda não foi executado nem o nó nem o workflow; não há resultado confirmado de leitura.
-- **Próximo passo:** conferir se os campos de proprietário, repositório e caminho estão preenchidos com `tiagodeazevedoferreira`, `InvestmentAI` e `docs/n8n/CONTEXTO-CONTINUIDADE.md`; depois executar apenas o nó GitHub (`Execute step`) para testar a leitura, nunca o workflow completo nesta etapa.
+- Teste do nó GitHub executado isoladamente com sucesso (somente `Execute step`; o workflow completo não foi executado).
+- Output confirmado pelo usuário: `File Name: CONTEXTO-CONTINUIDADE.md`, `Directory: docs/n8n`, `File Extension: md`, `Mime Type: text/markdown`, `File Size: 10.3 kB`; existe a propriedade binária `Data`, e os controles `View` e `Download` exibem o conteúdo do arquivo.
+- Interpretação atual: o nó retorna o documento como arquivo binário, não como texto diretamente exposto nos campos JSON. Próxima etapa é adicionar um nó de extração de texto do arquivo binário para disponibilizar o conteúdo ao agente, sem escrita remota.
+- **Próximo passo imediato:** adicionar um nó `Extract From File) (ou o nome equivalente disponível na versão instalada) depois do nó GitHub, configurado para extrair texto da propriedade binária `Data`. Não executar o workflow completo; testar apenas o nó novo depois de configurá-lo.
 - Não clicar em `Publish`.
 
 ## Separação dos workflows

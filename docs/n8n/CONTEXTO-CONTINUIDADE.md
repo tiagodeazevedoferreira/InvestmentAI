@@ -13,15 +13,12 @@ O usuário já aprendeu o básico do n8n e agora quer usá-lo como agente que pa
 - Workflow novo criado na interface n8n, separado do workflow antigo.
 - Nome combinado: `InvestmentAI - Agente de Desenvolvimento`.
 - Nó inicial adicionado: `When clicking 'Execute workflow'` (Manual Trigger).
-- Ainda não há outros nós confirmados nesse workflow.
-- Última instrução dada: adicionar um nó GitHub, mas o usuário esclareceu que o editor exige selecionar uma ação ao adicionar o nó.
-- **Próxima ação orientada:** adicionar o nó GitHub escolhendo a ação de leitura de arquivo (`Get a file` / `Get File`, conforme o rótulo da versão instalada), para começar lendo um arquivo de contexto do repositório. Se a interface não oferecer essa ação, pedir ao usuário os nomes exatos das opções exibidas antes de escolher uma alternativa.
-- O nó GitHub ainda não foi confirmado como adicionado/configurado.
-- Não executar o workflow ainda. Não clicar em `Publish`.
-
-## Próximo passo para o usuário
-
-No workflow `InvestmentAI - Agente de Desenvolvimento`, clique no `+` após `When clicking 'Execute workflow'`, pesquise `GitHub` e escolha a ação `Get a file` / `Get File` (leitura de arquivo). Não configure campos nem execute ainda. Se não aparecer essa ação, informar as opções disponíveis. A próxima configuração será definir repositório, caminho do arquivo e branch/ref depois de verificar as opções da interface.
+- Nó GitHub adicionado após o gatilho manual; a ação selecionada é de leitura/obtenção de arquivo (a confirmar pelo teste).
+- Campos `As Binary Property`, `Put Output File in Field` e `Additional Parameters` foram exibidos na configuração. Dentro de `Additional Parameters`, o usuário confirmou existir o campo `Reference`.
+- O usuário preencheu `Reference` com `docs/n8n-context-continuity`, a branch onde está o arquivo de continuidade.
+- Ainda não foi executado nem o nó nem o workflow; não há resultado confirmado de leitura.
+- **Próximo passo:** conferir se os campos de proprietário, repositório e caminho estão preenchidos com `tiagodeazevedoferreira`, `InvestmentAI` e `docs/n8n/CONTEXTO-CONTINUIDADE.md`; depois executar apenas o nó GitHub (`Execute step`) para testar a leitura, nunca o workflow completo nesta etapa.
+- Não clicar em `Publish`.
 
 ## Separação dos workflows
 

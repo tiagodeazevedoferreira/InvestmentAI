@@ -39,7 +39,32 @@ O usuário já aprendeu o básico do n8n e agora quer usá-lo como agente que pa
   - `GitHub - Ler Project Paper_Signal_automation` → `Extrair Paper_Signal_automation`, saída `paper_signal_automation_text`.
 - O nó `Consolidar Contexto do Projeto` busca os dados diretamente pelos nomes dos nós de extração com `$(fonte.no).first().json`, usando o campo configurado e `text` como fallback. O array `fontes` deve conter os nove documentos, com os nomes exatos dos nós.
 - **Validação confirmada pelo usuário em 21/10/2026:** a saída do nó de consolidação apresentou `status: contexto_consolidado` e `total_documentos: 9`. Os nove documentos estão consolidados com sucesso.
-- **Próximo passo:** continuar ampliando a leitura documental incrementalmente, se necessário, ou avançar para a próxima etapa de análise do agente. Antes de adicionar outro documento, verificar se ele agrega informação nova e não duplicada.
+- **Estado atualizado em 22/10/2026:** a leitura e consolidação dos nove documentos está validada; não adicionar novos documentos sem evidência de necessidade. A etapa atual é validar a qualidade do diagnóstico produzido pelo modelo e confrontá-lo com o estado documentado do repositório.
+- **Próximo passo atual:** fazer uma inspeção somente de leitura do artefato `artifacts/xgboost-oos-predictive-economic-diagnosis/report.json`, citado em `DEVELOPMENT_STATUS.md` na seção Task 052, para confirmar existência, origem/execução e resultados por ativo. Não implementar mudanças no modelo antes dessa verificação.
+## Estado da análise técnica do agente — 22/10/2026
+
+### Contexto e resultado do teste
+
+- O nó `Preparar Prompt de Análise` foi configurado para preparar o contexto consolidado de nove documentos. Saída validada: `status: prompt_preparado`, `total_documentos: 9`.
+- No nó `Ollama - Modelo Local`, foi testado `Context Length = 32768`.
+- O prompt de análise foi revisado para exigir seis seções, citações documentais literais, separação entre FATO/INFERÊNCIA/NÃO CONFIRMADO, uma única tarefa prioritária e nenhuma confusão entre o agente n8n e o desenvolvimento do InvestmentAI.
+- Mesmo após essa revisão, a resposta do modelo recomendou incorretamente expandir o workflow n8n e classificou as tarefas 023 e 052 como pendentes. Isso contradiz os documentos fornecidos: `DEVELOPMENT_STATUS.md` registra Task 023 como “Completed and validated on 2026-09-24” e Task 052 como “Implemented on 2026-10-06”.
+- Conclusão: a resposta do modelo não deve ser tratada como fonte de verdade. A qualidade da análise precisa ser verificada contra evidências concretas do repositório; não repetir alterações no prompt ou adicionar documentos sem diagnóstico específico.
+
+### Estado técnico relevante identificado nos documentos fornecidos em 22/10/2026
+
+- `DEVELOPMENT_STATUS.md`, seção `Current ML validation gate`: o gate de robustez ainda não foi aprovado.
+- `PROJECT_CONTEXT.md`, seção `XGBoost OOS economic verdict checkpoint — 2026-10-06`: o baseline XGBoost não está economicamente validado para promoção; os retornos após custos e os retornos excedentes sobre buy-and-hold foram negativos para PETR4, VALE3 e ITUB4.
+- `DEVELOPMENT_STATUS.md`, seção Task 052: a implementação de diagnóstico preditivo versus econômico está documentada, e o artefato esperado é `artifacts/xgboost-oos-predictive-economic-diagnosis/report.json`.
+- Task 023 está documentada como concluída e validada. Task 052 está documentada como implementada; isso não implica aprovação econômica do modelo.
+- `ROADMAP.md` registra `GCP infrastructure bootstrap validation/apply` como não concluída, mas não há evidência suficiente de que essa seja a próxima prioridade imediata.
+
+### Próxima ação acordada
+
+Inspecionar somente para leitura o arquivo `artifacts/xgboost-oos-predictive-economic-diagnosis/report.json` no repositório `tiagodeazevedoferreira/InvestmentAI`. Confirmar se existe, qual execução/versão representa e quais resultados apresenta para PETR4, VALE3 e ITUB4. Se estiver ausente, registrar essa ausência e verificar a origem do artefato sem executar qualquer operação financeira.
+
+Não executar runner com `--execute`, não enviar novas ordens DEMO, não alterar thresholds, testes, gates ou código, e não promover o modelo com base nessa análise. A próxima tarefa técnica só deve ser definida depois de inspecionar as evidências e verificar se já existe decisão posterior registrada.
+
 ## Separação dos workflows
 
 ### Workflow novo: `InvestmentAI - Agente de Desenvolvimento`

@@ -41,33 +41,49 @@ O usuário já aprendeu o básico do n8n e agora quer usá-lo como agente que pa
 - **Validação confirmada pelo usuário em 21/10/2026:** a saída do nó de consolidação apresentou `status: contexto_consolidado` e `total_documentos: 9`. Os nove documentos estão consolidados com sucesso.
 - **Estado atualizado em 22/10/2026:** a leitura e consolidação dos nove documentos está validada; não adicionar novos documentos sem evidência de necessidade. A etapa atual é validar a qualidade do diagnóstico produzido pelo modelo e confrontá-lo com o estado documentado do repositório.
 - **Próximo passo atual do trabalho no n8n:** continuar desenvolvendo o próprio workflow `InvestmentAI - Agente de Desenvolvimento`, priorizando o diagnóstico e a correção da baixa qualidade das respostas do Ollama. Não desviar para investigar diretamente o artefato XGBoost no repositório como tarefa principal; esse artefato pode ser uma fonte consultada pelo agente quando o fluxo de análise estiver confiável. Não adicionar mais documentos sem necessidade demonstrada.
-## Estado da análise técnica do agente n8n — 22/10/2026
+## Objetivo e ponto de retomada do agente de desenvolvimento — 22/10/2026
 
-### Contexto e resultado do teste
+### Objetivo principal confirmado pelo usuário
 
-- O nó `Preparar Prompt de Análise` prepara o contexto consolidado de nove documentos. Saída validada: `status: prompt_preparado`, `total_documentos: 9`.
-- No nó `Ollama - Modelo Local`, foi testado `Context Length = 32768`.
-- O prompt foi revisado para exigir seis seções, evidências documentais literais, separação entre FATO/INFERÊNCIA/NÃO CONFIRMADO, apenas uma tarefa prioritária e nenhuma confusão entre o agente n8n e o desenvolvimento do InvestmentAI.
-- Mesmo assim, a resposta do modelo recomendou incorretamente expandir o workflow n8n e classificou as tarefas 023 e 052 como pendentes. Isso contradiz `DEVELOPMENT_STATUS.md`, que registra Task 023 como concluída/validada e Task 052 como implementada.
-- Conclusão operacional: a leitura e consolidação documental já funcionam. O problema a resolver agora é a confiabilidade da análise gerada pelo modelo e a forma como o workflow lhe fornece o contexto. Não retomar a expansão documental como objetivo por padrão nem aceitar a resposta do LLM como fonte de verdade.
+O projeto tem dois objetivos complementares:
 
-### Fatos do projeto que o agente precisa interpretar corretamente
+1. **Aperfeiçoar o agente:** fazer com que interprete corretamente o contexto do InvestmentAI, respeite o estado real das tarefas e decisões, cite evidências e produza diagnósticos técnicos confiáveis.
+2. **Fazer com que o agente desenvolva o InvestmentAI no lugar do usuário, progressivamente:** o agente deve assumir trabalho de engenharia real — identificar a próxima tarefa, planejar, modificar código, executar testes, analisar falhas, iterar e preparar alterações para revisão. Não deve ficar limitado a resumir documentos ou recomendar ações.
 
-- `DEVELOPMENT_STATUS.md`, seção `Current ML validation gate`: o gate de robustez ainda não passou.
-- `PROJECT_CONTEXT.md`, seção `XGBoost OOS economic verdict checkpoint — 2026-10-06`: o baseline XGBoost não está economicamente validado para promoção; resultados após custos e excedentes sobre buy-and-hold foram negativos para PETR4, VALE3 e ITUB4.
-- Task 023 está documentada como concluída e validada. Task 052 está documentada como implementada; isso não significa que o modelo passou no gate econômico.
-- `ROADMAP.md` registra `GCP infrastructure bootstrap validation/apply` como não concluída, mas não há evidência suficiente de que seja a prioridade imediata.
-- O artefato `artifacts/xgboost-oos-predictive-economic-diagnosis/report.json` pode ser consultado posteriormente pelo agente, mas investigar esse artefato diretamente não é a próxima tarefa do usuário nesta sessão.
+A meta de longo prazo é um agente de desenvolvimento que execute trabalho útil no repositório com autonomia crescente, mas com limites explícitos, rastreabilidade e aprovação humana para operações de maior impacto. A execução inicial continua manual e em modo controlado; não presumir autorização para publicar/ativar workflows, fazer merge, alterar infraestrutura, criar issues/PRs ou executar operações financeiras.
 
-### Próxima etapa do desenvolvimento n8n
+### Estado atual validado
 
-Retomar no workflow `InvestmentAI - Agente de Desenvolvimento` e diagnosticar a etapa `Ollama - Modelo Local` sem refazer nós de leitura/consolidação já validados. O próximo passo de interação deve ser pedir ao usuário que abra a última execução do workflow e compartilhe o output completo do nó `Ollama - Modelo Local` (ou confirme que já o tem), junto dos parâmetros efetivos desse nó, especialmente modelo, `Context Length`, tamanho/limite de saída e se o prompt completo está sendo enviado como campo de entrada. Fazer uma única verificação por vez; não pedir para reconstruir o workflow nem alterar várias configurações de uma vez.
+- O workflow `InvestmentAI - Agente de Desenvolvimento` lê e consolida nove documentos. A consolidação foi validada com `status: contexto_consolidado` e `total_documentos: 9`.
+- O nó `Preparar Prompt de Análise` produz `status: prompt_preparado` e `total_documentos: 9`.
+- O nó `Ollama - Modelo Local` foi testado com `Context Length = 32768`.
+- Apesar das regras do prompt, o modelo produziu conclusões incorretas, inclusive recomendando expandir a leitura documental do workflow e tratando Tasks 023 e 052 como pendentes, em contradição com `DEVELOPMENT_STATUS.md`.
+- A leitura/consolidação já funciona; não reconstruir essa parte nem adicionar documentos sem necessidade demonstrada. A prioridade imediata é tornar confiável a análise e depois evoluir o workflow de recomendação para execução controlada de tarefas de engenharia.
 
-A partir dessa evidência, determinar se o problema decorre de contexto truncado, formato/estrutura do prompt, limite de saída ou capacidade do modelo. Só então propor uma alteração pequena e verificável. Se necessário, avaliar dividir a análise em etapas determinísticas ou trocar o modelo local, mas não presumir a causa antes da inspeção.
+### Plano evolutivo do agente
 
-### Limites de segurança
+1. **Diagnóstico e confiabilidade:** verificar o input efetivo enviado ao Ollama, a configuração do modelo, os limites de contexto/saída e o output integral; testar se o agente identifica corretamente fatos explícitos dos documentos.
+2. **Planejamento estruturado:** produzir uma tarefa por execução, com evidências, arquivos afetados, plano de implementação, testes, riscos e critérios de aceitação; separar fatos confirmados de hipóteses.
+3. **Acesso operacional ao repositório:** permitir inspeção de arquivos, branches, testes e resultados de CI por ferramentas adequadas, sem confundir o conteúdo documental com o estado atual do código.
+4. **Implementação controlada:** após validação da análise, capacitar o agente a preparar mudanças de código em branch de trabalho isolada, revisar diffs e executar testes relevantes.
+5. **Iteração de engenharia:** ler erros de testes/CI, diagnosticar, propor e aplicar correções limitadas, repetir testes e registrar evidências.
+6. **Revisão e aprovação:** apresentar diff, resultados de testes, limitações e riscos; exigir autorização explícita antes de ações externas ou irreversíveis, como push, PR, merge, publicação, mudanças de infraestrutura ou qualquer operação financeira.
 
-Não executar runner com `--execute`, não enviar ordens DEMO, não alterar thresholds, testes ou gates do InvestmentAI, e não promover o modelo. Manter o agente em modo de leitura/análise até que sua confiabilidade seja demonstrada e qualquer etapa de escrita tenha aprovação explícita.
+A ordem é progressiva: não avançar diretamente para autonomia irrestrita antes de validar as etapas anteriores. A meta, contudo, é chegar à execução real de trabalho de desenvolvimento — não parar em análises e recomendações.
+
+### Próxima ação concreta
+
+Retomar no n8n, inspecionando o nó `Ollama - Modelo Local` e a entrada que ele efetivamente recebe. Verificar configurações e output antes de mudar o prompt ou trocar o modelo. A primeira correção deve ser pequena, mensurável e testada com os fatos conhecidos sobre Tasks 023 e 052 e sobre o gate econômico do XGBoost.
+
+Após obter respostas confiáveis, a próxima fase será projetar a primeira capacidade de execução real do agente sobre o repositório, começando por leitura/edição isolada e testes, com revisão humana do diff. Não desviar para investigar manualmente o artefato XGBoost como objetivo principal desta sessão.
+
+### Restrições de segurança
+
+- Não executar runner com `--execute`, não enviar ordens DEMO e não promover o modelo.
+- Não habilitar operações financeiras reais.
+- Não publicar/ativar workflows, fazer push/merge ou executar ações externas com efeitos colaterais sem autorização explícita.
+- Preservar os gates estatísticos, OOS, econômicos e operacionais do InvestmentAI; nunca alterar testes ou métricas apenas para aprovar uma estratégia.
+- Uma etapa por vez; indicar precisamente a ação e aguardar confirmação do usuário antes de avançar quando a interação exigir isso.
 
 ## Separação dos workflows
 

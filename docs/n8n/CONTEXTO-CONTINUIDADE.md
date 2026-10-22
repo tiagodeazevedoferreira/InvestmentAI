@@ -40,30 +40,34 @@ O usuário já aprendeu o básico do n8n e agora quer usá-lo como agente que pa
 - O nó `Consolidar Contexto do Projeto` busca os dados diretamente pelos nomes dos nós de extração com `$(fonte.no).first().json`, usando o campo configurado e `text` como fallback. O array `fontes` deve conter os nove documentos, com os nomes exatos dos nós.
 - **Validação confirmada pelo usuário em 21/10/2026:** a saída do nó de consolidação apresentou `status: contexto_consolidado` e `total_documentos: 9`. Os nove documentos estão consolidados com sucesso.
 - **Estado atualizado em 22/10/2026:** a leitura e consolidação dos nove documentos está validada; não adicionar novos documentos sem evidência de necessidade. A etapa atual é validar a qualidade do diagnóstico produzido pelo modelo e confrontá-lo com o estado documentado do repositório.
-- **Próximo passo atual:** fazer uma inspeção somente de leitura do artefato `artifacts/xgboost-oos-predictive-economic-diagnosis/report.json`, citado em `DEVELOPMENT_STATUS.md` na seção Task 052, para confirmar existência, origem/execução e resultados por ativo. Não implementar mudanças no modelo antes dessa verificação.
-## Estado da análise técnica do agente — 22/10/2026
+- **Próximo passo atual do trabalho no n8n:** continuar desenvolvendo o próprio workflow `InvestmentAI - Agente de Desenvolvimento`, priorizando o diagnóstico e a correção da baixa qualidade das respostas do Ollama. Não desviar para investigar diretamente o artefato XGBoost no repositório como tarefa principal; esse artefato pode ser uma fonte consultada pelo agente quando o fluxo de análise estiver confiável. Não adicionar mais documentos sem necessidade demonstrada.
+## Estado da análise técnica do agente n8n — 22/10/2026
 
 ### Contexto e resultado do teste
 
-- O nó `Preparar Prompt de Análise` foi configurado para preparar o contexto consolidado de nove documentos. Saída validada: `status: prompt_preparado`, `total_documentos: 9`.
+- O nó `Preparar Prompt de Análise` prepara o contexto consolidado de nove documentos. Saída validada: `status: prompt_preparado`, `total_documentos: 9`.
 - No nó `Ollama - Modelo Local`, foi testado `Context Length = 32768`.
-- O prompt de análise foi revisado para exigir seis seções, citações documentais literais, separação entre FATO/INFERÊNCIA/NÃO CONFIRMADO, uma única tarefa prioritária e nenhuma confusão entre o agente n8n e o desenvolvimento do InvestmentAI.
-- Mesmo após essa revisão, a resposta do modelo recomendou incorretamente expandir o workflow n8n e classificou as tarefas 023 e 052 como pendentes. Isso contradiz os documentos fornecidos: `DEVELOPMENT_STATUS.md` registra Task 023 como “Completed and validated on 2026-09-24” e Task 052 como “Implemented on 2026-10-06”.
-- Conclusão: a resposta do modelo não deve ser tratada como fonte de verdade. A qualidade da análise precisa ser verificada contra evidências concretas do repositório; não repetir alterações no prompt ou adicionar documentos sem diagnóstico específico.
+- O prompt foi revisado para exigir seis seções, evidências documentais literais, separação entre FATO/INFERÊNCIA/NÃO CONFIRMADO, apenas uma tarefa prioritária e nenhuma confusão entre o agente n8n e o desenvolvimento do InvestmentAI.
+- Mesmo assim, a resposta do modelo recomendou incorretamente expandir o workflow n8n e classificou as tarefas 023 e 052 como pendentes. Isso contradiz `DEVELOPMENT_STATUS.md`, que registra Task 023 como concluída/validada e Task 052 como implementada.
+- Conclusão operacional: a leitura e consolidação documental já funcionam. O problema a resolver agora é a confiabilidade da análise gerada pelo modelo e a forma como o workflow lhe fornece o contexto. Não retomar a expansão documental como objetivo por padrão nem aceitar a resposta do LLM como fonte de verdade.
 
-### Estado técnico relevante identificado nos documentos fornecidos em 22/10/2026
+### Fatos do projeto que o agente precisa interpretar corretamente
 
-- `DEVELOPMENT_STATUS.md`, seção `Current ML validation gate`: o gate de robustez ainda não foi aprovado.
-- `PROJECT_CONTEXT.md`, seção `XGBoost OOS economic verdict checkpoint — 2026-10-06`: o baseline XGBoost não está economicamente validado para promoção; os retornos após custos e os retornos excedentes sobre buy-and-hold foram negativos para PETR4, VALE3 e ITUB4.
-- `DEVELOPMENT_STATUS.md`, seção Task 052: a implementação de diagnóstico preditivo versus econômico está documentada, e o artefato esperado é `artifacts/xgboost-oos-predictive-economic-diagnosis/report.json`.
-- Task 023 está documentada como concluída e validada. Task 052 está documentada como implementada; isso não implica aprovação econômica do modelo.
-- `ROADMAP.md` registra `GCP infrastructure bootstrap validation/apply` como não concluída, mas não há evidência suficiente de que essa seja a próxima prioridade imediata.
+- `DEVELOPMENT_STATUS.md`, seção `Current ML validation gate`: o gate de robustez ainda não passou.
+- `PROJECT_CONTEXT.md`, seção `XGBoost OOS economic verdict checkpoint — 2026-10-06`: o baseline XGBoost não está economicamente validado para promoção; resultados após custos e excedentes sobre buy-and-hold foram negativos para PETR4, VALE3 e ITUB4.
+- Task 023 está documentada como concluída e validada. Task 052 está documentada como implementada; isso não significa que o modelo passou no gate econômico.
+- `ROADMAP.md` registra `GCP infrastructure bootstrap validation/apply` como não concluída, mas não há evidência suficiente de que seja a prioridade imediata.
+- O artefato `artifacts/xgboost-oos-predictive-economic-diagnosis/report.json` pode ser consultado posteriormente pelo agente, mas investigar esse artefato diretamente não é a próxima tarefa do usuário nesta sessão.
 
-### Próxima ação acordada
+### Próxima etapa do desenvolvimento n8n
 
-Inspecionar somente para leitura o arquivo `artifacts/xgboost-oos-predictive-economic-diagnosis/report.json` no repositório `tiagodeazevedoferreira/InvestmentAI`. Confirmar se existe, qual execução/versão representa e quais resultados apresenta para PETR4, VALE3 e ITUB4. Se estiver ausente, registrar essa ausência e verificar a origem do artefato sem executar qualquer operação financeira.
+Retomar no workflow `InvestmentAI - Agente de Desenvolvimento` e diagnosticar a etapa `Ollama - Modelo Local` sem refazer nós de leitura/consolidação já validados. O próximo passo de interação deve ser pedir ao usuário que abra a última execução do workflow e compartilhe o output completo do nó `Ollama - Modelo Local` (ou confirme que já o tem), junto dos parâmetros efetivos desse nó, especialmente modelo, `Context Length`, tamanho/limite de saída e se o prompt completo está sendo enviado como campo de entrada. Fazer uma única verificação por vez; não pedir para reconstruir o workflow nem alterar várias configurações de uma vez.
 
-Não executar runner com `--execute`, não enviar novas ordens DEMO, não alterar thresholds, testes, gates ou código, e não promover o modelo com base nessa análise. A próxima tarefa técnica só deve ser definida depois de inspecionar as evidências e verificar se já existe decisão posterior registrada.
+A partir dessa evidência, determinar se o problema decorre de contexto truncado, formato/estrutura do prompt, limite de saída ou capacidade do modelo. Só então propor uma alteração pequena e verificável. Se necessário, avaliar dividir a análise em etapas determinísticas ou trocar o modelo local, mas não presumir a causa antes da inspeção.
+
+### Limites de segurança
+
+Não executar runner com `--execute`, não enviar ordens DEMO, não alterar thresholds, testes ou gates do InvestmentAI, e não promover o modelo. Manter o agente em modo de leitura/análise até que sua confiabilidade seja demonstrada e qualquer etapa de escrita tenha aprovação explícita.
 
 ## Separação dos workflows
 

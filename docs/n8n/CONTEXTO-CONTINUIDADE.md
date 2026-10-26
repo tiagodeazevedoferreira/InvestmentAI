@@ -71,9 +71,36 @@ A meta de longo prazo é um agente de desenvolvimento que execute trabalho útil
 
 A ordem é progressiva: não avançar diretamente para autonomia irrestrita antes de validar as etapas anteriores. A meta, contudo, é chegar à execução real de trabalho de desenvolvimento — não parar em análises e recomendações.
 
-### Próxima ação concreta
+### Próxima ação concreta — retomada em 26/10/2026
 
-Retomar no n8n, inspecionando o nó `Ollama - Modelo Local` e a entrada que ele efetivamente recebe. Verificar configurações e output antes de mudar o prompt ou trocar o modelo. A primeira correção deve ser pequena, mensurável e testada com os fatos conhecidos sobre Tasks 023 e 052 e sobre o gate econômico do XGBoost.
+Não alterar o prompt nem trocar o modelo ainda. No workflow `InvestmentAI - Agente de Desenvolvimento`, abrir o nó `Ollama - Modelo Local` e inspecionar a configuração efetiva, a entrada recebida e o output integral. Enviar uma captura de tela das configurações do nó (modelo, prompt/input, context length e limite de saída, conforme os campos disponíveis). Não executar mudanças nesta etapa.
+
+A primeira prova de confiabilidade deve confirmar, sem contradição:
+- Task 023: concluída e validada em 2026-09-24.
+- Task 052: implementada em 2026-10-06; implementação não equivale a aprovação econômica.
+- O gate econômico OOS fixo do XGBoost não foi aprovado: os retornos da estratégia após custos foram negativos para PETR4, VALE3 e ITUB4 e ficaram abaixo de buy-and-hold no artefato documentado.
+- LIVE permanece desabilitado.
+
+Após essa inspeção, ajustar uma única variável por vez e repetir o teste factual. Não desviar para uma investigação manual do artefato XGBoost como objetivo principal.
+
+### Plano futuro consolidado para os dois projetos — 26/10/2026
+
+**InvestmentAI (produto):** manter os gates quantitativos, OOS, econômicos e operacionais como autoridade. Considerar agentes de IA como suporte ao desenvolvimento e, mais adiante, à pesquisa financeira — nunca como substitutos dos testes, do motor determinístico ou dos controles de risco.
+
+**n8n (orquestração de engenharia):** evoluir o workflow por etapas verificáveis:
+1. Tornar a análise factual confiável, verificando input e output reais do Ollama.
+2. Acrescentar inspeção somente de leitura do estado real do GitHub: arquivos, código, branches, commits, testes e GitHub Actions; diferenciar fatos documentados de estado atual verificado.
+3. Exigir um plano delimitado antes de qualquer edição: objetivo, evidências, arquivos, critérios de aceitação, testes e riscos.
+4. Habilitar implementação em branch isolada, nunca diretamente em `main`, com limites de escopo.
+5. Executar testes, ler falhas, aplicar correções limitadas e repetir a validação.
+6. Entregar diff, resultados reproduzíveis, critérios atendidos/não atendidos e riscos para revisão humana.
+7. Só então considerar PRs, automação mais ampla e papéis especializados de pesquisa financeira.
+
+**Possíveis ideias a aproveitar futuramente:** ciclo persistente de trabalho (planejar → executar → verificar → corrigir), especialização de papéis de pesquisa (fundamental, técnico, notícias/sentimento, crítica contrária e risco), e relatórios com evidências. Esses padrões são candidatos para avaliação, não componentes já instalados nem uma decisão de adicionar agora TradingAgents ou outro framework.
+
+**Controles obrigatórios:** preservar o workflow antigo `Agente IA - Laboratório`; não ativar/publicar workflows, fazer push/merge, alterar infraestrutura, executar ordens DEMO ou habilitar LIVE sem autorização explícita. Usar credenciais já configuradas e não expor segredos. Não modificar testes/métricas para fazer um modelo parecer aprovado.
+
+O workflow atual já consolida nove documentos; não adicionar novos documentos sem necessidade demonstrada. A etapa imediata continua sendo inspecionar o nó `Ollama - Modelo Local` e sua entrada efetiva.
 
 Após obter respostas confiáveis, a próxima fase será projetar a primeira capacidade de execução real do agente sobre o repositório, começando por leitura/edição isolada e testes, com revisão humana do diff. Não desviar para investigar manualmente o artefato XGBoost como objetivo principal desta sessão.
 

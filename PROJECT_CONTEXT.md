@@ -224,3 +224,31 @@ A symbol passes only when its after-cost OOS strategy return is positive and its
 The current validation artifact from pipeline run 37368612786 does not satisfy this gate: the canonical after-cost strategy returns were approximately -0.21% (PETR4), -7.90% (VALE3) and -13.35% (ITUB4), while excess returns versus buy-and-hold were approximately -18.74, -21.87 and -74.17 percentage points, respectively. Therefore the current XGBoost baseline is not economically validated for promotion. This is a research conclusion, not a trading authorization.
 
 LIVE remains disabled and no execution path is changed by this checkpoint.
+
+## AI-assisted engineering workflow roadmap — 2026-10-26
+
+InvestmentAI development may be accelerated by a controlled engineering agent orchestrated in the local n8n workflow `InvestmentAI - Agente de Desenvolvimento`. This is a development-tooling capability, separate from the runtime trading system and from any model that produces financial signals.
+
+### Intended engineering lifecycle
+
+1. Read the documented project context and inspect the live repository state: source files, tests, branches, recent commits and GitHub Actions results. Treat documentation as evidence, not as a substitute for checking code and CI.
+2. Identify one bounded engineering task and state the evidence, files likely affected, acceptance criteria, risks and test plan before editing.
+3. Prepare code changes only in a dedicated work branch, preserving `main` and existing safety controls.
+4. Run relevant automated tests and available CI checks; inspect failures, apply bounded corrections and repeat validation.
+5. Present the diff, commands/checks and results, limitations, and any remaining risks for human review.
+6. Require explicit human authorization for consequential external actions such as pushing changes when not already authorized, opening/merging a PR, deployment, infrastructure changes, workflow activation, or financial execution.
+
+### Candidate capabilities to develop progressively
+
+- Read-only repository inspection first: retrieve files, branch/commit metadata, changed-file diffs, tests and workflow-run results.
+- Structured task planning with explicit separation of verified facts, inferences and unknowns.
+- Isolated implementation and test/repair loops, with bounded iterations and clear stop conditions.
+- Evidence-backed delivery reports linking each acceptance criterion to changed files and test/CI evidence.
+- Auditability and least privilege: use existing configured credentials, avoid secrets in prompts/logs, limit write permissions, and keep approval gates around irreversible actions.
+- Later, evaluate multi-agent financial-research patterns (for example, separate fundamental, technical, news/sentiment, bull/bear critique and risk-review roles) only as research support. They must not replace the deterministic quant pipeline, OOS validation, economic verdict, independent risk gates or staged SIMULATION → PAPER → DEMO → LIVE promotion process.
+
+### Boundaries and current status
+
+This roadmap is a future engineering direction, not a claim that the n8n agent already edits code or runs tests. The current n8n workflow has validated document consolidation, but its local model's analysis is not yet sufficiently reliable. First validate factual grounding and inspect the effective model input/output; then add read-only repository inspection; only after those stages pass should isolated code-writing and test/repair capabilities be introduced.
+
+The current XGBoost baseline remains economically unvalidated under the fixed after-cost OOS gate described above. Improving the development agent does not approve the model, change trading policy or enable LIVE execution.
